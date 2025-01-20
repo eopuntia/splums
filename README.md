@@ -37,3 +37,16 @@ Develop a database management system with the following functions:
    4. Administrator should have the ability to add and manage notes on lab users and attendants, including notes that are viewable to administrators only.
 
 This system should function on an air-gapped LAN using several PCs and embedded hardware in order to protect the personally identifying information of the lab users.
+
+## SETUP
+
+*SPAWNING CONTAINERS*
+
+To launch the mariadb database, go into the containers directory and run 'docker compose up'. This will spawn the containers attached to the terminal
+that you run the command in. This is useful to be able to view the logs in realtime if things arent working properly. You can also run with
+'docker compose up -d' to spawn them as background processess. To stop the containers run 'docker compose down'. It may be necessary if you want
+to reset everything to run 'docker compose down --volumes'. This removes the volumes associated with the containers. (volumes store persistent data)
+
+I have configured the container to run on the standard mariadb port. 
+You can also login to the admin panel if you go to localhost:8080 in your web browser to test logging into the database and see if its all working.
+I have created a user splums, with a database splums. The configuration information is in the compose file, but that is what you would connect to with SQL Alchemy
