@@ -13,7 +13,7 @@ services:
       MARIADB_PASSWORD: example
       MARIADB_RANDOM_ROOT_PASSWORD: true
     ports:
-        - "3306:3306"
+        - "3307:3306"
 
   adminer:
     image: adminer
