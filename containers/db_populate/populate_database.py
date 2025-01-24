@@ -94,7 +94,7 @@ event_types_table = sa.Table(
 # Inserts user information intp users table
 def Insert_user(bronco_id: str, name: str, photo_url: str, user_type_id: int, created_at: datetime, last_updated_at: datetime) -> None:
     with engine.connect() as conn:
-        query_check = sa.select(users_table).where(users_table.c.bronco_id == bronco_id)
+        query_check = sa.select(users_table).where((users_table.c.bronco_id == bronco_id))
         result = conn.execute(query_check).fetchone()
         conn.commit()
 
@@ -132,7 +132,13 @@ def Insert_user_types(user_type: str) -> None:
 # Inserts notes into notes table
 def Insert_notes(note: str, user_id: str, created_by: str, created_at: datetime, last_updated_at: datetime) -> None:
     with engine.connect() as conn:
-        query_check = sa.select(notes_table).where(notes_table.c.user_id == user_id)
+        query_check = sa.select(notes_table).where(
+            (notes_table.c.note == note) &
+            (notes_table.c.user_id == user_id) &
+            (notes_table.c.created_by == created_by) &
+            (notes_table.c.created_at == created_at) &
+            (notes_table.c.last_updated_at == last_updated_at)
+            )
         result = conn.execute(query_check).fetchone()
         conn.commit()
         
@@ -153,7 +159,11 @@ def Insert_notes(note: str, user_id: str, created_by: str, created_at: datetime,
 # Inserts user machines into user_machines table
 def Insert_user_machines(equipment_id: int, completed_training: bool, user_id: str) -> None:
     with engine.connect() as conn:
-        query_check = sa.select(user_machines_table).where(user_machines_table.c.user_id == user_id)
+        query_check = sa.select(user_machines_table).where(
+            (user_machines_table.c.equipment_id == equipment_id) &
+            (user_machines_table.c.completed_training == completed_training) &
+            (user_machines_table.c.user_id == user_id)
+            )
         result = conn.execute(query_check).fetchone()
         conn.commit()
         
@@ -187,7 +197,11 @@ def Insert_equipment(equipment_name: str) -> None:
 # Inserts new event log into event_log table
 def Insert_event_log(event_type_id: int, user_id: str, timestamp: datetime) -> None:
     with engine.connect() as conn:
-        query_check = sa.select(event_logs_table).where(event_logs_table.c.user_id == user_id)
+        query_check = sa.select(event_logs_table).where(
+            (event_logs_table.c.event_type_id == event_type_id)
+            (event_logs_table.c.user_id == user_id) &
+            (event_logs_table.c.timestamp == timestamp)
+            )
         result = conn.execute(query_check).fetchone()
         conn.commit()
         
