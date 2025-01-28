@@ -198,8 +198,8 @@ def Insert_equipment(equipment_name: str) -> None:
 def Insert_event_log(event_type_id: int, user_id: str, timestamp: datetime) -> None:
     with engine.connect() as conn:
         query_check = sa.select(event_logs_table).where(
-            (event_logs_table.c.event_type_id == event_type_id)
-            (event_logs_table.c.user_id == user_id) &
+            (event_logs_table.c.event_type_id == event_type_id) and
+            (event_logs_table.c.user_id == user_id) and
             (event_logs_table.c.timestamp == timestamp)
             )
         result = conn.execute(query_check).fetchone()
