@@ -12,32 +12,29 @@ res_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
 res_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
 
 capturing = True
-pic_taken = False
+pic_key = 0
 
 while capturing:
-
-    # key = cv2.waitKey()
-
     ret, frame = camera.read()
 
     # Video if a snapshot hasnt been taken
-    if not pic_taken:
+    if pic_key != ord('c'):
         cv2.imshow('Camera', frame)
-
-    if cv2.waitKey(1) == ord('c'):
-        pic_taken = True
+        pic_key = cv2.waitKey(1)
+    else:
         file_path = file_name + ".jpg"
         cv2.imwrite(file_path, frame)
-        # redo = cv2.waitKey(500)
-        # if redo == ord('y'):
-        #     pic_taken == False
-        # else:
-        #     break
-            
-        
-
+        redo = cv2.waitKey(0)
+        print("captured")
+        if redo == ord('y'):
+            print("redone")
+            pic_key = 0
+        else:
+            print("pic taken, quiting")
+            break
     # Break loop
-    if cv2.waitKey(1) == ord('q'):
+    if pic_key == ord('q'):
+        print("quiting")
         break
 
 # Release the capture and writer objects
