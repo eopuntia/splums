@@ -22,7 +22,7 @@ while capturing:
         cv2.imshow('Camera', frame)
         pic_key = cv2.waitKey(1)
     else:
-        file_path = file_name + ".jpg"
+        file_path = "./images/" + file_name + ".jpg"
         cv2.imwrite(file_path, frame)
         redo = cv2.waitKey(0)
         print("captured")
