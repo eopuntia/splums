@@ -1,4 +1,5 @@
 import cv2
+import os
 
 
 name = input("Enter student's first and last name: ")
@@ -22,6 +23,9 @@ while capturing:
         cv2.imshow('Camera', frame)
         pic_key = cv2.waitKey(1)
     else:
+        # check to add dir
+        if not os.path.exists("./images/"):
+            os.makedirs("./images/")
         file_path = "./images/" + file_name + ".jpg"
         cv2.imwrite(file_path, frame)
         redo = cv2.waitKey(0)
