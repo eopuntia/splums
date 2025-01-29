@@ -2,9 +2,12 @@
 
 ## SETUP
 
-*DEPENDENCY SETUP*
+*General Information*
 
 All python code related to the core project is going to be placed in the splums directory. Test files will be placed in tests. Files related to running the containers are in containers. Documentation files are in docs. 
+
+*DEPENDENCY SETUP*
+
 
 Before the project can be ran on your system you will need to install the required python dependencies:
 
