@@ -1,11 +1,12 @@
 import os
+import sqlalchemy as sa
 
 from sqlalchemy import create_engine, event, Engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-engine = create_engine(f"sqlite:///{BASE_DIR}/db", echo=True)
+engine = sa.create_engine("mariadb+mariadbconnector://splums:example@127.0.0.1:3307/splums")
 
 session = scoped_session(
     sessionmaker(
