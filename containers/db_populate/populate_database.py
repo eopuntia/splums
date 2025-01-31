@@ -6,7 +6,6 @@ import logging # For debug information
 logging.basicConfig()
 logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
-
 from datetime import datetime
 
 import sqlalchemy as sa
@@ -47,8 +46,8 @@ notes_table = sa.Table(
     metadata,
     Column("note_id", Integer, primary_key=True, autoincrement=True),
     Column("note", VARCHAR(255), nullable=False),
-    Column("user_id", VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True, unique=True),
-    Column("created_by", VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True, unique=True),
+    Column("user_id", VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True),
+    Column("created_by", VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True),
     Column("created_at", DateTime, nullable=False, default=datetime.now),
     Column("last_updated_at", DateTime, nullable=False, default=datetime.now)
 )

@@ -30,14 +30,17 @@ class event_types(Model):
 class notes(Model):
     __tablename__ = 'notes'
 
-    notes_id = Column(Integer, primary_key=True, autoincrement=True)
+    note_id = Column(Integer, primary_key=True, autoincrement=True)
+
     note = Column(VARCHAR(255), nullable=False)
     user_id = Column(VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True)
     created_by = Column(VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     last_updated_at = Column(DateTime, nullable=False, default=datetime.now)
 
-    user = Relationship("users", back_populates="notes")
+    user = Relationship("users", foreign_keys=[user_id], back_populates="notes")
+    creator = Relationship("users", foreign_keys=[created_by])
+
 
 class user_types(Model):
     __tablename__ = 'user_types'
@@ -58,7 +61,8 @@ class users(Model):
     last_updated_at = Column(DateTime, nullable=False, default=datetime.now)
 
     user_type = Relationship("user_types", back_populates="users")
-    notes = Relationship("notes", back_populates="user")
+    notes = Relationship("notes", back_populates="user", foreign_keys="[notes.user_id]")  # Use user_id as foreign key
+    created_notes = Relationship("notes", foreign_keys="[notes.created_by]", back_populates="creator")  # Use created_by as foreign key
     user_logs = Relationship("event_logs", back_populates="user")
     user_machines = Relationship("user_machines", back_populates="user")
 
