@@ -237,13 +237,7 @@ def Insert_event_type(event_type: str) -> None:
 
 
 def Read_users() -> None:
-<<<<<<< Updated upstream
     with open('db_info/users.csv') as file:
-=======
-       path = os.getcwd()
-       file_path = os.path.join(path, "db_info/users.csv")
-       with open(file_path) as file:
->>>>>>> Stashed changes
         csv_reader = csv.reader(file)
         next(csv_reader)  # Skip the header row
         reset_auto_increment("users")
@@ -260,13 +254,7 @@ def Read_users() -> None:
 
 
 def Read_user_types() -> None:
-<<<<<<< Updated upstream
     with open('db_info/user_types.csv') as file:
-=======
-    path = os.getcwd()
-    file_path = os.path.join(path, "db_info/user_types.csv")
-    with open(file_path) as file:
->>>>>>> Stashed changes
             csv_reader = csv.reader(file)
             next(csv_reader)  # Skip the header row
             reset_auto_increment("user_types")
@@ -277,13 +265,7 @@ def Read_user_types() -> None:
                 Insert_user_types(user_type)
 
 def Read_notes() -> None:
-<<<<<<< Updated upstream
     with open('db_info/notes.csv') as file:
-=======
-     path = os.getcwd()
-     file_path = os.path.join(path, "db_info/notes.csv")
-     with open(file_path) as file:
->>>>>>> Stashed changes
         csv_reader = csv.reader(file)
         next(csv_reader)  # Skip the header row
         reset_auto_increment("notes")
@@ -298,13 +280,7 @@ def Read_notes() -> None:
             Insert_notes(note, user_id, created_by, created_at, last_updated_at)
 
 def Read_user_machines() -> None:
-<<<<<<< Updated upstream
     with open('db_info/user_machines.csv') as file:
-=======
-    path = os.getcwd()
-    file_path = os.path.join(path, "db_info/user_machines.csv")
-    with open(file_path) as file:
->>>>>>> Stashed changes
         csv_reader = csv.reader(file)
         next(csv_reader)  # Skip the header row
         reset_auto_increment("user_machines")
@@ -317,13 +293,7 @@ def Read_user_machines() -> None:
             Insert_user_machines(equipment_id, completed_training, user_id)
 
 def Read_equipment() -> None:
-<<<<<<< Updated upstream
     with open('db_info/equipment.csv') as file:
-=======
-    path = os.getcwd()
-    file_path = os.path.join(path, "db_info/equipment.csv")
-    with open(file_path) as file:
->>>>>>> Stashed changes
         csv_reader = csv.reader(file)
         next(csv_reader)  # Skip the header row
         reset_auto_increment("equipment")
@@ -334,13 +304,7 @@ def Read_equipment() -> None:
             Insert_equipment(equipment_name)
 
 def Read_event_log() -> None:
-<<<<<<< Updated upstream
     with open('db_info/event_logs.csv') as file:
-=======
-    path = os.getcwd()
-    file_path = os.path.join(path, "db_info/event_logs.csv")
-    with open(file_path) as file:
->>>>>>> Stashed changes
         csv_reader = csv.reader(file)
         next(csv_reader)  # Skip the header row
         reset_auto_increment("event_logs")
@@ -353,13 +317,7 @@ def Read_event_log() -> None:
             Insert_event_log(event_type_id, user_id, timestamp)
 
 def Read_event_types() -> None:
-<<<<<<< Updated upstream
     with open('db_info/event_types.csv') as file:
-=======
-    path = os.getcwd()
-    file_path = os.path.join(path, "db_info/event_types.csv")
-    with open(file_path) as file:
->>>>>>> Stashed changes
         csv_reader = csv.reader(file)
         next(csv_reader)  # Skip the header row
         reset_auto_increment("event_types")

@@ -1,21 +1,12 @@
 from datetime import datetime
-# from main import session
+from main import session
 from models.models import notes
 
-import sqlalchemy as sa
-from sqlalchemy import create_engine, event, Engine
-from sqlalchemy.orm import scoped_session, sessionmaker
-engine = sa.create_engine("mariadb+mariadbconnector://splums:example@127.0.0.1:3307/splums")
-session = scoped_session(
-    sessionmaker(
-        autoflush=False,
-        autocommit=False,
-        bind=engine
-    )
-)
+#*******************************************************************************************
+# CREATE NEW NOTES
+#*******************************************************************************************
 
-
-def create_note(note: str, user_id: str, created_by: str) -> None:
+def create_note(note: str, user_id: str, created_by: str):
     created_at = datetime.now()
     
     new_note = notes(
@@ -26,29 +17,56 @@ def create_note(note: str, user_id: str, created_by: str) -> None:
         last_updated_at=created_at,
     )
 
-    session.add(new_note)
-    session.commit()
-
     try:
         session.add(new_note)
         session.commit()
         print(f"Note created successfully with ID: {new_note.note_id}")
+        return new_note.note_id # Return note_id for testing
     except Exception as e:
         session.rollback()
         print(f"Error creating note: {e}")
+        return -1
 
-def edit_note(note_id: int, note: str, user_id: str) -> None:
+#*******************************************************************************************
+# EDIT NOTES
+#*******************************************************************************************
+
+def edit_note(note_id: int, note: str):
     updated_note = session.query(notes).filter_by(note_id=note_id).first()
 
-    if updated_note:
+    if updated_note: # Check if note exists and commit changes
         updated_note.note = note
-        updated_note.user_id = user_id
         updated_note.last_updated_at = datetime.now()
 
         session.commit()
         print("Note updated successfully.")
+        # return 1
     else:
-        print("Note not found.")
+        session.rollback()
+        print("Note not found. Unable to edit.")
+        # return 0
+        
+#*******************************************************************************************
+# DELETE NOTES
+#*******************************************************************************************
 
+def delete_note(note_id: int):
+    deleted_note = session.query(notes).filter_by(note_id=note_id).first()
 
-create_note("Testing for new note!", "att2025", "adm1111")
+    if deleted_note: # Check if note exists and delete
+        session.delete(deleted_note)
+        session.commit()
+        print(f"Note with ID {note_id} has been deleted.")
+        # return 1
+    else:
+        session.rollback()
+        print(f"Note with ID {note_id} not found. Unable to delete.")
+        # return 0
+
+# Example test cases
+created_note_id = create_note("Testing for new note!", "att2025", "adm1111")
+edit_note(created_note_id, "Edited note!") # should be success
+delete_note(created_note_id) # should be success
+
+edit_note(created_note_id, "Edited note!") # should fail
+delete_note(created_note_id) # should fail
