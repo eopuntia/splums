@@ -1,5 +1,39 @@
 # Student Projects Lab User Management System
 
+## SETUP
+
+*General Information*
+
+All python code related to the core project is going to be placed in the splums directory. Test files will be placed in tests. Files related to running the containers are in containers. Documentation files are in docs. 
+
+*DEPENDENCY SETUP*
+
+
+Before the project can be ran on your system you will need to install the required python dependencies:
+
+ - sqlalchemy
+ - python-opencv
+
+It is recommended to install the pip packages in a python virtual environment. This basically creates an isolated set of packages specific to this project. This avoids conflicts with pre-existing python projects (usually incompatible versions). 
+
+To perform the setup you may run the script `"install_dependencies.sh"`. This installs the virtual environment and pip packages. This might not work for you depending on your os but you can also use it as a template and type the commands manually. You will then need to manually activate the virtual environment **each new terminal session.** To activate the virtual environment type "`. .venv/bin/activate`" in the root directory of the project. When the virtual environment is activated you should see (.venv) to the left of your prompt. 
+
+
+*SPAWNING AND USING CONTAINERS / MariaDB*
+
+To launch the MariaDB database, go into the containers directory and run `"docker compose up"`. This will spawn the containers attached to the terminal
+that you run the command in. This is useful to be able to view the logs in realtime if things aren't working properly. You can also run with
+`"docker compose up -d"` to spawn them as background processess. To stop the containers run `"docker compose down"`. It may be necessary if you want
+to reset everything to run `"docker compose down --volumes"`. This removes the volumes associated with the containers. (volumes store persistent data)
+
+MariaDB is exposed to your local network through port 3307 to avoid complications with pre-existing MariaDB installations on the default port (3306). The internal docker network communicates through MariaDB on the default port of 3306.
+
+You can login to the admin panel by going to localhost:8080 in your web browser to test logging into the database and to see if its all working.
+Since docker is exposing MariaDB on port 3307 this is the port used to connect to the MariaDB database with an SQL Alchemy engine connection. 
+I have created a user splums, with a database splums. The configuration information is in the compose file, but that is what you would connect to with SQL Alchemy.
+
+![Docker Architecture](./docs/docker.png "Docker architecture")
+
 ## Statement of Work
 Develop a database management system with the following functions:
 1. Maintain the following information about lab users:
@@ -38,15 +72,3 @@ Develop a database management system with the following functions:
 
 This system should function on an air-gapped LAN using several PCs and embedded hardware in order to protect the personally identifying information of the lab users.
 
-## SETUP
-
-*SPAWNING CONTAINERS*
-
-To launch the mariadb database, go into the containers directory and run 'docker compose up'. This will spawn the containers attached to the terminal
-that you run the command in. This is useful to be able to view the logs in realtime if things arent working properly. You can also run with
-'docker compose up -d' to spawn them as background processess. To stop the containers run 'docker compose down'. It may be necessary if you want
-to reset everything to run 'docker compose down --volumes'. This removes the volumes associated with the containers. (volumes store persistent data)
-
-I have configured the container to run on the standard mariadb port. 
-You can also login to the admin panel if you go to localhost:8080 in your web browser to test logging into the database and see if its all working.
-I have created a user splums, with a database splums. The configuration information is in the compose file, but that is what you would connect to with SQL Alchemy

@@ -31,6 +31,7 @@ class notes(Model):
     __tablename__ = 'notes'
 
     note_id = Column(Integer, primary_key=True, autoincrement=True)
+
     note = Column(VARCHAR(255), nullable=False)
     user_id = Column(VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True)
     created_by = Column(VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True)
@@ -39,6 +40,7 @@ class notes(Model):
 
     user = Relationship("users", foreign_keys=[user_id], back_populates="notes")
     creator = Relationship("users", foreign_keys=[created_by])
+
 
 class user_types(Model):
     __tablename__ = 'user_types'
@@ -63,7 +65,6 @@ class users(Model):
     created_notes = Relationship("notes", foreign_keys="[notes.created_by]", back_populates="creator")  # Use created_by as foreign key
     user_logs = Relationship("event_logs", back_populates="user")
     user_machines = Relationship("user_machines", back_populates="user")
-
 
 class equipment(Model):
     __tablename__ = 'equipment'
