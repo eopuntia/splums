@@ -46,6 +46,7 @@ class user_types(Model):
 
     user_type_id = Column(Integer, primary_key=True)
     name = Column(VARCHAR(255), nullable=False)
+    last_updated_at = Column(DateTime, nullable=False, default=datetime.now)
 
     users = Relationship("users", back_populates="user_type")
 

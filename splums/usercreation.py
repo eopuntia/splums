@@ -36,7 +36,7 @@ def edit_user(bronco_id: int, user: str):
     updated_user = session.query(users).filter_by(bronco_id =bronco_id).first()
 
     if updated_user: # Check if user exists and commit changes
-        updated_user.bronco_id = bronco_id
+        updated_user.name = user
         updated_user.last_updated_at = datetime.now()
 
         session.commit()
