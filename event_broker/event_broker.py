@@ -1,14 +1,16 @@
 from events import Event
+from events import EventTypes
 
 """This is currently just a framework for the event broker.
     Function names may be changed when they are actually developed."""
 def event_broker(event):
     match event.event_type:
-        case 0: # Swipe In
+        case EventTypes.SWIPE_IN: # Swipe In
             print(f"Swipe In")
             # Call swipe processor
             # swipeInProcess(event)
-        case 1: # Accepted Swipe In
+
+        case EventTypes.ACCEPPTED_SWIPE_IN: # Accepted Swipe In
             print(f"Accepted Swipe In")
             # Call all necessary modules
             # towerLightGreen()
@@ -17,18 +19,18 @@ def event_broker(event):
             # updateDB(event)
             # expectEnter()
             
-        case 2: # Denied Swipe In
+        case EventTypes.DENIED_SWIPE_IN: # Denied Swipe In
             print(f"Denied Swipe In")
             # Call all necessary modules
             # towerLightRed()
             # updateDB(event)
 
-        case 3: # Swipe Out
+        case EventTypes.SWIPE_OUT: # Swipe Out
             print(f"Swipe Out")
             # Call swipe processor
             # swipeOutProcess(event)
 
-        case 4: # Accepted Swipe Out
+        case EventTypes.ACCEPTED_SWIPE_OUT: # Accepted Swipe Out
             print(f"Accepted Swipe Out")
             # Call all necessary modules
             # towerLightGreen()
@@ -36,56 +38,56 @@ def event_broker(event):
             # removeLabScreen(event)
             # updateDB(event)
             # expectExit()
-            
-        case 5: # Denied Swipe Out
+    
+        case EventTypes.DENIED_SWIPE_OUT: # Denied Swipe Out
             print(f"Denied Swipe Out")
             # Call all necessary modules
             # towerLightRed()
             # updateDB(event)
 
-        case 6: # Expected Gate Crossing
+        case EventTypes.EXPECTED_GATE_CROSSING: # Expected Gate Crossing
             print(f"Expected Gate Crossing")
             # Call all necessary modules
             # updateDB(event)
 
-        case 7: # Unexpected Gate Crossing
+        case EventTypes.UNEXPECTED_GATE_CROSSING: # Unexpected Gate Crossing
             print(f"Unexpected Gate Crossing")
             # Call all necessary modules
             # activateAlarm()
             # towerLightRed()
             # updateDB(event)
 
-        case 8: # Create New User
+        case EventTypes.CREATE_NEW_USER: # Create New User
             print(f"Create New User")
             # Call all necessary modules
             # createUser(event)
             # updateDB(event)
 
-        case 9: # Delete User
+        case EventTypes.DELETE_USER: # Delete User
             print(f"Delete User")
             # Call all necessary modules
             # deleteUser(event)
             # updateDB(event)
 
-        case 10: # Edit User
+        case EventTypes.EDIT_USER: # Edit User
             print(f"Edit User")
             # Call all necessary modules
             # editUser(event)
             # updateDB(event)
 
-        case 11: # Create Note
+        case EventTypes.CREATE_NOTE: # Create Note
             print(f"Create Note")
             # Call all necessary modules
             # createNote(event)
             # updateDB(event)
 
-        case 12: # Edit Note
+        case EventTypes.EDIT_NOTE: # Edit Note
             print(f"Edit Note")
             # Call all necessary modules
             # editNote(event)
             # updateDB(event)
 
-        case 13: # Delete Note
+        case EventTypes.DELETE_NOTE: # Delete Note
             print(f"Delete Note")
             # Call all necessary modules
             # deleteNote(event)
