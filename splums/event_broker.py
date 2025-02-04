@@ -95,5 +95,23 @@ def event_broker(event: Event):
             # deleteNote(event)
             # updateDB(event)
 
+        case EventTypes.OPEN_LAB: # Open Lab
+            print(f"Open Lab")
+            # Call all necessary modules
+            # editNote(event)
+            # updateDB(event)
+
+        case EventTypes.CLOSE_LAB: # Close Lab
+            print(f"Close Lab")
+            # Call all necessary modules
+            # editNote(event)
+            # updateDB(event)
+
+        case EventTypes.ARCHIVE_USER: # Archive User
+            print(f"Archive User")
+            # Call all necessary modules
+            # editNote(event)
+            # updateDB(event)
+
         case _:
             print(f"Error")
