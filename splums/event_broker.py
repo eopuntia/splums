@@ -3,14 +3,16 @@ from events import EventTypes
 
 """This is currently just a framework for the event broker.
     Function names may be changed when they are actually developed."""
-def event_broker(event):
+def event_broker(event: Event):
+    from swipe_processor import swipe_in_process
+    from swipe_processor import swipe_out_process
     match event.event_type:
         case EventTypes.SWIPE_IN: # Swipe In
             print(f"Swipe In")
             # Call swipe processor
-            # swipeInProcess(event)
+            swipe_in_process(event)
 
-        case EventTypes.ACCEPPTED_SWIPE_IN: # Accepted Swipe In
+        case EventTypes.ACCEPTED_SWIPE_IN: # Accepted Swipe In
             print(f"Accepted Swipe In")
             # Call all necessary modules
             # towerLightGreen()
@@ -28,7 +30,7 @@ def event_broker(event):
         case EventTypes.SWIPE_OUT: # Swipe Out
             print(f"Swipe Out")
             # Call swipe processor
-            # swipeOutProcess(event)
+            swipe_out_process(event)
 
         case EventTypes.ACCEPTED_SWIPE_OUT: # Accepted Swipe Out
             print(f"Accepted Swipe Out")

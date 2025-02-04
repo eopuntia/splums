@@ -9,7 +9,7 @@ class Event:
 
 class EventTypes(Enum):
     SWIPE_IN = 0
-    ACCEPPTED_SWIPE_IN = 1
+    ACCEPTED_SWIPE_IN = 1
     DENIED_SWIPE_IN = 2
     SWIPE_OUT = 3
     ACCEPTED_SWIPE_OUT = 4
