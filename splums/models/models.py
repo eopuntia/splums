@@ -1,81 +1,141 @@
-from datetime import datetime
-from sqlalchemy import Column, Integer, VARCHAR, ForeignKey, DateTime, Boolean
-from sqlalchemy.orm import declarative_base, Relationship
-from main import session
+import datetime
+from typing import List, Optional
+from sqlalchemy import String, Text, ForeignKey, DateTime
+from sqlalchemy.sql import func
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-Model = declarative_base()
-Model.query = session.query_property()
+# The base class contains the registry of all ORM classes. Each specific ORM class inherits base
+# to be added to the registry. Then, when you import Base in your other files you will have access
+# to the ORM structure. You will also have to include the speicific ORM classes used. See the populate_database.py file.
+class Base(DeclarativeBase):
+    pass
 
+# Defines a table role in SQL, which corresponds to the Role class
+class Role(Base):
+    # sets the table name
+    __tablename__ = 'role'
 
-class event_logs(Model):
-    __tablename__ = 'event_logs'
+    # Mapped[int] means "use int python type", then, mapped_column is used for further specification. In this case, you say it is the primary key.
+    role_id: Mapped[int] = mapped_column(primary_key=True)
+    # same for this one, str is the python class, and String(255) corresponds to VARCHAR(255)
+    name: Mapped[str] = mapped_column(String(255))
 
-    event_id = Column(Integer, primary_key=True, autoincrement=True)
-    event_type_id = Column(Integer, ForeignKey("event_types.event_types_id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True)
-    timestamp = Column(DateTime, nullable=False, default=datetime.now)
+    # This indicates that many accounts can have one role. This is the array of accounts associated with each role.
+    # These relationships are a big part of the ORM power. See the populate database, but it lets you query for all classes / add fields 
+    # without needing to worry about the id specifically.
+    # It is Mapped[List] as many accounts can correspond to each role.
+    #The "Account" is saying that its grabbing the records from the Account table. The back_populates="role" is saying that THESE ROLES
+    # will themselves populate the "role" field in account, so they both talk to each other. You will see a similar pattern in account
+    accounts: Mapped[List["Account"]] = relationship(back_populates="role")
 
-    event_type = Relationship("event_types", back_populates="events")
-    user = Relationship("users", back_populates="user_logs")
+# same as role basically 
+class Status(Base):
+    __tablename__ = 'status'
 
+    status_id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
 
-class event_types(Model):
-    __tablename__ = 'event_types'
+    # This indicates that many accounts can have one status. This is the array of accounts associated with each status.
+    accounts: Mapped[List["Account"]] = relationship(back_populates="status")
 
-    event_types_id = Column(Integer, primary_key=True, autoincrement=True)
-    event_type = Column(VARCHAR(255), nullable=False)
+class Account(Base):
+    __tablename__ = 'account'
 
-    events = Relationship("event_logs", back_populates="event_type")
+    account_id: Mapped[int] = mapped_column(primary_key=True)
+    # Similar to indicating the primary key with amapped_column, information like ForeignKeys are implied by the mapped_column.
+    # Together with the Mapped[int], Sql alchemy has all the needed information.
+    role_id: Mapped[int] = mapped_column(ForeignKey("role.role_id"))
+    status_id: Mapped[int] = mapped_column(ForeignKey("status.status_id"))
 
-class notes(Model):
-    __tablename__ = 'notes'
+    display_name: Mapped[str] = mapped_column(String(255))
+    given_name: Mapped[str] = mapped_column(String(255))
+    surname: Mapped[str] = mapped_column(String(255))
+    photo_url: Mapped[str] = mapped_column(String(255))
 
-    notes_id = Column(Integer, primary_key=True, autoincrement=True)
-    note = Column(VARCHAR(255), nullable=False)
-    user_id = Column(VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True)
-    created_by = Column(VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.now)
-    last_updated_at = Column(DateTime, nullable=False, default=datetime.now)
+    # this syntax is slightly verbose and maybe there is a better way to do this, but it makes it so the timefield is automatically
+    # populated to the current time whenever you add a record without needing to specify yourself.
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_updated_at: Mapped[datetime.datetime] = mapped_column( 
+        DateTime(timezone=True), server_default=func.now()
+    )
 
-    user = Relationship("users", back_populates="notes")
+    # Relationships where the account is the one in one-many
+    # another field of foreign_keys is added for notes_subject and notes_creator since they both reference account ids so you need
+    # to let SQL alchemy know which one is which.
+    notes_subject: Mapped[List["Note"]] = relationship(back_populates="subject_account", foreign_keys="Note.subject_account_id")
+    notes_creator: Mapped[List["Note"]] = relationship(back_populates="creator_account", foreign_keys="Note.creator_account_id")
+    events: Mapped[List["Event"]] = relationship(back_populates="account")
+    equipments: Mapped[List["Account_Equipment"]] = relationship(back_populates="account")
+    
+    # Relationships where the account is the many in one-many. 
+    # This is the relationship that corresponds to the accounts field in Role.
+    role: Mapped["Role"] = relationship(back_populates="accounts")
+    status: Mapped["Status"] = relationship(back_populates="accounts")
 
-class user_types(Model):
-    __tablename__ = 'user_types'
+class Note(Base):
+    __tablename__ = 'note'
 
-    user_type_id = Column(Integer, primary_key=True)
-    name = Column(VARCHAR(255), nullable=False)
+    note_id: Mapped[int] = mapped_column(primary_key=True)
+    subject_account_id: Mapped[int] = mapped_column(ForeignKey("account.account_id"))
+    creator_account_id: Mapped[int] = mapped_column(ForeignKey("account.account_id"))
 
-    users = Relationship("users", back_populates="user_type")
+    text: Mapped[str] = mapped_column(Text)
 
-class users(Model):
-    __tablename__ = 'users'
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_updated_at: Mapped[datetime.datetime] = mapped_column( 
+        DateTime(timezone=True), server_default=func.now()
+    )
 
-    bronco_id = Column(VARCHAR(255), primary_key=True)
-    name = Column(VARCHAR(255), nullable=False)
-    photo_url = Column(VARCHAR(255), nullable=False)
-    user_type_id = Column(Integer, ForeignKey("user_types.user_type_id", ondelete="CASCADE"), nullable=False, index=True, unique=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.now)
-    last_updated_at = Column(DateTime, nullable=False, default=datetime.now)
+    # similarly to in the account table, it is necessary to let SQL alchemy know which keys specifically each one relates too.
+    subject_account: Mapped["Account"] = relationship(back_populates="notes_subject", foreign_keys=[subject_account_id])
+    creator_account: Mapped["Account"] = relationship(back_populates="notes_creator", foreign_keys=[creator_account_id])
 
-    user_type = Relationship("user_types", back_populates="users")
-    notes = Relationship("notes", back_populates="user")
-    user_logs = Relationship("event_logs", back_populates="user")
-    user_machines = Relationship("user_machines", back_populates="user")
-
-class equipment(Model):
+class Equipment(Base):
     __tablename__ = 'equipment'
 
-    equipment_id = Column(Integer, primary_key=True)
-    equipment_name = Column(VARCHAR(255), nullable=False)
+    equipment_id: Mapped[int] = mapped_column(primary_key=True)
 
-    machines = Relationship("user_machines", back_populates="machine")
+    name: Mapped[str] = mapped_column(String(255))
+    icon_url: Mapped[str] = mapped_column(String(255))
 
-class user_machines(Model):
-    __tablename__ = 'user_machines'
+    accounts: Mapped[List["Account_Equipment"]] = relationship(back_populates="equipment")
 
-    user_machine_id = Column(Integer, primary_key=True, autoincrement=True)
-    equipment_id = Column(Integer, ForeignKey("equipment.equipment_id", ondelete="CASCADE"), nullable=False, index=True)
-    completed_training = Column(Boolean, nullable=False, default=False)
-    user_id = Column(VARCHAR(255), ForeignKey("users.bronco_id", ondelete="CASCADE"), nullable=False, index=True)
-    machine = Relationship("equipment", back_populates="machines")
-    user = Relationship("users", back_populates="user_machines")
+class Account_Equipment(Base):
+    __tablename__ = 'account_equipment'
+
+    account_equipment_id: Mapped[int] = mapped_column(primary_key=True)
+
+    equipment_id: Mapped[int] = mapped_column(ForeignKey("equipment.equipment_id"))
+    account_id: Mapped[int] = mapped_column(ForeignKey("account.account_id"))
+
+    # this is an example of a very simple declaration that doesnt even need a mapped_column to add extra information. This is posible in some cases.
+    training_completed: Mapped[bool]
+
+    equipment: Mapped["Equipment"] = relationship(back_populates="accounts")
+    account: Mapped["Account"] = relationship(back_populates="equipments")
+
+class Event_Type(Base):
+    __tablename__ = 'event_type'
+
+    event_type_id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+
+    events: Mapped[List["Event"]] = relationship(back_populates="event_type")
+
+class Event(Base):
+    __tablename__ = 'event'
+
+    event_id: Mapped[int] = mapped_column(primary_key=True)
+    event_type_id: Mapped[int] = mapped_column(ForeignKey("event_type.event_type_id"))
+    account_id: Mapped[Optional[int]] = mapped_column(ForeignKey("account.account_id"))
+    occured_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    event_type: Mapped["Event_Type"] = relationship(back_populates="events")
+    
+    account: Mapped[Optional["Account"]] = relationship(back_populates="events")

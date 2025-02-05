@@ -12,6 +12,7 @@ All python code related to the core project is going to be placed in the splums 
 Before the project can be ran on your system you will need to install the required python dependencies:
 
  - sqlalchemy
+ - mariadb
  - python-opencv
 
 It is recommended to install the pip packages in a python virtual environment. This basically creates an isolated set of packages specific to this project. This avoids conflicts with pre-existing python projects (usually incompatible versions). 
