@@ -12,7 +12,7 @@ class event_logs(Model):
 
     event_id = Column(Integer, primary_key=True, autoincrement=True)
     event_type_id = Column(Integer, ForeignKey("event_types.event_types_id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(VARCHAR(255), ForeignKey("users.win", ondelete="CASCADE"), nullable=False, index=True)
+    win = Column(VARCHAR(255), ForeignKey("users.win", ondelete="CASCADE"), nullable=False, index=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.now)
 
     event_type = Relationship("event_types", back_populates="events")
@@ -33,12 +33,14 @@ class notes(Model):
     note_id = Column(Integer, primary_key=True, autoincrement=True)
 
     note = Column(VARCHAR(255), nullable=False)
-    user_id = Column(VARCHAR(255), ForeignKey("users.win", ondelete="CASCADE"), nullable=False, index=True)
+    win = Column(VARCHAR(255), ForeignKey("users.win", ondelete="CASCADE"), nullable=False, index=True)
     created_by = Column(VARCHAR(255), ForeignKey("users.win", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     last_updated_at = Column(DateTime, nullable=False, default=datetime.now)
+    attendant_view_perms = Column(Boolean, nullable=False, default=False)
+    attendant_edit_perms = Column(Boolean, nullable=False, default=False)
 
-    user = Relationship("users", foreign_keys=[user_id], back_populates="notes")
+    user = Relationship("users", foreign_keys=[win], back_populates="notes")
     creator = Relationship("users", foreign_keys=[created_by])
 
 
@@ -63,7 +65,7 @@ class users(Model):
     last_access = Column(DateTime, nullable=False, default=datetime.now)
 
     user_type = Relationship("user_types", back_populates="users")
-    notes = Relationship("notes", back_populates="user", foreign_keys="[notes.user_id]")  # Use user_id as foreign key
+    notes = Relationship("notes", back_populates="user", foreign_keys="[notes.win]")  # Use win as foreign key
     created_notes = Relationship("notes", foreign_keys="[notes.created_by]", back_populates="creator")  # Use created_by as foreign key
     user_logs = Relationship("event_logs", back_populates="user")
     user_machines = Relationship("user_machines", back_populates="user")
@@ -82,6 +84,6 @@ class user_machines(Model):
     user_machine_id = Column(Integer, primary_key=True, autoincrement=True)
     equipment_id = Column(Integer, ForeignKey("equipment.equipment_id", ondelete="CASCADE"), nullable=False, index=True)
     completed_training = Column(Boolean, nullable=False, default=False)
-    user_id = Column(VARCHAR(255), ForeignKey("users.win", ondelete="CASCADE"), nullable=False, index=True)
+    win = Column(VARCHAR(255), ForeignKey("users.win", ondelete="CASCADE"), nullable=False, index=True)
     machine = Relationship("equipment", back_populates="machines")
     user = Relationship("users", back_populates="user_machines")
