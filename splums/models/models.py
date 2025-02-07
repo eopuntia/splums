@@ -1,10 +1,12 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, VARCHAR, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import declarative_base, Relationship
-from main import session
-
+from sqlalchemy import create_engine, event, Engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+#from main import session
+import sqlalchemy as sa
 Model = declarative_base()
-Model.query = session.query_property()
+#Model.query = session.query_property()
 
 
 class event_logs(Model):
@@ -49,6 +51,7 @@ class user_types(Model):
 
     user_type_id = Column(Integer, primary_key=True)
     name = Column(VARCHAR(255), nullable=False)
+    last_updated_at = Column(DateTime, nullable=False, default=datetime.now)
 
     users = Relationship("users", back_populates="user_type")
 
@@ -81,9 +84,17 @@ class equipment(Model):
 class user_machines(Model):
     __tablename__ = 'user_machines'
 
-    user_machine_id = Column(Integer, primary_key=True, autoincrement=True)
+    user_machines_id = Column(Integer, primary_key=True, autoincrement=True)
     equipment_id = Column(Integer, ForeignKey("equipment.equipment_id", ondelete="CASCADE"), nullable=False, index=True)
     completed_training = Column(Boolean, nullable=False, default=False)
     win = Column(VARCHAR(255), ForeignKey("users.win", ondelete="CASCADE"), nullable=False, index=True)
     machine = Relationship("equipment", back_populates="machines")
     user = Relationship("users", back_populates="user_machines")
+
+
+#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+engine = sa.create_engine("mariadb+mariadbconnector://splums:example@127.0.0.1:3307/splums")
+Model.metadata.create_all(engine)
+Session =  sessionmaker(bind=engine)
+session = Session()
