@@ -119,8 +119,6 @@ class MainWindow(QMainWindow):
         self.student_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.student_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
 
-
-
         column_labels = [" ", "Student", "Permissions", "Notes", "Head Count"]
 
         self.student_table.setHorizontalHeaderLabels(column_labels)
@@ -143,7 +141,7 @@ class MainWindow(QMainWindow):
     #*******************************************************************************************
 
     def update_students(self):
-        students = [{"Student Name": "Estlin Mendez", "Permissions": "Red", "Notes": "", "url": "temp.png"}, {"Student Name": "Clara McGrew", "Permissions": "Red", "Notes": "", "url": "temp.png"}, {"Student Name": "Renee Rickert", "Permissions": "Red", "Notes": "", "url": "temp.png"}, {"Student Name": "Evan Hardy", "Permissions": "Green", "Notes": "", "url": "temp.png", }, {"Student Name": "Hunter Hamrick", "Permissions": "Blue", "Notes": "", "url": "temp.png"}, {"Student Name": "Kaden Kramer", "Permissions": "Blue", "Notes": "", "url": "temp.png"}, {"Student Name": "Ben Crane", "Permissions": "Blue", "Notes": "", "url": "temp.png"}]
+        students = [{"Student Name": "Estlin Mendez", "Permissions": ["Red"], "Notes": "", "url": "temp.png"}, {"Student Name": "Clara McGrew", "Permissions": ["Red", "Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Renee Rickert", "Permissions": ["Red", "Green", "Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Evan Hardy", "Permissions": ["Green"], "Notes": "", "url": "temp.png", }, {"Student Name": "Hunter Hamrick", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Kaden Kramer", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Ben Crane", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}]
         head_count = 0
         head_count = len(students)
         self.student_table.setRowCount(head_count)
@@ -166,8 +164,17 @@ class MainWindow(QMainWindow):
             #Permissions
             #Have to do this one differently, to accomodate for potential multicolored text
             #CANNOT CURRENTLY HANDLE MORE THAN ONE PERMISSION TYPE
-            student_permissions_cell = QLabel(student["Permissions"])
-            permission_stylesheet = "color:" + student["Permissions"] + "; font-size: 18pt;"
+            student_permissions_cell = QLabel("")
+            perm_string = ""
+
+            #Go through each perm and set to right color
+            for permission in student["Permissions"]:
+                perm_string += '<font color="' +permission+ '">'+permission+'</font>' + ' '
+            #Remove the last space
+            perm_string = perm_string[:-1]
+
+            student_permissions_cell.setText(perm_string)
+            permission_stylesheet = "font-size: 18pt;"
             student_permissions_cell.setStyleSheet(permission_stylesheet)
             student_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
