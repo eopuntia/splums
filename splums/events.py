@@ -22,3 +22,6 @@ class EventTypes(Enum):
     CREATE_NOTE = 11
     EDIT_NOTE = 12
     DELETE_NOTE = 13
+    OPEN_LAB = 14
+    CLOSE_LAB = 15
+    ARCHIVE_USER = 16
