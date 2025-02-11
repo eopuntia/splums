@@ -1,5 +1,7 @@
 from events import Event
 from events import EventTypes
+import notecreation
+import usercreation
 
 """This is currently just a framework for the event broker.
     Function names may be changed when they are actually developed."""
@@ -62,37 +64,37 @@ def event_broker(event: Event):
         case EventTypes.CREATE_NEW_USER: # Create New User
             print(f"Create New User")
             # Call all necessary modules
-            # createUser(event)
+            usercreation.create_user(event)
             # updateDB(event)
 
         case EventTypes.DELETE_USER: # Delete User
             print(f"Delete User")
             # Call all necessary modules
-            # deleteUser(event)
+            usercreation.delete_user(event)
             # updateDB(event)
 
         case EventTypes.EDIT_USER: # Edit User
             print(f"Edit User")
             # Call all necessary modules
-            # editUser(event)
+            usercreation.edit_user(event)
             # updateDB(event)
 
         case EventTypes.CREATE_NOTE: # Create Note
             print(f"Create Note")
             # Call all necessary modules
-            # createNote(event)
+            notecreation.create_note(event)
             # updateDB(event)
 
         case EventTypes.EDIT_NOTE: # Edit Note
             print(f"Edit Note")
             # Call all necessary modules
-            # editNote(event)
+            notecreation.edit_note(event)
             # updateDB(event)
 
         case EventTypes.DELETE_NOTE: # Delete Note
             print(f"Delete Note")
             # Call all necessary modules
-            # deleteNote(event)
+            notecreation.delete_note(event)
             # updateDB(event)
 
         case _:

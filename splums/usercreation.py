@@ -1,21 +1,21 @@
 from datetime import datetime
 from main import session
 from models.models import users
+from events import Event
 
 #*******************************************************************************************
 # CREATE NEW USERS
 #*******************************************************************************************
 
-def create_user(bronco_id: str, name: str, photo_url: str, user_type_id: int):
-    created_at = datetime.now()
+def create_user(event: Event):
   
     new_user = users(
-        bronco_id = bronco_id,
-        name = name,
-        photo_url =photo_url,
-       user_type_id = user_type_id,
-       created_at = created_at,
-        last_updated_at=created_at,
+        bronco_id = event.data["user_id"],
+        name = event.data["name"],
+        photo_url = event.data["photo_url"],
+        user_type_id = event.data["user_type_id"],
+        created_at = event.time_stamp,
+        last_updated_at = event.time_stamp,
     )
 
     try:
@@ -32,12 +32,12 @@ def create_user(bronco_id: str, name: str, photo_url: str, user_type_id: int):
 # EDIT USERS
 #*******************************************************************************************
 
-def edit_user(bronco_id: int, user: str):
-    updated_user = session.query(users).filter_by(bronco_id =bronco_id).first()
+def edit_user(event: Event):
+    updated_user = session.query(users).filter_by(bronco_id = event.data["user_id"]).first()
 
     if updated_user: # Check if user exists and commit changes
-        updated_user.name = user
-        updated_user.last_updated_at = datetime.now()
+        updated_user.name = event.data["name"]
+        updated_user.last_updated_at = event.time_stamp
 
         session.commit()
         print("User updated successfully.")
@@ -51,19 +51,19 @@ def edit_user(bronco_id: int, user: str):
 # DELETE USERS
 #*******************************************************************************************
 
-def delete_user(bronco_id: int):
-    deleted_user = session.query(users).filter_by(bronco_id=bronco_id).first()
+def delete_user(event: Event):
+    deleted_user = session.query(users).filter_by(bronco_id = event.data).first()
 
     if deleted_user: # Check if user exists and delete
         session.delete(deleted_user)
         session.commit()
-        print(f"User with ID {bronco_id} has been deleted.")
+        print(f"User with ID {event.data} has been deleted.")
         # return 1
     else:
         session.rollback()
-        print(f"User with ID {bronco_id} not found. Unable to delete.")
+        print(f"User with ID {event.data} not found. Unable to delete.")
         # return 0
 
-create_user()
-created_user_id = "214151f"
-edit_user(created_user_id, "Edited user!") # should be success
+# create_user()
+# created_user_id = "214151f"
+# edit_user(created_user_id, "Edited user!") # should be success

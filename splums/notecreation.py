@@ -1,20 +1,19 @@
-from datetime import datetime
 from main import session
 from models.models import notes
+from events import Event
 
 #*******************************************************************************************
 # CREATE NEW NOTES
 #*******************************************************************************************
 
-def create_note(note: str, user_id: str, created_by: str):
-    created_at = datetime.now()
+def create_note(event: Event):
     
     new_note = notes(
-        note=note,
-        user_id=user_id,
-        created_by=created_by,
-        created_at=created_at,
-        last_updated_at=created_at,
+        note=event.data["note"],
+        user_id=event.data["user_id"],
+        created_by=event.data["created_by"],
+        created_at=event.time_stamp,
+        last_updated_at=event.time_stamp,
     )
 
     try:
@@ -31,12 +30,12 @@ def create_note(note: str, user_id: str, created_by: str):
 # EDIT NOTES
 #*******************************************************************************************
 
-def edit_note(note_id: int, note: str):
-    updated_note = session.query(notes).filter_by(note_id=note_id).first()
+def edit_note(event: Event):
+    updated_note = session.query(notes).filter_by(note_id=event.data["note_id"]).first()
 
     if updated_note: # Check if note exists and commit changes
-        updated_note.note = note
-        updated_note.last_updated_at = datetime.now()
+        updated_note.note = event.data["note"]
+        updated_note.last_updated_at = event.time_stamp
 
         session.commit()
         print("Note updated successfully.")
@@ -50,23 +49,23 @@ def edit_note(note_id: int, note: str):
 # DELETE NOTES
 #*******************************************************************************************
 
-def delete_note(note_id: int):
-    deleted_note = session.query(notes).filter_by(note_id=note_id).first()
+def delete_note(event: Event):
+    deleted_note = session.query(notes).filter_by(note_id=event.data).first()
 
     if deleted_note: # Check if note exists and delete
         session.delete(deleted_note)
         session.commit()
-        print(f"Note with ID {note_id} has been deleted.")
+        print(f"Note with ID {event.data} has been deleted.")
         # return 1
     else:
         session.rollback()
-        print(f"Note with ID {note_id} not found. Unable to delete.")
+        print(f"Note with ID {event.data} not found. Unable to delete.")
         # return 0
 
 # Example test cases
-created_note_id = create_note("Testing for new note!", "att2025", "adm1111")
-edit_note(created_note_id, "Edited note!") # should be success
-delete_note(created_note_id) # should be success
+# created_note_id = create_note("Testing for new note!", "att2025", "adm1111")
+# edit_note(created_note_id, "Edited note!") # should be success
+# delete_note(created_note_id) # should be success
 
-edit_note(created_note_id, "Edited note!") # should fail
-delete_note(created_note_id) # should fail
+# edit_note(created_note_id, "Edited note!") # should fail
+# delete_note(created_note_id) # should fail
