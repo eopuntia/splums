@@ -211,11 +211,3 @@ class MainWindow(QMainWindow):
 
     def sign_out(self):
         print("Signing out")
-
-
-#Might need to move this into main
-splums = QApplication(sys.argv)
-splums.setStyle("Breeze")
-window = MainWindow()
-window.show()
-splums.exec()
