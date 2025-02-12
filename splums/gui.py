@@ -132,6 +132,7 @@ class MainWindow(QMainWindow):
 
         layout_main.addLayout(layout_students)
 
+
         widget = QWidget()
         widget.setLayout(layout_main)
         self.setCentralWidget(widget)
@@ -141,7 +142,7 @@ class MainWindow(QMainWindow):
     #*******************************************************************************************
 
     def update_students(self):
-        students = [{"Student Name": "Estlin Mendez", "Permissions": ["Red"], "Notes": "", "url": "temp.png"}, {"Student Name": "Clara McGrew", "Permissions": ["Red", "Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Renee Rickert", "Permissions": ["Red", "Green", "Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Evan Hardy", "Permissions": ["Green"], "Notes": "", "url": "temp.png", }, {"Student Name": "Hunter Hamrick", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Kaden Kramer", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Ben Crane", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}]
+        students = [{"Student Name": "Estlin Mendez", "Permissions": ["Red"], "Notes": "", "url": "temp.png"}, {"Student Name": "Clara McGrew", "Permissions": ["Red", "Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Renee Rickert", "Permissions": ["Red", "Green", "Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Evan Handy", "Permissions": ["Green"], "Notes": "", "url": "temp.png", }, {"Student Name": "Hunter Hamrick", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Kaden Kramer", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Ben Crane", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}]
         head_count = 0
         head_count = len(students)
         self.student_table.setRowCount(head_count)
@@ -169,7 +170,7 @@ class MainWindow(QMainWindow):
 
             #Go through each perm and set to right color
             for permission in student["Permissions"]:
-                perm_string += '<font color="' +permission+ '">'+permission+'</font>' + ' '
+                perm_string += '<font color="' +permission+ '">'+"⬤"+'</font>' + ' '
             #Remove the last space
             perm_string = perm_string[:-1]
 
