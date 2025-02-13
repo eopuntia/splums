@@ -1,4 +1,5 @@
 event_type
-Authorized Entry
-Unauthorized Entry
+Authorized User Swipe
+Archived User Swipe
+Blacklisted User Swipe
 Intrusion Detected
