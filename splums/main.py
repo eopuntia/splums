@@ -1,6 +1,6 @@
 import os
 import sqlalchemy as sa
-import gui
+#import gui
 import sys
 
 from sqlalchemy import create_engine, event, Engine
@@ -28,8 +28,8 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor.close()
 
 #Get the GUI started
-splums = QApplication(sys.argv)
-splums.setStyle("Breeze")
-window = gui.MainWindow()
-window.show()
-splums.exec()
+#splums = QApplication(sys.argv)
+#splums.setStyle("Breeze")
+#window = gui.MainWindow()
+#window.show()
+#splums.exec()
