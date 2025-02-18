@@ -18,11 +18,10 @@ class AddStudent(QSqlDatabase, QWidget):
         layout = QFormLayout()
         self.label = QLabel("Another Window")
 
-        username_id_edit = QLineEdit(parent=self)
-        role_name = QLineEdit(parent=self)
-        display_name = QLineEdit(parent=self)
-        given_name = QLineEdit(parent=self)
-        surname = QLineEdit(parent=self)
+        self.username_id_edit = QLineEdit()
+        self.display_name = QLineEdit()
+        self.given_name = QLineEdit()
+        self.surname = QLineEdit()
         roles = []
         select_roles = QSqlQuery(QSqlDatabase.database())
         select_roles.exec("SELECT name FROM user_types")
@@ -33,17 +32,17 @@ class AddStudent(QSqlDatabase, QWidget):
             roles.append(role)
             print(role)
 
-        r_combobox = QComboBox()
+        self.r_combobox = QComboBox()
 
         for role in roles:
-            r_combobox.addItem(role)
+            self.r_combobox.addItem(role)
     
 
-        layout.addRow("WIN number:", username_id_edit)
-        layout.addRow("Role:", r_combobox)
-        layout.addRow("Display Name:", display_name)
-        layout.addRow("Given Name:", given_name)
-        layout.addRow("Surname:", surname)
+        layout.addRow("WIN number:", self.username_id_edit)
+        layout.addRow("Role:", self.r_combobox)
+        layout.addRow("Display Name:", self.display_name)
+        layout.addRow("Given Name:", self.given_name)
+        layout.addRow("Surname:", self.surname)
 
         add_button = QPushButton("Add Student")
         add_button.clicked.connect(self.add_std)
@@ -51,8 +50,18 @@ class AddStudent(QSqlDatabase, QWidget):
         self.setLayout(layout)
         
 
-    def add_std(self, s):
-        print("click", s)
+    def add_std(self):
+        win_num = self.username_id_edit.text()
+        print(win_num)
+        role = self.r_combobox.currentText()
+        print(role)
+        display_name = self.display_name.text()
+        print(display_name)
+        given_name = self.given_name.text()
+        print(given_name)
+        surname = self.surname.text()
+        print(surname)
+        #event = Event(EventTypes.CREATE_USER, {"win": win_num, "role": role, "display_name": display_name, "given_name": given_name, "surname": surname})
 
 
     
@@ -74,25 +83,6 @@ class MainWindow(QMainWindow):
  def sign_out(self):
         print("Signing out")    
 
- def select_user_types(self):
-        # Create a QSqlQuery object
-        query = QSqlQuery(self.db)
-
-        # Perform a SELECT query on the user_types table
-        query.exec("SELECT user_type_id, name, last_updated_at FROM user_types")
-
-        # Check if the query executed successfully
-        if query.lastError().isValid():
-            print("Query failed:", query.lastError().text())
-        else:
-            # Retrieve the data
-            while query.next():
-                user_type_id = query.value(0) 
-                name = query.value(1)          # Get the second column (name)
-                last_updated_at = query.value(2)  # Get the third column (last_updated_at)
-
-                # Print or process the data
-                print(f"User Type ID: {user_type_id}, Name: {name}, Last Updated At: {last_updated_at}")
 
  def __init__(self):
         super().__init__()
@@ -117,32 +107,10 @@ class MainWindow(QMainWindow):
         self.db.setPassword("example")
         self.db.open()
         if(self.db.isOpen()):
-            self.select_user_types()
             self.update_students()
         else:
             print("Failed to connect to MariaDB:", self.db.lastError().text())
-          #  print("Failed to connect to MariaDB:", self.db.lastError().text())
-#
-       # driver = self.db.driver()
-       # if driver:
-        #    print(f"Driver type: {driver.dbmsType}")
-        #    self.db.setHostName("127.0.0.1") 
-         #   self.db.setPort(3307)  
-        #    self.db.setDatabaseName("splums") 
-        #    self.db.setUserName("splums")  
-        #    self.db.setPassword("example")
-        #    if self.db.open():
-           #     print("Connected to the database")
-#
-           #     self.model = QSqlTableModel(self)
-           #     self.model.setTable("user")  # Set the table name
-
-          #  if self.model.select():
-           #     self._table_view.setModel(self.model)
-           # else:
-               # print("Failed to select data from the table")
-     #   else:
-     #       print("Driver not loaded. Failed to connect to database")
+       
      
 
         self.setWindowTitle("Student Projects Lab User Management System")
