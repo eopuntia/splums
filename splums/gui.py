@@ -1,6 +1,6 @@
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLCDNumber
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QPixmap, QIcon
 
@@ -9,8 +9,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Student Projects Lab User Management System")
 
-        #Style Sheet for default styling options on widgets
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+        #Styling moved to style.qss, keeping this here in case font sizes here ends up being more optimal
+        # self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
 
         #Main layout, the over-arching vertical layout that The button bar and the displayed users are apart of
         layout_main = QVBoxLayout()
@@ -26,6 +26,7 @@ class MainWindow(QMainWindow):
         #Set spacing between all of this layouts elements
         # layout_main.setSpacing(2)
         
+        layout_topsplit = QHBoxLayout()
 
         #*******************************************************************************************
         # BUTTON BAR
@@ -82,9 +83,40 @@ class MainWindow(QMainWindow):
         layout_buttonbar.addWidget(self.button_sign_out)
 
         #Add the button bar to the main layout
-        layout_main.addLayout(layout_buttonbar)
+        layout_topsplit.addLayout(layout_buttonbar)
 
 
+        #*******************************************************************************************
+        # Head Count
+        #*******************************************************************************************
+
+        #Righthand toolbar for headcount 
+        layout_rightbar = QHBoxLayout()
+        layout_rightbar.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+
+        layout_rightbar = QHBoxLayout()
+        layout_rightbar.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+
+        layout_headcount = QVBoxLayout()
+        layout_headcount.setSpacing(0)
+        headcount_header = QLabel(" Headcount")
+        headcount_header.setStyleSheet("font-weight: bold;")
+        headcount_header.setObjectName("HeadcountHeader")
+        layout_headcount.addWidget(headcount_header)
+
+        self.headcount_display = QLCDNumber(self)
+        self.headcount_display.setDigitCount(2)
+        layout_headcount.addWidget(self.headcount_display)
+        layout_rightbar.addLayout(layout_headcount)
+        layout_topsplit.addLayout(layout_rightbar)
+
+
+
+        layout_main.addLayout(layout_topsplit)
+        self.headcount_display.setFixedSize(QSize(bdim[0]-30, bdim[1]-25))
+        self.headcount_display.display(30)
 
         #*******************************************************************************************
         # Student Table
@@ -110,15 +142,13 @@ class MainWindow(QMainWindow):
 
 
         #Setting up columns
-        self.student_table.setColumnCount(5)
+        self.student_table.setColumnCount(4)
 
         #Automatic handling of resizing window for table
         self.student_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.student_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.student_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.student_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        self.student_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
-
         column_labels = [" ", "Student", "Permissions", "Notes", "Head Count"]
 
         self.student_table.setHorizontalHeaderLabels(column_labels)
@@ -134,6 +164,7 @@ class MainWindow(QMainWindow):
 
 
         widget = QWidget()
+        widget.setObjectName("Main")
         widget.setLayout(layout_main)
         self.setCentralWidget(widget)
 
@@ -146,6 +177,7 @@ class MainWindow(QMainWindow):
         head_count = 0
         head_count = len(students)
         self.student_table.setRowCount(head_count)
+        self.headcount_display.display(head_count)
 
         row = 0
         for student in students:
@@ -180,13 +212,6 @@ class MainWindow(QMainWindow):
             student_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
             self.student_table.setCellWidget(row, 2, student_permissions_cell)
-
-            #Student Count
-            if row == 0:
-                student_headcount_cell = QTableWidgetItem(str(head_count))
-                student_headcount_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.student_table.setItem(row, 4, student_headcount_cell)
-
 
             #Notes
             self.student_table.setItem(row, 3, QTableWidgetItem(student["Notes"]))

@@ -7,7 +7,6 @@ from sqlalchemy import create_engine, event, Engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from PyQt6.QtWidgets import QApplication
 
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 engine = sa.create_engine("mariadb+mariadbconnector://splums:example@127.0.0.1:3307/splums")
@@ -29,7 +28,9 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 
 #Get the GUI started
 splums = QApplication(sys.argv)
-splums.setStyle("Breeze")
+qssfile="./splums/qss/style.qss"
+with open(qssfile,"r") as f:
+    splums.setStyleSheet(f.read())
 window = gui.MainWindow()
 window.show()
 splums.exec()
