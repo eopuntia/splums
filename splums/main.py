@@ -27,9 +27,12 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     # cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
 
-#Get the GUI started
-splums = QApplication(sys.argv)
-splums.setStyle("Breeze")
-window = gui.MainWindow()
-window.show()
-splums.exec()
+# Check if GUI is runnning
+splums = QApplication.instance()
+if splums is None:
+    #Get the GUI started
+    splums = QApplication(sys.argv)
+    splums.setStyle("Breeze")
+    window = gui.MainWindow()
+    window.show()
+    splums.exec()

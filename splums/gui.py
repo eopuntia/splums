@@ -1,8 +1,92 @@
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QPushButton, QLineEdit
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QPixmap, QIcon
+from events import Event, EventTypes
+from event_broker import event_broker
+import cam
+
+
+class UserCreationWindow(QWidget):
+    def __init__(self):
+        # Initialize variables
+        self.name = ''
+        self.win = ''
+        self.photo_url = ''
+
+        super().__init__()
+        self.setWindowTitle("Add Student")
+
+        #Style Sheet for default styling options on widgets
+        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+
+        # Set layout as a vertical box
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Create name input box
+        self.name_label = QLabel("Enter Name:")
+        self.name_box = QLineEdit()
+        self.name_box.setPlaceholderText("Name...")
+        self.name_box.textChanged.connect(self.update_name)
+
+        # Create WIN input box
+        self.win_label = QLabel("Enter WIN:")
+        self.win_box = QLineEdit()
+        self.win_box.setPlaceholderText("WIN...")
+        self.win_box.textChanged.connect(self.update_win)
+
+        # Create button that opens camera using cam.py
+        self.photo_button = QPushButton()
+        self.photo_button.setText("Take Photo")
+        self.photo_button.clicked.connect(self.get_photo)
+
+        # Create submit button
+        self.submit_button = QPushButton()
+        self.submit_button.setText("Submit")
+        self.submit_button.clicked.connect(self.submit_user)
+
+        # Add all fields to layout
+        layout.addWidget(self.name_label)
+        layout.addWidget(self.name_box)
+        layout.addWidget(self.win_label)
+        layout.addWidget(self.win_box)
+        layout.addWidget(self.photo_button)
+        layout.addWidget(self.submit_button)
+
+        # Display layout
+        self.setLayout(layout)
+
+    def update_name(self, s):
+        print("Name Updated")
+        # Update the name variable everytime the field is changed
+        self.name = s
+
+    def update_win(self, s):
+        print("WIN Updated")
+        # Update the win variable everytime the field is changed
+        self.win = s
+
+    def get_photo(self):
+        # Call cam.py to open the camera and take a picture
+        self.photo_url = cam.take_picture(self.win)
+
+    def submit_user(self):
+        # Create event with new user data
+        new_event = Event(
+            EventTypes.CREATE_NEW_USER,
+            {
+                "win": self.win,
+                "name": self.name,
+                "photo_url": self.photo_url,
+                "user_type_id": 3
+            }
+        )
+        # Pass to the event broker
+        event_broker(new_event)
+        # Close window
+        self.close()
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -202,8 +286,11 @@ class MainWindow(QMainWindow):
     # Button Functions
     #*******************************************************************************************
 
-    def add_student(self):
+    def add_student(self, checked):
         print("Adding Student")
+        # Create window for user creation
+        self.addWindow = UserCreationWindow()
+        self.addWindow.show()
 
 
     def edit_student(self):

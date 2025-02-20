@@ -15,21 +15,34 @@ from events import Event
 #*******************************************************************************************
 
 def create_user(event: Event):
-  
-    new_user = users(
-        bronco_id = event.data["user_id"],
-        name = event.data["name"],
-        photo_url = event.data["photo_url"],
-        user_type_id = event.data["user_type_id"],
-        created_at = event.time_stamp,
-        last_updated_at = event.time_stamp,
-    )
-
     try:
+        required_keys = ["win", "name", "photo_url", "user_type_id"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+
+        new_user = users(
+            win = event.data["win"],
+            name = event.data["name"],
+            photo_url = event.data["photo_url"],
+            user_type_id = event.data["user_type_id"],
+            created_at = event.time_stamp,
+            last_updated_at = event.time_stamp,
+            swiped_in = False,
+            last_access = event.time_stamp,
+        )
+
+    
         session.add(new_user)
         session.commit()
-        print(f"User created successfully with bronco ID: {new_user.bronco_id}")
-        return new_user.bronco_id # Return user_id for testing
+        print(f"User created successfully with WIN: {new_user.win}")
+        return new_user.win # Return user_id for testing
+    except SQLAlchemyError as e:
+        session.rollback()
+        print(f"\033[91mDatabase error:\033[0m {e}")
+        return -1
+    except KeyError as e:
+        print(f"Key error: {e}")
     except Exception as e:
         session.rollback()
         print(f"Error creating user: {e}")
@@ -99,19 +112,19 @@ def edit_user(bronco_id: int, user: str):
         print("user not found. Unable to edit.")
         # return 0
 
-def edit_user_event(event: Event):
+"""def edit_user_event(event: Event):
     try:
         account_id = event.data.get('account_id', '')
 
         if not account_id:
-             raise ValueError("\033[91mAccount_id is missing!\033[90")
+             raise ValueError("\033[91mAccount_id is missing!\033[90")"""
 
 #*******************************************************************************************
 # DELETE USERS
 #*******************************************************************************************
 
-def delete_user(bronco_id: int):
-    deleted_user = session.query(users).filter_by(bronco_id=bronco_id).first()
+def delete_user(event: Event):
+    deleted_user = session.query(users).filter_by(bronco_id=event.data).first()
     #deleted_user = session.query(account).filter_by(account_id=account_id).first()
 
     if deleted_user: # Check if user exists and delete
@@ -170,6 +183,6 @@ def archive_user():
    
 
 
-create_user()
-created_user_id = "214151f"
-edit_user(created_user_id, "Edited user!") # should be success
+#create_user()
+#created_user_id = "214151f"
+#edit_user(created_user_id, "Edited user!") # should be success

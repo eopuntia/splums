@@ -2,7 +2,7 @@ import cv2
 import os
 
 
-def take_picture(name):
+def take_picture(name: str):
     file_name = name.replace(" ", "_")
 
     # Get default video gamera
@@ -24,9 +24,9 @@ def take_picture(name):
             pic_key = cv2.waitKey(1)
         else:
             # check to add dir
-            if not os.path.exists("./images/"):
-                os.makedirs("./images/")
-            file_path = "./images/" + file_name + ".jpg"
+            if not os.path.exists("./splums/images/"):
+                os.makedirs("./splums/images/")
+            file_path = "./splums/images/" + file_name + ".jpg"
             cv2.imwrite(file_path, frame)
             redo = cv2.waitKey(0)
             print("captured")
