@@ -1,8 +1,7 @@
 from datetime import datetime
 from main import session
 from models.models import notes
-from events import Event
-from events import EventTypes
+from events import Event, EventTypes
 from sqlalchemy.exc import SQLAlchemyError
 
 #*******************************************************************************************
@@ -16,24 +15,18 @@ def create_note(event: Event):
         for key in required_keys:
             if key not in event.data:
                 raise KeyError(f"Missing required key: {key}")
-            
-        # Assuming 'event.data' is a dictionary containing these fields
-        note = event.data.get('note', '')  # Default to empty string if 'note' is missing
-        win = event.data.get('win', '')
-        created_by = event.data.get('created_by', '')
-        attendant_view_perms = event.data.get('attendant_view_perms', False)
-        attendant_edit_perms = event.data.get('attendant_edit_perms', False)
 
         created_at = datetime.now()
         
+        # Assuming 'event.data' is a dictionary containing these fields
         new_note = notes(
-            note=note,
-            win=win,
-            created_by=created_by,
-            created_at=created_at,
-            last_updated_at=created_at,
-            attendant_view_perms=attendant_view_perms,
-            attendant_edit_perms=attendant_edit_perms
+            note = event.data.get('note', ''), # Default to empty string if 'note' is missing
+            win = event.data.get('win', ''),
+            created_by = event.data.get('created_by', ''),
+            created_at = created_at,
+            last_updated_at = created_at,
+            attendant_view_perms = event.data.get('attendant_view_perms', False),
+            attendant_edit_perms = event.data.get('attendant_edit_perms', False)
         )
 
 
@@ -43,13 +36,15 @@ def create_note(event: Event):
         return new_note.note_id # Return note_id for testing
         
     except SQLAlchemyError as e:
-        session.rollback()
         print(f"\033[91mDatabase error:\033[0m {e}")
+        session.rollback()
         return -1
     except KeyError as e:
         print(f"Key error: {e}")
+        session.rollback()
     except Exception as e:
         print(f"\033[91mUnexpected error:\033[0m {e}")
+        session.rollback()
 
 #*******************************************************************************************
 # EDIT NOTES
@@ -57,38 +52,39 @@ def create_note(event: Event):
 
 def edit_note(event: Event):
     try:
-        note_id = event.data.get('note_id', '')
+        note_id = event.data.get('note_id', None)
 
         # Check that note_id exists
         if not note_id:
                 raise ValueError("\033[91mNote_id is missing!\033[90")
-
-        note = event.data.get('note', '')
-        attendant_view_perms = event.data.get('attendant_view_perms', '')
-        attendant_edit_perms = event.data.get('attendant_edit_perms', '')
-
+        
         updated_note = session.query(notes).filter_by(note_id=note_id).first()
 
         if updated_note: # Check if note exists and commit changes
-            updated_note.note = note
-            updated_note.last_updated_at = datetime.now()
-            updated_note.attendant_view_perms = attendant_view_perms
-            updated_note.attendant_edit_perms = attendant_edit_perms
+            if 'note' in event.data:
+                updated_note.note = event.data['note']
+            if 'attendant_view_perms' in event.data:
+                updated_note.attendant_view_perms = event.data['attendant_view_perms']
+            if 'attendant_edit_perms' in event.data:
+                updated_note.attendant_edit_perms = event.data['attendant_edit_perms']
 
+            updated_note.last_updated_at = datetime.now()
+            
             session.commit()
             print(f"\033[92mNote with ID {note_id} updated successfully.\033[0m")
-            # return 1
         else:
             session.rollback()
             print(f"\033[91mNote with ID {note_id} not found. Unable to edit.\033[0m")
-            # return 0
 
     except KeyError as e:
         print(f"\033[91mMissing key:\033[0m {e}")
+        session.rollback()
     except ValueError as e:
         print(f"\033[91mValue error:\033[0m {e}")
+        session.rollback()
     except Exception as e:
         print(f"\033[91mUnexpected error:\033[0m {e}")
+        session.rollback()
         
 #*******************************************************************************************
 # DELETE NOTES
@@ -115,10 +111,13 @@ def delete_note(event: Event):
             
     except KeyError as e:
         print(f"Missing key: {e}")
+        session.rollback()
     except ValueError as e:
         print(f"Value error: {e}")
+        session.rollback()
     except Exception as e:
         print(f"Unexpected error: {e}")
+        session.rollback()
 
 #*******************************************************************************************
 # TESTING EXAMPLES
