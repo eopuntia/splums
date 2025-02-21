@@ -26,10 +26,11 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     # cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
-
+'''
 #Get the GUI started
 splums = QApplication(sys.argv)
 splums.setStyle("Breeze")
 window = gui.MainWindow()
 window.show()
 splums.exec()
+'''
