@@ -134,11 +134,11 @@ class EventBroker:
             if creator is None:
                 print("err invalid creator id")
                 return
+
             subject = s.scalar(select(Account).where(Account.account_id == event.data["subject_account_id"]))
             if subject is None:
                 print(f"err invalid subject id: {event.data["subject_account_id"]}")
                 return
-
 
             new_note = Note(creator_account=creator, subject_account=subject, text=event.data["text"])
             s.add(new_note)
@@ -199,6 +199,7 @@ class EventBroker:
                               surname = event.data["surname"], 
                               display_name = event.data["display_name"], 
                               photo_url = event.data.get("photo_url", "/no/img"))
+
             s.add(account)
             s.commit()
 
