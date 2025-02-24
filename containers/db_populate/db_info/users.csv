@@ -1,4 +1,0 @@
-win,name,photo_url,user_type_id,created_at,last_updated_at,swiped_in,last_access
-111222333,student test,url,3,2024-01-12 13:16:00,2025-01-22 13:16:00,true,2025-01-22 13:16:00
-444555666,attendant test,url,2,2022-04-30 10:04:00,2025-01-21 11:18:00,false,2025-01-22 13:16:00
-777888999,admin test,url,1,2022-05-15 08:22:00,2025-01-12 13:25:00,true,2025-01-22 13:16:00
