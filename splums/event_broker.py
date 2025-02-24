@@ -147,7 +147,7 @@ class EventBroker:
     # TODO add proper error handling
     def edit_note(self, event):
         with self.session.begin() as s:
-            required_keys = ["text", "note_id"]
+            required_keys = ["note_id", "edit_attrs"]
             for key in required_keys:
                 if key not in event.data:
                     raise KeyError(f"Missing required key: {key}")
@@ -156,9 +156,16 @@ class EventBroker:
             if note is None:
                 raise KeyError(f"err invalid note id: {event.data["note_id"]}")
             
-            note.text=event.data["text"]
+            for update in event.data["edit_attrs"]:
+                if update == "text":
+                    note.text = event.data["edit_attrs"][update]
+                if update == "attendent_view_perms":
+                    note.attendant_view_perms = event.data["edit_attrs"][update]
+                if update == "attendent_edit_perms":
+                    note.attendant_edit_perms = event.data["edit_attrs"][update]
+
             s.commit()
-    
+
     # TODO add proper error handling
     def delete_note(self, event):
         with self.session.begin() as s:
