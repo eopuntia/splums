@@ -27,6 +27,12 @@ QLCDNumber {
     background-color: #e0e0e0;
 }
 
+/* Note button */
+QPushButton {
+    font-size:15pt;
+    background-color: #e0e0e0;
+}
+
 /* Student Table Header */
 QHeaderView {
     font-size: 12pt;

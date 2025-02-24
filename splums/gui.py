@@ -1,6 +1,6 @@
 import sys
 
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLCDNumber
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLCDNumber, QPushButton
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QPixmap, QIcon
 
@@ -173,7 +173,13 @@ class MainWindow(QMainWindow):
     #*******************************************************************************************
 
     def update_students(self):
-        students = [{"Student Name": "Estlin Mendez", "Permissions": ["Red"], "Notes": "", "url": "temp.png"}, {"Student Name": "Clara McGrew", "Permissions": ["Red", "Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Renee Rickert", "Permissions": ["Red", "Green", "Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Evan Handy", "Permissions": ["Green"], "Notes": "", "url": "temp.png", }, {"Student Name": "Hunter Hamrick", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Kaden Kramer", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}, {"Student Name": "Ben Crane", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}]
+        students = [{"Student Name": "Estlin Mendez", "Permissions": ["Red"], "Notes": [], "url": "temp.png"}, 
+                    {"Student Name": "Clara McGrew", "Permissions": ["Red", "Blue"], "Notes": ["normal", "discuss", "concern"], "url": "temp.png"}, 
+                    {"Student Name": "Renee Rickert", "Permissions": ["Red", "Green", "Blue"], "Notes": ["normal", "normal", "discuss", "concern"], "url": "temp.png"}, 
+                    {"Student Name": "Evan Handy", "Permissions": ["Green"], "Notes": ["normal", "discuss", "concern"], "url": "temp.png", }, 
+                    {"Student Name": "Hunter Hamrick", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}, 
+                    {"Student Name": "Kaden Kramer", "Permissions": ["Blue"], "Notes": ["normal"], "url": "temp.png"}, 
+                    {"Student Name": "Ben Crane", "Permissions": ["Blue"], "Notes": ["normal", "discuss", "concern", "banned"], "url": "temp.png"}]
         head_count = 0
         head_count = len(students)
         self.student_table.setRowCount(head_count)
@@ -203,6 +209,7 @@ class MainWindow(QMainWindow):
             #Go through each perm and set to right color
             for permission in student["Permissions"]:
                 perm_string += '<font color="' +permission+ '">'+"⬤"+'</font>' + ' '
+
             #Remove the last space
             perm_string = perm_string[:-1]
 
@@ -213,8 +220,30 @@ class MainWindow(QMainWindow):
             
             self.student_table.setCellWidget(row, 2, student_permissions_cell)
 
-            #Notes
-            self.student_table.setItem(row, 3, QTableWidgetItem(student["Notes"]))
+
+            #Go through each button for notes
+            note_layout = QHBoxLayout()
+            for note in student["Notes"]:
+                note_button = QPushButton()
+                if note == "normal":
+                    note_button.setText("🟩")
+                elif note == "discuss":
+                    note_button.setText("💡")
+                elif note == "concern":
+                    note_button.setText("❗️")
+                elif note == "banned":
+                    note_button.setText("🛑")
+                else:
+                    note_button.setText("Unrecognized note type")
+                note_button.setFixedSize(QSize(60, 60))
+                note_layout.addWidget(note_button)
+            note_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            
+            notewidget= QWidget()
+            notewidget.setLayout(note_layout)
+            self.student_table.setCellWidget(row, 3, notewidget)
+
             row+=1
         
         #Resize rows and first column to fit images
