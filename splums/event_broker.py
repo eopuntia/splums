@@ -1,5 +1,7 @@
 from events import Event
 from events import EventTypes
+import user_creation
+import note_creation
 
 """This is currently just a framework for the event broker.
     Function names may be changed when they are actually developed."""
@@ -62,43 +64,44 @@ def event_broker(event: Event):
         case EventTypes.CREATE_NEW_USER: # Create New User
             print(f"Create New User")
             # Call all necessary modules
-            # createUser(event)
+            user_creation.create_user(event)
             # updateDB(event)
 
         case EventTypes.DELETE_USER: # Delete User
             print(f"Delete User")
             # Call all necessary modules
-            # deleteUser(event)
+            user_creation.delete_user(event)
             # updateDB(event)
 
         case EventTypes.EDIT_USER: # Edit User
             print(f"Edit User")
             # Call all necessary modules
-            # editUser(event)
+            user_creation.edit_user(event)
             # updateDB(event)
 
         case EventTypes.CREATE_NOTE: # Create Note
             print(f"Create Note")
             # Call all necessary modules
-            # createNote(event)
+            note_creation.create_note(event)
             # updateDB(event)
 
         case EventTypes.EDIT_NOTE: # Edit Note
             print(f"Edit Note")
             # Call all necessary modules
-            # editNote(event)
+            note_creation.edit_note(event)
             # updateDB(event)
 
         case EventTypes.DELETE_NOTE: # Delete Note
             print(f"Delete Note")
             # Call all necessary modules
-            # deleteNote(event)
+            note_creation.delete_note(event)
             # updateDB(event)
 
         case EventTypes.OPEN_LAB: # Open Lab
             print(f"Open Lab")
             # Call all necessary modules
-            # editNote(event)
+            user_creation.auto_archive_user()
+            user_creation.auto_delete_user()
             # updateDB(event)
 
         case EventTypes.CLOSE_LAB: # Close Lab
@@ -110,7 +113,7 @@ def event_broker(event: Event):
         case EventTypes.ARCHIVE_USER: # Archive User
             print(f"Archive User")
             # Call all necessary modules
-            # editNote(event)
+            user_creation.archive_user(event)
             # updateDB(event)
 
         case _:

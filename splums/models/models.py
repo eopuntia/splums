@@ -13,8 +13,8 @@ class event_logs(Model):
     __tablename__ = 'event_logs'
 
     event_id = Column(Integer, primary_key=True, autoincrement=True)
-    event_type_id = Column(Integer, ForeignKey("event_types.event_types_id", ondelete="CASCADE"), nullable=False, index=True)
-    win = Column(VARCHAR(255), ForeignKey("users.win", ondelete="CASCADE"), nullable=False, index=True)
+    event_type_id = Column(Integer, ForeignKey("event_types.event_types_id"), nullable=False, index=True)
+    win = Column(VARCHAR(255), ForeignKey("users.win"), nullable=False, index=True)
     timestamp = Column(DateTime, nullable=False, default=datetime.now)
 
     event_type = Relationship("event_types", back_populates="events")
@@ -50,8 +50,7 @@ class user_types(Model):
     __tablename__ = 'user_types'
 
     user_type_id = Column(Integer, primary_key=True)
-    name = Column(VARCHAR(255), nullable=False)
-    last_updated_at = Column(DateTime, nullable=False, default=datetime.now)
+    user_type = Column(VARCHAR(255), nullable=False)
 
     users = Relationship("users", back_populates="user_type")
 
@@ -61,7 +60,7 @@ class users(Model):
     win = Column(VARCHAR(255), primary_key=True)
     name = Column(VARCHAR(255), nullable=False)
     photo_url = Column(VARCHAR(255), nullable=False)
-    user_type_id = Column(Integer, ForeignKey("user_types.user_type_id", ondelete="CASCADE"), nullable=False, index=True, unique=True)
+    user_type_id = Column(Integer, ForeignKey("user_types.user_type_id", ondelete="CASCADE"), nullable=False, index=True, unique=False)
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     last_updated_at = Column(DateTime, nullable=False, default=datetime.now)
     swiped_in = Column(Boolean, nullable=False)
@@ -94,7 +93,7 @@ class user_machines(Model):
 
 #BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-engine = sa.create_engine("mariadb+mariadbconnector://splums:example@127.0.0.1:3307/splums")
-Model.metadata.create_all(engine)
-Session =  sessionmaker(bind=engine)
-session = Session()
+#engine = sa.create_engine("mariadb+mariadbconnector://splums:example@127.0.0.1:3307/splums")
+#Model.metadata.create_all(engine)
+#Session =  sessionmaker(bind=engine)
+#session = Session()

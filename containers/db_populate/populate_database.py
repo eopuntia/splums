@@ -27,7 +27,7 @@ users_table = sa.Table(
     Column("win", VARCHAR(255), primary_key=True, unique=True),
     Column("name", VARCHAR(255), nullable=False),
     Column("photo_url", VARCHAR(255), nullable=False),
-    Column("user_type_id", Integer, ForeignKey("user_types.user_type_id", ondelete="CASCADE"), nullable=False, index=True, unique=True),
+    Column("user_type_id", Integer, ForeignKey("user_types.user_type_id", ondelete="CASCADE"), nullable=False, index=True, unique=False),
     Column("created_at", DateTime, nullable=False, default=datetime.now),
     Column("last_updated_at", DateTime, nullable=False, default=datetime.now),
     Column("swiped_in", Boolean, nullable=False),
