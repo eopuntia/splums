@@ -138,8 +138,9 @@ def get_archived_users():
 #*******************************************************************************************
 def auto_delete_user():
     archived_users = get_archived_users()
+    _archive_len = datetime.
     for user in archived_users:
-       if(user.last_updated_at <= datetime.now() - relativedelta(years=10)):
+       if(user.last_updated_at <= datetime.now() - relativedelta(years=7)):
            delete_user(user.bronco_id)
            #delete_user(user.account_id)
 
