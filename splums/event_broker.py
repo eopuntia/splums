@@ -97,7 +97,7 @@ class EventBroker:
 
     def swipe_in(self, event):
         with self.session.begin() as s:
-            account = s.scalar(select(Account).where(Account.account_id ==    event.data["win"]))
+            account = s.scalar(select(Account).where(Account.account_id == event.data["win"]))
             if account is None:
                 raise KeyError(f"invalid account_id: {event.data["win"]}")
             else:
@@ -110,7 +110,7 @@ class EventBroker:
 
     def swipe_out(self, event):
         with self.session.begin() as s:
-            account = s.scalar(select(Account).where(Account.account_id ==    event.data["win"]))
+            account = s.scalar(select(Account).where(Account.account_id == event.data["win"]))
             if account is None:
                 raise KeyError(f"invalid account_id: {event.data["win"]}")
             else:
@@ -193,7 +193,12 @@ class EventBroker:
             if account_role is None:
                 raise KeyError(f"Invalid role: {role}")
 
-            account = Account(account_id = event.data["win"], role=account_role, given_name = event.data["given_name"], surname = event.data["surname"], display_name = event.data["display_name"], photo_url = event.data.get("photo_url", "/no/img"))
+            account = Account(account_id = event.data["win"], 
+                              role=account_role, 
+                              given_name = event.data["given_name"], 
+                              surname = event.data["surname"], 
+                              display_name = event.data["display_name"], 
+                              photo_url = event.data.get("photo_url", "/no/img"))
             s.add(account)
             s.commit()
 
