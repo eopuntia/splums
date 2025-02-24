@@ -1,117 +1,235 @@
 from events import Event
 from events import EventTypes
+from sqlalchemy import select
+from models.models import Account, Note, Role
 
-"""This is currently just a framework for the event broker.
-    Function names may be changed when they are actually developed."""
-def event_broker(event: Event):
-    from swipe_processor import swipe_in_process
-    from swipe_processor import swipe_out_process
-    match event.event_type:
-        case EventTypes.SWIPE_IN: # Swipe In
-            print(f"Swipe In")
-            # Call swipe processor
-            swipe_in_process(event)
+class EventBroker:
+    def __init__(self, session):
+        self.session = session
 
-        case EventTypes.ACCEPTED_SWIPE_IN: # Accepted Swipe In
-            print(f"Accepted Swipe In")
-            # Call all necessary modules
-            # towerLightGreen()
-            # showAttendantScreen(event)
-            # showLabScreen(event)
-            # updateDB(event)
-            # expectEnter()
+    def process_event(self, event):
+        match event.event_type:
+            case EventTypes.SWIPE_IN: 
+                print(f"Swipe In")
+                self.swipe_in(event)
+
+            # TODO IMPLEMENT
+            case EventTypes.ACCEPTED_SWIPE_IN:
+                print(f"Accepted Swipe In")
+                # towerLightGreen()
+                # showAttendantScreen(event)
+                # showLabScreen(event)
+                # expectEnter()
+                
+            # TODO IMPLEMENT
+            case EventTypes.DENIED_SWIPE_IN:
+                print(f"Denied Swipe In")
+                # towerLightRed()
+
+            case EventTypes.SWIPE_OUT: 
+                print(f"Swipe Out")
+                self.swipe_out(event)
+
+            # TODO IMPLEMENT
+            case EventTypes.ACCEPTED_SWIPE_OUT: 
+                print(f"Accepted Swipe Out")
+                # towerLightGreen()
+                # removeAttendantScreen(event)
+                # removeLabScreen(event)
+                # expectExit()
+        
+            # TODO IMPLEMENT
+            case EventTypes.DENIED_SWIPE_OUT: 
+                print(f"Denied Swipe Out")
+                # towerLightRed()
+
+            # TODO IMPLEMENT
+            case EventTypes.EXPECTED_GATE_CROSSING: 
+                print(f"Expected Gate Crossing")
+
+            # TODO IMPLEMENT
+            case EventTypes.UNEXPECTED_GATE_CROSSING: 
+                print(f"Unexpected Gate Crossing")
+                # activateAlarm()
+                # towerLightRed()
+
+            case EventTypes.CREATE_ACCOUNT: 
+                print(f"Create New Account")
+                self.create_account(event)
+
+            case EventTypes.DELETE_ACCOUNT:
+                print(f"Delete Account")
+                self.delete_account(event)
+
+            case EventTypes.EDIT_ACCOUNT: 
+                print(f"Edit Account")
+                self.edit_account(event)
+
+            case EventTypes.CREATE_NOTE: 
+                print(f"Create Note")
+                self.create_note(event)
+
+            case EventTypes.DELETE_NOTE: 
+                print(f"Delete Note")
+                self.delete_note(event)
+
+            case EventTypes.EDIT_NOTE: 
+                print(f"Edit Note")
+                self.edit_note(event)
+
+            # TODO IMPLEMENT
+            case EventTypes.OPEN_LAB: 
+                print(f"Open Lab")
+                self.open_lab(event)
+
+            # TODO IMPLEMENT
+            case EventTypes.CLOSE_LAB: 
+                print(f"Close Lab")
+                self.close_lab(event)
+
+            # TODO IMPLEMENT
+            case EventTypes.ARCHIVE_ACCOUNT: 
+                print(f"Archive User")
+                # self.archive_account(event)
+
+            case _:
+                print(f"Error")
+
+    def swipe_in(self, event):
+        with self.session.begin() as s:
+            account = s.scalar(select(Account).where(Account.account_id ==    event.data["win"]))
+            if account is None:
+                raise KeyError(f"invalid account_id: {event.data["win"]}")
+            else:
+                if(account.role.name != "blacklisted"):
+                    account.swiped_in = 1
+                    s.commit()
+                    self.process_event(Event(EventTypes.ACCEPTED_SWIPE_IN, event.data))
+                else:
+                    self.process_event(Event(EventTypes.DENIED_SWIPE_IN, {"name": account.display_name, "status": "blacklisted"}))
+
+    def swipe_out(self, event):
+        with self.session.begin() as s:
+            account = s.scalar(select(Account).where(Account.account_id ==    event.data["win"]))
+            if account is None:
+                raise KeyError(f"invalid account_id: {event.data["win"]}")
+            else:
+                if(account.role.name != "blacklisted"):
+                    account.swiped_in = 0
+                    s.commit()
+                    self.process_event(Event(EventTypes.ACCEPTED_SWIPE_OUT, event.data))
+                else:
+                    self.process_event(Event(EventTypes.DENIED_SWIPE_OUT, {"name": account.display_name, "role": "blacklisted"}))
+
+
+    # TODO add proper error handling
+    def create_note(self, event):
+        with self.session.begin() as s:
+            required_keys = ["text", "subject_account_id", "creator_account_id"]
+            for key in required_keys:
+                if key not in event.data:
+                    raise KeyError(f"Missing required key: {key}")
+                    
+            creator = s.scalar(select(Account).where(Account.account_id == event.data["creator_account_id"]))
+            if creator is None:
+                print("err invalid creator id")
+                return
+            subject = s.scalar(select(Account).where(Account.account_id == event.data["subject_account_id"]))
+            if subject is None:
+                print(f"err invalid subject id: {event.data["subject_account_id"]}")
+                return
+
+
+            new_note = Note(creator_account=creator, subject_account=subject, text=event.data["text"])
+            s.add(new_note)
+            s.commit()
+
+    # TODO add proper error handling
+    def edit_note(self, event):
+        with self.session.begin() as s:
+            required_keys = ["text", "note_id"]
+            for key in required_keys:
+                if key not in event.data:
+                    raise KeyError(f"Missing required key: {key}")
+                    
+            note = s.scalar(select(Note).where(Note.note_id == event.data["note_id"]))
+            if note is None:
+                raise KeyError(f"err invalid note id: {event.data["note_id"]}")
             
-        case EventTypes.DENIED_SWIPE_IN: # Denied Swipe In
-            print(f"Denied Swipe In")
-            # Call all necessary modules
-            # towerLightRed()
-            # updateDB(event)
-
-        case EventTypes.SWIPE_OUT: # Swipe Out
-            print(f"Swipe Out")
-            # Call swipe processor
-            swipe_out_process(event)
-
-        case EventTypes.ACCEPTED_SWIPE_OUT: # Accepted Swipe Out
-            print(f"Accepted Swipe Out")
-            # Call all necessary modules
-            # towerLightGreen()
-            # removeAttendantScreen(event)
-            # removeLabScreen(event)
-            # updateDB(event)
-            # expectExit()
+            note.text=event.data["text"]
+            s.commit()
     
-        case EventTypes.DENIED_SWIPE_OUT: # Denied Swipe Out
-            print(f"Denied Swipe Out")
-            # Call all necessary modules
-            # towerLightRed()
-            # updateDB(event)
+    # TODO add proper error handling
+    def delete_note(self, event):
+        with self.session.begin() as s:
+            required_keys = ["note_id"]
+            for key in required_keys:
+                if key not in event.data:
+                    raise KeyError(f"Missing required key: {key}")
+                    
+            note = s.scalar(select(Note).where(Note.note_id == event.data["note_id"]))
+            if note is None:
+                raise KeyError(f"err invalid note id: {event.data["note_id"]}")
+            
+            s.delete(note)
+            s.commit()
+        
+    # TODO add proper error handling
+    def create_account(self, event):
+        with self.session.begin() as s:
+            required_keys = ["given_name", "display_name", "surname", "role", "win"]
+            for key in required_keys:
+                if key not in event.data:
+                    raise KeyError(f"Missing required key: {key}")
+                    
+            account_role = s.scalar(select(Role).where(Role.name == event.data["role"]))
+            if account_role is None:
+                raise KeyError(f"Invalid role: {role}")
 
-        case EventTypes.EXPECTED_GATE_CROSSING: # Expected Gate Crossing
-            print(f"Expected Gate Crossing")
-            # Call all necessary modules
-            # updateDB(event)
+            account = Account(account_id = event.data["win"], role=account_role, given_name = event.data["given_name"], surname = event.data["surname"], display_name = event.data["display_name"], photo_url = event.data.get("photo_url", "/no/img"))
+            s.add(account)
+            s.commit()
 
-        case EventTypes.UNEXPECTED_GATE_CROSSING: # Unexpected Gate Crossing
-            print(f"Unexpected Gate Crossing")
-            # Call all necessary modules
-            # activateAlarm()
-            # towerLightRed()
-            # updateDB(event)
+    # TODO add proper error handling
+    def edit_account(self, event):
+        with self.session.begin() as s:
+            required_keys = ["account_id", "edit_attrs"]
+            for key in required_keys:
+                if key not in event.data:
+                    raise KeyError(f"Missing required key: {key}")
+                    
+            account = s.scalar(select(Account).where(Account.account_id == event.data["account_id"]))
+            if account is None:
+                raise KeyError(f"Invalid account_id: {event.data["account_id"]}")
+            for update in event.data["edit_attrs"]:
+                if update == "role":
+                    new_role = s.scalar(select(Role).where(Role.name == event.data["edit_attrs"][update]))
+                    if new_role is None:
+                        raise KeyError(f"Invalid role: {event.data["edit_attrs"][update]}")
+                    account.role = new_role
 
-        case EventTypes.CREATE_NEW_USER: # Create New User
-            print(f"Create New User")
-            # Call all necessary modules
-            # createUser(event)
-            # updateDB(event)
+                if update == "surname":
+                    account.surname = event.data["edit_attrs"][update]
+                if update == "given_name":
+                    account.given_name = event.data["edit_attrs"][update]
+                if update == "display_name":
+                    account.display_name = event.data["edit_attrs"][update]
+                if update == "photo_url":
+                    account.photo_url = event.data["edit_attrs"][update]
 
-        case EventTypes.DELETE_USER: # Delete User
-            print(f"Delete User")
-            # Call all necessary modules
-            # deleteUser(event)
-            # updateDB(event)
-
-        case EventTypes.EDIT_USER: # Edit User
-            print(f"Edit User")
-            # Call all necessary modules
-            # editUser(event)
-            # updateDB(event)
-
-        case EventTypes.CREATE_NOTE: # Create Note
-            print(f"Create Note")
-            # Call all necessary modules
-            # createNote(event)
-            # updateDB(event)
-
-        case EventTypes.EDIT_NOTE: # Edit Note
-            print(f"Edit Note")
-            # Call all necessary modules
-            # editNote(event)
-            # updateDB(event)
-
-        case EventTypes.DELETE_NOTE: # Delete Note
-            print(f"Delete Note")
-            # Call all necessary modules
-            # deleteNote(event)
-            # updateDB(event)
-
-        case EventTypes.OPEN_LAB: # Open Lab
-            print(f"Open Lab")
-            # Call all necessary modules
-            # editNote(event)
-            # updateDB(event)
-
-        case EventTypes.CLOSE_LAB: # Close Lab
-            print(f"Close Lab")
-            # Call all necessary modules
-            # editNote(event)
-            # updateDB(event)
-
-        case EventTypes.ARCHIVE_USER: # Archive User
-            print(f"Archive User")
-            # Call all necessary modules
-            # editNote(event)
-            # updateDB(event)
-
-        case _:
-            print(f"Error")
+            s.commit()
+    
+    # TODO add proper error handling
+    def delete_account(self, event):
+        with self.session.begin() as s:
+            required_keys = ["account_id"]
+            for key in required_keys:
+                if key not in event.data:
+                    raise KeyError(f"Missing required key: {key}")
+                    
+            account = s.scalar(select(Account).where(Account.account_id == event.data["account_id"]))
+            if account is None:
+                raise KeyError(f"err invalid account id: {event.data["account_id"]}")
+            
+            s.delete(account)
+            s.commit()
