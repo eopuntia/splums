@@ -11,47 +11,88 @@ from events import EventTypes
 from sqlalchemy.exc import SQLAlchemyError
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 
+import cam
+import event_broker
 
 class AddStudent(QSqlDatabase, QWidget):
     def __init__(self):
         super().__init__()
         layout = QFormLayout()
-        self.label = QLabel("Another Window")
-
-        self.username_id_edit = QLineEdit()
+        self.setWindowTitle("Add Student")
+ 
+        # Style Sheet for default styling options on widgets
+        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+ 
+        # Create WIN input box
+        self.win_box = QLineEdit()
+        self.win_box.setPlaceholderText("WIN...")
+        # self.win_box.textChanged.connect(self.update_win)
+ 
+        # Create display name box
         self.display_name = QLineEdit()
+        self.display_name.setPlaceholderText("Display Name...")
+        # self.display_name.textChanged.connect(self.update_win)
+ 
+        # Create given name box
         self.given_name = QLineEdit()
+        self.given_name.setPlaceholderText("Given Name...")
+        # self.given_name.textChanged.connect(self.update_win)
+ 
+        # Create surname box
         self.surname = QLineEdit()
+        self.surname.setPlaceholderText("Surname...")
+        # self.surname.textChanged.connect(self.update_win)
+ 
+        # Fetch roles from the database
         roles = []
         select_roles = QSqlQuery(QSqlDatabase.database())
         select_roles.exec("SELECT name FROM user_types")
-        #select_roles.exec("SELECT name from roles")
-
+ 
         while select_roles.next():
             role = select_roles.value(0)
             roles.append(role)
             print(role)
-
+ 
+        # Role selection combobox
         self.r_combobox = QComboBox()
-
         for role in roles:
             self.r_combobox.addItem(role)
-    
-
-        layout.addRow("WIN number:", self.username_id_edit)
+ 
+        # Add fields to the form layout
+        layout.addRow("WIN number:", self.win_box)
         layout.addRow("Role:", self.r_combobox)
         layout.addRow("Display Name:", self.display_name)
         layout.addRow("Given Name:", self.given_name)
         layout.addRow("Surname:", self.surname)
-
+ 
+        # Create button that opens camera using cam.py
+        photo_button = QPushButton("Take Photo")
+        photo_button.clicked.connect(self.get_photo)
+ 
+        # Add Student button
         add_button = QPushButton("Add Student")
         add_button.clicked.connect(self.add_std)
+ 
+        layout.addWidget(photo_button)
         layout.addWidget(add_button)
+ 
+        # Set layout for the widget
         self.setLayout(layout)
-        
-
+ 
+    def get_photo(self):
+        # Call cam.py to open the camera and take a picture
+        self.photo_url = cam.take_picture(self.win_box.text())
+        #self.show_photo()
+ 
+   # def show_photo(self):
+      #  self.w = Picture()
+      #  self.w.show()
+ 
+ 
+ 
+ 
     def add_std(self):
-        win_num = self.username_id_edit.text()
+        win_num = self.win_box.text()
         print(win_num)
         role = self.r_combobox.currentText()
         print(role)
@@ -61,7 +102,20 @@ class AddStudent(QSqlDatabase, QWidget):
         print(given_name)
         surname = self.surname.text()
         print(surname)
-        #event = Event(EventTypes.CREATE_USER, {"win": win_num, "role": role, "display_name": display_name, "given_name": given_name, "surname": surname})
+        new_event = Event(
+            EventTypes.CREATE_NEW_USER,
+            {
+                "win": win_num,
+                "role": role,
+                "display_name": display_name,
+                "given_name": given_name,
+                "surname": surname,
+                "photo_url": self.photo_url
+            }
+        )
+ 
+        event_broker(new_event)
+        self.close()
 
 
     
