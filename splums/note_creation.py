@@ -156,4 +156,4 @@ def test_note():
     delete_event = Event(event_type=EventTypes.DELETE_NOTE, data=delete_note_event_data)
     delete_note(delete_event) # should be success
 
-test_note()
+# test_note()
