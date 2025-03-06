@@ -1,9 +1,9 @@
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit
-from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication
-from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog
+from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QRegularExpression
+from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from main import session
 from models.models import users
 from events import Event
@@ -11,8 +11,52 @@ from events import EventTypes
 from sqlalchemy.exc import SQLAlchemyError
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 
+from main import get_session
+
 import cam
 import event_broker
+
+class Picture(QWidget):
+     def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        self.setWindowTitle("Take Picture")  
+        self.setMinimumSize(QSize(300, 300))
+        photo_button = QPushButton("Take Picture")
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.close)
+        layout.addStretch(1)
+        layout.addWidget(photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(cancel_button, alignment = Qt.AlignmentFlag.AlignRight)
+        
+        self.setLayout(layout)
+        
+
+class AddUser(QDialog):
+    def __init__(self):
+        super().__init__()
+        layout = QFormLayout()
+        self.setWindowTitle("Add User")
+
+        self.email = QLineEdit()
+        self.password = QLineEdit()
+        self.password.setEchoMode(QLineEdit.EchoMode.Password)
+ 
+        # Add User button
+        add_button = QPushButton("Add User")
+
+        layout.addRow("Email:", self.email)
+        layout.addRow("Password:", self.password)
+        layout.addWidget(add_button)
+        add_button.clicked.connect(self.accept)
+     
+ 
+        # Set layout for the widget
+        self.setLayout(layout)
+
+    def get_email_and_pwd(self):
+            return self.email.text(), self.password.text()
+
 
 class AddStudent(QSqlDatabase, QWidget):
     def __init__(self):
@@ -26,27 +70,35 @@ class AddStudent(QSqlDatabase, QWidget):
         # Create WIN input box
         self.win_box = QLineEdit()
         self.win_box.setPlaceholderText("WIN...")
+        self.win_box.setInputMask('999999999')
         # self.win_box.textChanged.connect(self.update_win)
+
+        name_regex = QRegularExpression("[A-Za-z]+")
+        name_validator = QRegularExpressionValidator(name_regex)
  
         # Create display name box
         self.display_name = QLineEdit()
         self.display_name.setPlaceholderText("Display Name...")
+        self.display_name.setValidator(name_validator)
         # self.display_name.textChanged.connect(self.update_win)
  
         # Create given name box
         self.given_name = QLineEdit()
         self.given_name.setPlaceholderText("Given Name...")
+        self.given_name.setValidator(name_validator)
         # self.given_name.textChanged.connect(self.update_win)
  
         # Create surname box
         self.surname = QLineEdit()
         self.surname.setPlaceholderText("Surname...")
+        
+        self.surname.setValidator(name_validator)
         # self.surname.textChanged.connect(self.update_win)
  
         # Fetch roles from the database
         roles = []
         select_roles = QSqlQuery(QSqlDatabase.database())
-        select_roles.exec("SELECT name FROM user_types")
+        select_roles.exec("SELECT user_type FROM user_types")
  
         while select_roles.next():
             role = select_roles.value(0)
@@ -67,7 +119,7 @@ class AddStudent(QSqlDatabase, QWidget):
  
         # Create button that opens camera using cam.py
         photo_button = QPushButton("Take Photo")
-        photo_button.clicked.connect(self.get_photo)
+        photo_button.clicked.connect(self.show_photo)
  
         # Add Student button
         add_button = QPushButton("Add Student")
@@ -82,18 +134,19 @@ class AddStudent(QSqlDatabase, QWidget):
     def get_photo(self):
         # Call cam.py to open the camera and take a picture
         self.photo_url = cam.take_picture(self.win_box.text())
+        print(self.win_box.text())
         #self.show_photo()
  
-   # def show_photo(self):
-      #  self.w = Picture()
-      #  self.w.show()
+    def show_photo(self):
+        self.w = Picture()
+        self.w.show()
  
  
  
  
     def add_std(self):
-        win_num = self.win_box.text()
-        print(win_num)
+        win = self.win_box.text()
+        print(win)
         role = self.r_combobox.currentText()
         print(role)
         display_name = self.display_name.text()
@@ -102,19 +155,26 @@ class AddStudent(QSqlDatabase, QWidget):
         print(given_name)
         surname = self.surname.text()
         print(surname)
+
+       # if role == "admin" or role == "attendant":
+         #    userDialog = AddUser()
+          #   if userDialog.exec() == QDialog.DialogCode.Accepted:
+          #       email, password = userDialog.get_email_and_pwd()
+           #      print(email, password)
+
         new_event = Event(
-            EventTypes.CREATE_NEW_USER,
-            {
-                "win": win_num,
-                "role": role,
-                "display_name": display_name,
-                "given_name": given_name,
-                "surname": surname,
-                "photo_url": self.photo_url
-            }
-        )
+          EventTypes.CREATE_NEW_USER,
+         {
+             "win": win,
+              "role": role,
+             "display_name": display_name,
+               "given_name": given_name,
+              "surname": surname,
+               "photo_url": self.photo_url
+           }
+       )
  
-        event_broker(new_event)
+        event_broker.event_broker(new_event)
         self.close()
 
 

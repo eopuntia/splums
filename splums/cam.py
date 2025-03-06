@@ -37,9 +37,9 @@ def take_picture(name):
                 print("pic taken, quiting")
                 break
         # Break loop
-        # if pic_key == ord('q'):
-        #     print("quiting")
-        #     break
+        if pic_key == ord('q'):
+            print("quiting")
+            break
 
     # Release the capture and writer objects
     camera.release()

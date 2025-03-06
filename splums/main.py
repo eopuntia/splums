@@ -20,6 +20,9 @@ session = scoped_session(
     )
 )
 
+def get_session():
+    return session
+    
 
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
