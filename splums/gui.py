@@ -17,19 +17,83 @@ import cam
 import event_broker
 
 class Picture(QWidget):
-     def __init__(self):
+    def __init__(self):
         super().__init__()
-        layout = QVBoxLayout()
-        self.setWindowTitle("Take Picture")  
-        self.setMinimumSize(QSize(300, 300))
-        photo_button = QPushButton("Take Picture")
-        cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(self.close)
-        layout.addStretch(1)
-        layout.addWidget(photo_button, alignment= Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(cancel_button, alignment = Qt.AlignmentFlag.AlignRight)
+        #Overall layout, picture will be on left, buttons on right
+        overall_layout = QVBoxLayout()
+
+        #The label which will contain the video feed. Initializes to loading text that is replaced when cam connection made.
+        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
+
+        #Bottom layout
+        bottom_layout = QHBoxLayout()
+
+        #Init save confirmation space instead of hidden, makes it so picture doesn't move up and down.
+        self.save_message = QLabel(" ")
+
+
+        #layout to contain buttons
+        buttons_layout = QVBoxLayout()
+        self.setWindowTitle("Take Picture")
+
+        #Might want to find some way to ensure this is always large enough to fit webcam? at the moment assumes resolution of
+        #640, 480 specified in cam.py rescaling.
+        self.setMinimumSize(QSize(670, 600))
+        self.photo_button = QPushButton("Take Picture")
+        self.photo_button.clicked.connect(self.take_picture)
+
+        self.retake_button = QPushButton("Retake")
+        self.retake_button.clicked.connect(self.retake_picture)
+        #Retake button hidden by default
+        self.retake_button.hide()
+
+        self.exit_button = QPushButton("Exit")
+        self.exit_button.clicked.connect(self.close)
+
+        # buttons_layout.addStretch(1)
+        #Add everything to their respective layouts
+        overall_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
+        buttons_layout.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_layout.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_layout.addWidget(self.exit_button, alignment = Qt.AlignmentFlag.AlignRight)\
         
-        self.setLayout(layout)
+        bottom_layout.addWidget(self.save_message)
+        bottom_layout.addLayout(buttons_layout)
+        overall_layout.addLayout(bottom_layout)
+
+        #Start the camera thread
+        #TODO: REPLACE temp_name_replace_me with the student being modified
+        self.cam_worker = cam.CamWorker("temp_name_replace me")
+
+        #Connect the signal being emitted from the cam worker thread to the image_update function of this window
+        #Allows for the video feed of cam to be displayed in GUI
+        self.cam_worker.image_update.connect(self.image_update_slot)
+
+        #Start camera thread (this makes the thread's run function execute)
+        self.cam_worker.start()
+        self.setLayout(overall_layout)
+
+    def image_update_slot(self, image):
+        #Update the videofeed with the latest provided frame
+        self.feed_label.setPixmap(QPixmap.fromImage(image))
+
+    def take_picture(self):
+        #Calls the cam take picture function
+        self.cam_worker.take_picture()
+        #Hides photo button and asks if user wants to retake
+        self.photo_button.hide()
+        self.retake_button.show()
+        self.save_message.setText("Photo saved!")
+    
+    def retake_picture(self):
+        self.cam_worker.retake_picture()
+        self.retake_button.hide()
+        self.photo_button.show()
+        self.save_message.setText(" ")
+
+         
+    def closeEvent(self, event):
+        self.cam_worker.stop()
         
 
 class AddUser(QDialog):
@@ -131,11 +195,11 @@ class AddStudent(QSqlDatabase, QWidget):
         # Set layout for the widget
         self.setLayout(layout)
  
-    def get_photo(self):
-        # Call cam.py to open the camera and take a picture
-        self.photo_url = cam.take_picture(self.win_box.text())
-        print(self.win_box.text())
-        #self.show_photo()
+    # def get_photo(self):
+    #     # Call cam.py to open the camera and take a picture
+    #     self.photo_url = cam.take_picture(self.win_box.text())
+    #     print(self.win_box.text())
+    #     #self.show_photo()
  
     def show_photo(self):
         self.w = Picture()
