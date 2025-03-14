@@ -95,7 +95,7 @@ class Picture(QWidget):
     def closeEvent(self, event):
         self.cam_worker.stop()
         
-
+#For the AddUser button
 class AddUser(QDialog):
     def __init__(self):
         super().__init__()
@@ -108,8 +108,6 @@ class AddUser(QDialog):
  
         # Add User button
         add_button = QPushButton("Add User")
-
-        layout.addRow("Email:", self.email)
         layout.addRow("Password:", self.password)
         layout.addWidget(add_button)
         add_button.clicked.connect(self.accept)
@@ -175,7 +173,7 @@ class AddStudent(QSqlDatabase, QWidget):
             self.r_combobox.addItem(role)
  
         # Add fields to the form layout
-        layout.addRow("WIN number:", self.win_box)
+        layout.addRow("WIN:", self.win_box)
         layout.addRow("Role:", self.r_combobox)
         layout.addRow("Display Name:", self.display_name)
         layout.addRow("Given Name:", self.given_name)
