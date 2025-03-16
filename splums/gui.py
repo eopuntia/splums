@@ -1,8 +1,154 @@
 import sys
 
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLCDNumber, QPushButton
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLCDNumber, QPushButton, QFormLayout, QLineEdit, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QComboBox
+from PyQt6.QtCore import Qt, QSize, QRegularExpression
+from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
+
+class Notes(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QGridLayout(self)
+        self.setWindowTitle("Notes")
+        self.setLayout(layout)
+        # Style Sheet for default styling options on widgets
+        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+        self.list_widget = QListWidget(self)
+        self.list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        add_button = QPushButton('Add Note')
+        add_button.clicked.connect(self.add_note)
+        edit_button = QPushButton('Edit Note')
+        edit_button.clicked.connect(self.edit_note)
+        remove_button = QPushButton('Remove Note')
+        remove_button.clicked.connect(self.remove_note)
+        save_button = QPushButton('Save')
+        save_button.clicked.connect(self.save_to_db)
+
+        self.list_widget.setStyleSheet("""
+    QListWidget::item {
+        padding: 5px;
+        border-bottom: 1px solid #000;
+        margin-bottom: 2px;
+    }
+    QListWidget::item:selected {
+        background-color: #0078d4;
+        color: white;
+    }
+""")
+        
+        layout.addWidget(self.list_widget)
+        layout.addWidget(add_button)
+        layout.addWidget(edit_button)
+        layout.addWidget(remove_button)
+        layout.addWidget(save_button)
+
+    def add_note(self):
+        text, ok = QInputDialog.getText(self, 'Add a New Note', 'New Note:')
+        if ok and text:
+            self.list_widget.addItem(text)
+
+    def edit_note(self):
+        current_row = self.list_widget.currentRow()
+        if current_row >= 0:
+            current_item = self.list_widget.currentItem()
+            text, ok = QInputDialog.getText(self, 'Edit Note', 'Edit Note:', text=current_item.text())
+            if ok and text:
+                current_item.setText(text)
+    
+    def remove_note(self):
+        current_row = self.list_widget.currentRow()
+        if current_row >= 0:
+            current_item = self.list_widget.takeItem(current_row)
+            del current_item
+    
+    def save_to_db(self):
+        print("Save to db?")
+
+class EditStudent(QWidget):
+    def __init__(self, student_table):
+        super().__init__()
+        self.student_table = student_table
+        layout = QFormLayout()
+        self.setWindowTitle("Edit Student")
+
+        current_student_row = self.student_table.currentRow()
+        print(current_student_row)
+
+        student_id_test = self.student_table.item(current_student_row, 4)
+        print(student_id_test.text())
+        
+        
+        #Make a Select statement (with SQLAlchemy and event broker?) to find in the database where the student_id is equal to the student_id of the current student
+        #Add the relevant fields from the database to the fields below
+            
+       
+
+ 
+        # Style Sheet for default styling options on widgets
+        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+ 
+        # Create WIN input box
+        self.win_box = QLineEdit()
+        self.win_box.setPlaceholderText("WIN...")
+        self.win_box.setInputMask('999999999')
+
+        self.role = QComboBox()
+        name_regex = QRegularExpression("[A-Za-z]+")
+        name_validator = QRegularExpressionValidator(name_regex)
+ 
+        # Create display name box
+        self.display_name = QLineEdit()
+        self.display_name.setPlaceholderText("Display Name...")
+        self.display_name.setValidator(name_validator)
+
+ 
+        # Create given name box
+        self.given_name = QLineEdit()
+        self.given_name.setPlaceholderText("Given Name...")
+        self.given_name.setValidator(name_validator)
+        # self.given_name.textChanged.connect(self.update_win)
+ 
+        # Create surname box
+        self.surname = QLineEdit()
+        self.surname.setPlaceholderText("Last Name...")
+        
+        self.surname.setValidator(name_validator)
+        # self.surname.textChanged.connect(self.update_win)
+
+        self.permissions = QComboBox()
+ 
+       
+        # Add fields to the form layout
+        layout.addRow("WIN:", self.win_box)
+        layout.addRow("Role:", self.role)
+        layout.addRow("Display Name:", self.display_name)
+        layout.addRow("Given Name:", self.given_name)
+        layout.addRow("Last Name:", self.surname)
+        layout.addRow("Permissions", self.permissions)
+ 
+        # Create button that opens camera using cam.py
+        photo_button = QPushButton("Take Photo")
+ 
+        #Notes button
+        notes_button = QPushButton("Notes")
+        notes_button.clicked.connect(self.show_notes)
+
+        layout.addWidget(photo_button)
+        layout.addWidget(notes_button)
+ 
+        # Set layout for the widget
+        self.setLayout(layout)
+ 
+    # def get_photo(self):
+    #     # Call cam.py to open the camera and take a picture
+    #     self.photo_url = cam.take_picture(self.win_box.text())
+    #     print(self.win_box.text())
+    #     #self.show_photo()
+ 
+    def show_notes(self):
+        self.w = Notes()
+        self.w.show()
+ 
+ 
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -142,7 +288,7 @@ class MainWindow(QMainWindow):
 
 
         #Setting up columns
-        self.student_table.setColumnCount(4)
+        self.student_table.setColumnCount(5)
 
         #Automatic handling of resizing window for table
         self.student_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
@@ -173,13 +319,13 @@ class MainWindow(QMainWindow):
     #*******************************************************************************************
 
     def update_students(self):
-        students = [{"Student Name": "Estlin Mendez", "Permissions": ["Red"], "Notes": [], "url": "temp.png"}, 
-                    {"Student Name": "Clara McGrew", "Permissions": ["Red", "Blue"], "Notes": ["normal", "discuss", "concern"], "url": "temp.png"}, 
-                    {"Student Name": "Renee Rickert", "Permissions": ["Red", "Green", "Blue"], "Notes": ["normal", "normal", "discuss", "concern"], "url": "temp.png"}, 
-                    {"Student Name": "Evan Handy", "Permissions": ["Green"], "Notes": ["normal", "discuss", "concern"], "url": "temp.png", }, 
-                    {"Student Name": "Hunter Hamrick", "Permissions": ["Blue"], "Notes": "", "url": "temp.png"}, 
-                    {"Student Name": "Kaden Kramer", "Permissions": ["Blue"], "Notes": ["normal"], "url": "temp.png"}, 
-                    {"Student Name": "Ben Crane", "Permissions": ["Blue"], "Notes": ["normal", "discuss", "concern", "banned"], "url": "temp.png"}]
+        students = [{"Student Name": "Estlin Mendez", "Permissions": ["Red"], "Notes": [], "url": "temp.png", "Student ID": "252526263"}, 
+                    {"Student Name": "Clara McGrew", "Permissions": ["Red", "Blue"], "Notes": ["normal", "discuss", "concern"], "url": "temp.png", "Student ID": "252525263"}, 
+                    {"Student Name": "Renee Rickert", "Permissions": ["Red", "Green", "Blue"], "Notes": ["normal", "normal", "discuss", "concern"], "url": "temp.png", "Student ID": "111111111"}, 
+                    {"Student Name": "Evan Handy", "Permissions": ["Green"], "Notes": ["normal", "discuss", "concern"], "url": "temp.png", "Student ID": "000000000"}, 
+                    {"Student Name": "Hunter Hamrick", "Permissions": ["Blue"], "Notes": "", "url": "temp.png", "Student ID": "222222222"}, 
+                    {"Student Name": "Kaden Kramer", "Permissions": ["Blue"], "Notes": ["normal"], "url": "temp.png", "Student ID": "444444444"}, 
+                    {"Student Name": "Ben Crane", "Permissions": ["Blue"], "Notes": ["normal", "discuss", "concern", "banned"], "url": "temp.png", "Student ID": "555555555"}]
         head_count = 0
         head_count = len(students)
         self.student_table.setRowCount(head_count)
@@ -192,7 +338,6 @@ class MainWindow(QMainWindow):
             student_image.setPixmap(QPixmap("./splums/images/default.png").scaledToHeight(85))
             
             self.student_table.setCellWidget(row, 0, student_image)
-
 
             #Student Name
             student_name_cell = QTableWidgetItem(student["Student Name"])
@@ -244,6 +389,13 @@ class MainWindow(QMainWindow):
             notewidget.setLayout(note_layout)
             self.student_table.setCellWidget(row, 3, notewidget)
 
+                #Student ID
+            student_id_hidden =  QTableWidgetItem(student["Student ID"])
+            student_id_hidden.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.student_table.setItem(row, 4, student_id_hidden)
+            self.student_table.setColumnHidden(4, True)
+        
+
             row+=1
         
         #Resize rows and first column to fit images
@@ -261,7 +413,8 @@ class MainWindow(QMainWindow):
 
 
     def edit_student(self):
-        print("Editing Student")
+        self.w = EditStudent(self.student_table)
+        self.w.show()
 
     def sign_out(self):
         print("Signing out")
