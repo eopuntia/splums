@@ -25,3 +25,6 @@ class EventTypes(Enum):
     OPEN_LAB = 14
     CLOSE_LAB = 15
     ARCHIVE_ACCOUNT = 16
+    GET_USERS_BY_ROLE = 17
+    GET_USERS_BY_AFFILIATION = 18
+    
