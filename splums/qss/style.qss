@@ -1,0 +1,50 @@
+/* style.qss */
+
+/* Global (affects all aspects of GUI unless something below overrides it) */
+QWidget {
+    font-family: Roboto;
+    color: #000000;
+}
+
+
+/* Main Background Color */
+QWidget#Main, QInputDialog {
+    background-color: #ababab;
+}
+
+/* Button Color */
+QToolButton {
+    background-color: #f6f6f6;
+}
+
+/* Headcount Header */
+QLabel#HeadcountHeader {
+    background-color: #f6f6f6;
+}
+
+/* Headcount */
+QLCDNumber {
+    background-color: #e0e0e0;
+}
+
+/* Note button */
+QPushButton {
+    font-size:15pt;
+    background-color: #e0e0e0;
+}
+
+/* Student Table Header */
+QHeaderView {
+    font-size: 12pt;
+    background-color: #f6f6f6;
+}
+
+/* Student Table */
+QTableWidget {
+    font-size: 18pt;
+    background-color: #e0e0e0;
+}
+
+QLineEdit, QComboBox, QListWidget {
+    background-color: #e0e0e0;
+}

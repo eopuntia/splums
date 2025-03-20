@@ -1,7 +1,7 @@
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber
 from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from main import session
@@ -21,6 +21,7 @@ class Notes(QWidget):
         super().__init__()
         layout = QGridLayout(self)
         self.setWindowTitle("Notes")
+        self.setObjectName("Main")
         self.setLayout(layout)
         # Style Sheet for default styling options on widgets
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
@@ -75,21 +76,21 @@ class Notes(QWidget):
     def save_to_db(self):
         print("Save to db?")
 
-class EditStudent(QWidget):
-    def __init__(self, student_table):
+class EditAccount(QWidget):
+    def __init__(self, account_table):
         super().__init__()
-        self.student_table = student_table
+        self.account_table = account_table
         layout = QFormLayout()
-        self.setWindowTitle("Edit Student")
+        self.setWindowTitle("Edit Account")
 
-        current_student_row = self.student_table.currentRow()
+        current_account_row = self.account_table.currentRow()
 
-        if current_student_row > 0:
-            student_id = self.student_table.item(current_student_row, 4)
-            print(student_id.text())
+        if current_account_row > 0:
+            account_id = self.account_table.item(current_account_row, 4)
+            print(account_id.text())
         
         
-        #Make a Select statement (with SQLAlchemy and event broker?) to find in the database where the student_id is equal to the student_id of the current student
+        #Make a Select statement (with SQLAlchemy and event broker?) to find in the database where the student_id is equal to the account_id of the current account
         #Add the relevant fields from the database to the fields below with setText() instead of setPlaceholderText()
             
        
@@ -162,6 +163,7 @@ class EditStudent(QWidget):
         layout.addWidget(notes_button)
  
         # Set layout for the widget
+        self.setObjectName("Main")
         self.setLayout(layout)
  
     # def get_photo(self):
@@ -224,7 +226,7 @@ class Picture(QWidget):
         overall_layout.addLayout(bottom_layout)
 
         #Start the camera thread
-        #TODO: REPLACE temp_name_replace_me with the student being modified
+        #TODO: REPLACE temp_name_replace_me with the account being modified
         self.cam_worker = cam.CamWorker("temp_name_replace me")
 
         #Connect the signal being emitted from the cam worker thread to the image_update function of this window
@@ -233,6 +235,7 @@ class Picture(QWidget):
 
         #Start camera thread (this makes the thread's run function execute)
         self.cam_worker.start()
+        self.setObjectName("Main")
         self.setLayout(overall_layout)
 
     def image_update_slot(self, image):
@@ -276,17 +279,18 @@ class AddUser(QDialog):
      
  
         # Set layout for the widget
+        self.setObjectName("Main")
         self.setLayout(layout)
 
     def get_email_and_pwd(self):
             return self.email.text(), self.password.text()
 
 
-class AddStudent(QSqlDatabase, QWidget):
+class AddAccount(QSqlDatabase, QWidget):
     def __init__(self):
         super().__init__()
         layout = QFormLayout()
-        self.setWindowTitle("Add Student")
+        self.setWindowTitle("Add Account")
  
         # Style Sheet for default styling options on widgets
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
@@ -357,14 +361,14 @@ class AddStudent(QSqlDatabase, QWidget):
         photo_button = QPushButton("Take Photo")
         photo_button.clicked.connect(self.show_photo)
  
-        # Add Student button
-        add_button = QPushButton("Add Student")
-        add_button.clicked.connect(self.add_std)
+        # Add account button
+        add_button = QPushButton("Add Account")
+        add_button.clicked.connect(self.add_act)
  
         layout.addWidget(photo_button)
         layout.addWidget(add_button)
- 
         # Set layout for the widget
+        self.setObjectName("Main")
         self.setLayout(layout)
  
     # def get_photo(self):
@@ -380,7 +384,7 @@ class AddStudent(QSqlDatabase, QWidget):
  
  
  
-    def add_std(self):
+    def add_act(self):
         win = self.win_box.text()
         print(win)
         role = self.r_combobox.currentText()
@@ -417,35 +421,34 @@ class AddStudent(QSqlDatabase, QWidget):
     
 
 class MainWindow(QMainWindow):
-  
-  
- #*******************************************************************************************
- # Button Functions
+
 #*******************************************************************************************
- def add_student(self):
+# Button Functions
+#*******************************************************************************************
+    def add_account(self):
         
-        print("Adding Student")
+        print("Adding Account")
         self.db.open()
         if(self.db.isOpen()):
-           self.w = AddStudent()
+           self.w = AddAccount()
            self.w.show()
 
 
- def edit_student(self):
-        self.w = EditStudent(self.student_table)
+    def edit_account(self):
+        self.w = EditAccount(self.account_table)
         self.w.show()
 
- def sign_out(self):
+    def sign_out(self):
         print("Signing out")    
 
 
- def __init__(self):
+    def __init__(self):
         super().__init__()
-            #Table containing all the students
-        self.student_table = QTableWidget()
-        #selection = self.student_table.selectionModel()
-
-        #self.student_table.selectRow(0)
+            #Table containing all the accounts
+        self.account_table = QTableWidget()
+        #selection = self.account_table.selectionModel()
+        self.headcount_display = QLCDNumber(self)
+        #self.account_table.selectRow(0)
               # Connect to MariaDB (Docker)
         print(QSqlDatabase.drivers()) 
         plugin_path = QLibraryInfo.LibraryPath
@@ -465,7 +468,7 @@ class MainWindow(QMainWindow):
         self.db.setPassword("example")
         self.db.open()
         if(self.db.isOpen()):
-            self.update_students()
+            self.update_accounts()
         else:
             print("Failed to connect to MariaDB:", self.db.lastError().text())
        
@@ -473,8 +476,8 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Student Projects Lab User Management System")
 
-        #Style Sheet for default styling options on widgets
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+        #Styling moved to style.qss, keeping this here in case font sizes here ends up being more optimal
+        # self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
 
         #Main layout, the over-arching vertical layout that The button bar and the displayed users are apart of
         layout_main = QVBoxLayout()
@@ -490,6 +493,7 @@ class MainWindow(QMainWindow):
         #Set spacing between all of this layouts elements
         # layout_main.setSpacing(2)
         
+        layout_topsplit = QHBoxLayout()
 
         #*******************************************************************************************
         # BUTTON BAR
@@ -501,22 +505,22 @@ class MainWindow(QMainWindow):
 
         #Create and connect buttons to functions
 
-        #Add Student Button
+        #Add Account Button
         self.button_add = QToolButton(self)
-        self.button_add.setText("Add Student")
+        self.button_add.setText("Add Account")
         self.button_add.setIcon(QIcon("./splums/images/add.svg"))
         self.button_add.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
-        self.button_add.clicked.connect(self.add_student)
+        self.button_add.clicked.connect(self.add_account)
 
 
-        #Edit Student Button
+        #Edit Account Button
         self.button_edit = QToolButton(self)
-        self.button_edit.setText("Edit Student")
+        self.button_edit.setText("Edit Account")
         self.button_edit.setIcon(QIcon("./splums/images/edit.svg"))
         self.button_edit.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
-        self.button_edit.clicked.connect(self.edit_student)
+        self.button_edit.clicked.connect(self.edit_account)
 
         #Sign Out Button
         self.button_sign_out = QToolButton(self)
@@ -546,147 +550,236 @@ class MainWindow(QMainWindow):
         layout_buttonbar.addWidget(self.button_sign_out)
 
         #Add the button bar to the main layout
-        layout_main.addLayout(layout_buttonbar)
-
+        layout_topsplit.addLayout(layout_buttonbar)
 
 
         #*******************************************************************************************
-        # Student Table
+        # Head Count
+        #*******************************************************************************************
+
+        #Righthand toolbar for headcount 
+        layout_rightbar = QHBoxLayout()
+        layout_rightbar.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+
+        layout_rightbar = QHBoxLayout()
+        layout_rightbar.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+
+        layout_headcount = QVBoxLayout()
+        layout_headcount.setSpacing(0)
+        headcount_header = QLabel(" Headcount")
+        headcount_header.setStyleSheet("font-weight: bold;")
+        headcount_header.setObjectName("HeadcountHeader")
+        layout_headcount.addWidget(headcount_header)
+
+        self.headcount_display.setDigitCount(2)
+        layout_headcount.addWidget(self.headcount_display)
+        layout_rightbar.addLayout(layout_headcount)
+        layout_topsplit.addLayout(layout_rightbar)
+
+
+
+        layout_main.addLayout(layout_topsplit)
+        self.headcount_display.setFixedSize(QSize(bdim[0]-30, bdim[1]-25))
+        self.headcount_display.display(0)
+
+        #*******************************************************************************************
+        # Account Table
         #*******************************************************************************************
         
-        layout_students = QHBoxLayout()
+        layout_accounts = QHBoxLayout()
 
-        self.student_table.verticalHeader().setVisible(False)
+        #Table containing all the accounts
+        self.account_table = QTableWidget()
+
+
+        self.account_table.verticalHeader().setVisible(False)
 
         #Configuring way table can be interacted
-        self.student_table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self.student_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.student_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.student_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.student_table.setHorizontalScrollMode(QAbstractItemView.ScrollMode(0))
+        self.account_table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.account_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.account_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.account_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.account_table.setHorizontalScrollMode(QAbstractItemView.ScrollMode(0))
 
 
 
 
 
         #Setting up columns
-        self.student_table.setColumnCount(5)
+        self.account_table.setColumnCount(5)
 
         #Automatic handling of resizing window for table
-        self.student_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.student_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.student_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        self.student_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        self.student_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        self.account_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.account_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.account_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.account_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        column_labels = [" ", "Account", "Permissions", "Notes", "Head Count"]
 
-        column_labels = [" ", "Student", "Permissions", "Notes", "Head Count"]
+        self.account_table.setHorizontalHeaderLabels(column_labels)
 
-        self.student_table.setHorizontalHeaderLabels(column_labels)
-
-        self.update_students()
+        self.update_accounts()
         
 
 
-        layout_students.addWidget(self.student_table)
+        layout_accounts.addWidget(self.account_table)
 
 
-        layout_main.addLayout(layout_students)
+        layout_main.addLayout(layout_accounts)
 
 
         widget = QWidget()
+        widget.setObjectName("Main")
+        widget.setLayout(layout_main)
+        self.setCentralWidget(widget)
+
+
+
+        #*******************************************************************************************
+        # Account Table
+        #*******************************************************************************************
+        
+        layout_accounts = QHBoxLayout()
+
+        self.account_table.verticalHeader().setVisible(False)
+
+        #Configuring way table can be interacted
+        self.account_table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.account_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.account_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.account_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.account_table.setHorizontalScrollMode(QAbstractItemView.ScrollMode(0))
+
+
+
+
+
+        #Setting up columns
+        self.account_table.setColumnCount(5)
+
+        #Automatic handling of resizing window for table
+        self.account_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.account_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.account_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.account_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        self.account_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+
+        column_labels = [" ", "Account", "Permissions", "Notes", "Head Count"]
+
+        self.account_table.setHorizontalHeaderLabels(column_labels)
+
+        self.update_accounts()
+        
+
+
+        layout_accounts.addWidget(self.account_table)
+
+
+        layout_main.addLayout(layout_accounts)
+
+
+        widget = QWidget()
+        widget.setObjectName("Main")
         widget.setLayout(layout_main)
         self.setCentralWidget(widget)
    
 
     #*******************************************************************************************
-    # Create and Update Student Table
+    # Create and Update Accounts Table
     #*******************************************************************************************
 
- def update_students(self):
-    students = []
+    def update_accounts(self):
+        accounts = []
 
-     #select_students.exec("SELECT u.display_name, u.photo_url, n.text, e.name, e.icon_url FROM user as u LEFT JOIN note as n on n.account_id = u.account_id JOIN account-equipment as ae ON ae.account_id = u.account_id, JOIN equipment as e ON e.equipment_id = ae.equipment_id") ")
-      #Question: Should we allow users with no machines on their profile to be displayed?
-       # while select_students.next():
-         #   student = {
-         #       "Student Name": select_students.value(0),
-         #       "Permissions": ["Red"],
-         #       "Notes": select_students.value(1),
-         #       "url": "temp.png"
-          #  }
-          #  students.append(student)
+        #select_accounts.exec("SELECT u.display_name, u.photo_url, n.text, e.name, e.icon_url FROM user as u LEFT JOIN note as n on n.account_id = u.account_id JOIN account-equipment as ae ON ae.account_id = u.account_id, JOIN equipment as e ON e.equipment_id = ae.equipment_id") ")
+        #Question: Should we allow users with no machines on their profile to be displayed?
+        # while select_accounts.next():
+            #   account = {
+            #       "Account Name": select_accounts.value(0),
+            #       "Permissions": ["Red"],
+            #       "Notes": select_accounts.value(1),
+            #       "url": "temp.png"
+            #  }
+            #  accounts.append(account)
 
-          #IMPORTANT: We need a SQLAlchemy query, that gets the name, permissions, etc. from the database when the students are logged in.
-          #I assume we're doing this from the Event Broker. We can replace the for loop with a while loop and loop through
-          #the query, populating the important fields and adding them to the dictionary which will be filled below.
-          #It might be a while loop like the one above.
-    
-    for i in range(6):
-        student = {
-            "Student Name": "Clara McGrew",
-            "Permissions": ["Red"],
-            "Notes": ["normal"],
-            "url": "temp.png",
-            "Student ID": "111111111"
-        }
-        students.append(student)
-    
-    head_count = len(students)
-    self.student_table.setRowCount(head_count)
+            #IMPORTANT: We need a SQLAlchemy query, that gets the name, permissions, etc. from the database when the accounts are logged in.
+            #I assume we're doing this from the Event Broker. We can replace the for loop with a while loop and loop through
+            #the query, populating the important fields and adding them to the dictionary which will be filled below.
+            #It might be a while loop like the one above.
+        
+        for i in range(6):
+            account = {
+                "Account Name": "Clara McGrew",
+                "Permissions": ["Red"],
+                "Notes": ["normal"],
+                "url": "temp.png",
+                "Account ID": "111111111"
+            }
+            accounts.append(account)
+        
+        head_count = len(accounts)
+        self.account_table.setRowCount(head_count)
+        self.headcount_display.display(head_count)
 
-    row = 0
-    for student in students:
-        # Student Image
-        student_image = QLabel()
-        student_image.setPixmap(QPixmap("./splums/images/default.png").scaledToHeight(85))
-        self.student_table.setCellWidget(row, 0, student_image)
+        row = 0
+        for account in accounts:
+            # Account Image
+            account_image = QLabel()
+            account_image.setPixmap(QPixmap("./splums/images/default.png").scaledToHeight(85))
+            self.account_table.setCellWidget(row, 0, account_image)
 
-        # Student Name
-        student_name_cell = QTableWidgetItem(student["Student Name"])
-        student_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.student_table.setItem(row, 1, student_name_cell)
+            # Account Name
+            account_name_cell = QTableWidgetItem(account["Account Name"])
+            account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.account_table.setItem(row, 1, account_name_cell)
 
-        # Permissions
-        student_permissions_cell = QLabel("")
-        perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in student["Permissions"])
-        student_permissions_cell.setText(perm_string)
-        student_permissions_cell.setStyleSheet("font-size: 18pt;")
-        student_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.student_table.setCellWidget(row, 2, student_permissions_cell)
+            # Permissions
+            account_permissions_cell = QLabel("")
+            perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in account["Permissions"])
+            account_permissions_cell.setText(perm_string)
+            account_permissions_cell.setStyleSheet("font-size: 18pt;")
+            account_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.account_table.setCellWidget(row, 2, account_permissions_cell)
 
-        # Notes
-        note_layout = QHBoxLayout()
-        for note in student["Notes"]:
-            note_button = QPushButton()
-            note_button.setText({
-                "normal": "🟩",
-                "discuss": "💡",
-                "concern": "❗️",
-                "banned": "🛑"
-            }.get(note, "Unrecognized note type"))
-            note_button.setFixedSize(QSize(60, 60))
-            note_layout.addWidget(note_button)
-        note_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            # Notes
+            note_layout = QHBoxLayout()
+            for note in account["Notes"]:
+                note_button = QPushButton()
+                note_button.setText({
+                    "normal": "🟩",
+                    "discuss": "💡",
+                    "concern": "❗️",
+                    "banned": "🛑"
+                }.get(note, "Unrecognized note type"))
+                note_button.setFixedSize(QSize(60, 60))
+                note_layout.addWidget(note_button)
+            note_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        notewidget = QWidget()
-        notewidget.setLayout(note_layout)
-        self.student_table.setCellWidget(row, 3, notewidget)
+            notewidget = QWidget()
+            notewidget.setLayout(note_layout)
+            self.account_table.setCellWidget(row, 3, notewidget)
 
-        # Student ID
-        student_id_hidden = QTableWidgetItem(student["Student ID"])
-        student_id_hidden.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.student_table.setItem(row, 4, student_id_hidden)
-        self.student_table.setColumnHidden(4, True)
+            # Account ID
+            account_id_hidden = QTableWidgetItem(account["Account ID"])
+            account_id_hidden.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.account_table.setItem(row, 4, account_id_hidden)
+            self.account_table.setColumnHidden(4, True)
 
-        row += 1
+            row += 1
 
-    # Resize rows and first column to fit images
-    self.student_table.resizeRowsToContents()
-    self.student_table.resizeColumnToContents(0)
+        # Resize rows and first column to fit images
+        self.account_table.resizeRowsToContents()
+        self.account_table.resizeColumnToContents(0)
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    attendant_gui = QApplication(sys.argv)
+    qssfile="./splums/qss/style.qss"
+ 
+
+    with open(qssfile,"r") as f:
+        attendant_gui.setStyleSheet(f.read())
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    sys.exit(attendant_gui.exec())
