@@ -633,56 +633,6 @@ class MainWindow(QMainWindow):
         widget.setObjectName("Main")
         widget.setLayout(layout_main)
         self.setCentralWidget(widget)
-
-
-
-        #*******************************************************************************************
-        # Account Table
-        #*******************************************************************************************
-        
-        layout_accounts = QHBoxLayout()
-
-        self.account_table.verticalHeader().setVisible(False)
-
-        #Configuring way table can be interacted
-        self.account_table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self.account_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.account_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.account_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.account_table.setHorizontalScrollMode(QAbstractItemView.ScrollMode(0))
-
-
-
-
-
-        #Setting up columns
-        self.account_table.setColumnCount(5)
-
-        #Automatic handling of resizing window for table
-        self.account_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.account_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.account_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        self.account_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        self.account_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
-
-        column_labels = [" ", "Account", "Permissions", "Notes", "Head Count"]
-
-        self.account_table.setHorizontalHeaderLabels(column_labels)
-
-        self.update_accounts()
-        
-
-
-        layout_accounts.addWidget(self.account_table)
-
-
-        layout_main.addLayout(layout_accounts)
-
-
-        widget = QWidget()
-        widget.setObjectName("Main")
-        widget.setLayout(layout_main)
-        self.setCentralWidget(widget)
    
 
     #*******************************************************************************************
