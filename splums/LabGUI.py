@@ -7,7 +7,12 @@ from PyQt6.QtGui import QPixmap, QIcon, QFont
 import math
 
 
-
+#ADD TIME, affiliation ,RSOs
+#     PIC           Time
+#     NAME
+#     AFFILIATION
+#     RSOs
+#     PERMISSIONS
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -22,14 +27,14 @@ class MainWindow(QMainWindow):
         # Make GUI Vertical
         self.setMinimumSize(QSize(720, 1280))
 
-        self.users = [{"User Name": "Estlin Mendez", "Permissions": "Red", "Notes": "", "url": "temp.png"},
-                 {"User Name": "Clara McGrew", "Permissions": "Red", "Notes": "", "url": "temp.png"},
-                 {"User Name": "Renee Rickert", "Permissions": "Red", "Notes": "", "url": "temp.png"},
-                 {"User Name": "Evan Hardy", "Permissions": "Green", "Notes": "", "url": "temp.png", },
-                 {"User Name": "Hunter Hamrick", "Permissions": "Blue", "Notes": "", "url": "temp.png"},
-                 {"User Name": "Kaden Kramer", "Permissions": "Blue", "Notes": "", "url": "temp.png"},
-                 {"User Name": "Ben Crane", "Permissions": "Blue", "Notes": "", "url": "temp.png"},
-                 {"User Name": "Jerry Sims", "Permissions": "Blue", "Notes": "", "url": "temp.png"}]
+        self.users = [{"User Name": "Estlin Mendez","Affiliation": "Creator", "RSOs": "Test", "Permissions": "Red", "Notes": "", "url": "temp.png", "Time": "12:30"},
+                 {"User Name": "Clara McGrew", "Affiliation": "Creator", "RSOs": "", "Permissions": "Red", "Notes": "", "url": "temp.png", "Time": ""},
+                 {"User Name": "Renee Rickert","Affiliation": "Creator", "RSOs": "", "Permissions": "Red", "Notes": "", "url": "temp.png", "Time": ""},
+                 {"User Name": "Evan Handy","Affiliation": "Creator", "RSOs": "", "Permissions": "Green", "Notes": "", "url": "temp.png", "Time": "" },
+                 {"User Name": "Hunter Hamrick","Affiliation": "Creator", "RSOs": "", "Permissions": "Blue", "Notes": "", "url": "temp.png", "Time": ""},
+                 {"User Name": "Kaden Kramer", "Affiliation": "Creator", "RSOs": "", "Permissions": "Blue", "Notes": "", "url": "temp.png", "Time": ""},
+                 {"User Name": "Ben Crane","Affiliation": "Creator", "RSOs": "", "Permissions": "Blue", "Notes": "", "url": "temp.png", "Time": ""},
+                 {"User Name": "Jerry Sims","Affiliation": "Faux Attendant", "RSOs": "", "Permissions": "Blue", "Notes": "", "url": "temp.png", "Time": ""}]
 
 
 
@@ -47,8 +52,8 @@ class MainWindow(QMainWindow):
         bold_font = QFont()
         bold_font.setBold(True)
 
-        self.lab_table.setColumnCount(6)
-        self.lab_table.setHorizontalHeaderLabels(["Users Present", "", "", "", "Head Count", str(len(self.users))])
+        self.lab_table.setColumnCount(5)
+        self.lab_table.setHorizontalHeaderLabels(["Users Present", "", "", "Head Count", str(len(self.users) - 1)])
 
         header = self.lab_table.horizontalHeader()
         header.setFont(bold_font)
@@ -57,7 +62,7 @@ class MainWindow(QMainWindow):
         self.update_table()
         #Allow Window Resizing
         self.lab_table.horizontalHeader().setStretchLastSection(True)
-        #Allow all column to stretch
+        #Allow all columns to stretch
         for col in range(self.lab_table.columnCount()):
             self.lab_table.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
 
@@ -68,6 +73,7 @@ class MainWindow(QMainWindow):
 
         layout_lab.addWidget(self.lab_table)
         layout_lab.setStretch(0,1)
+
         #Attendant card in the bottom right
         attendant_layout = QVBoxLayout()
         attendant_card = self.attendant_card(self.users[-1])
@@ -89,15 +95,35 @@ class MainWindow(QMainWindow):
         card = QWidget()
         card_layout = QVBoxLayout()
 
+        #TimeLayout
+        time_layout =QHBoxLayout()
+        #Time Swiped In
+        time = QLabel((user['Time']))
+        time.setAlignment(Qt.AlignmentFlag.AlignRight)
+        time_layout.addWidget(time)
+
         #User Image
         user_img = QLabel()
-        user_img.setPixmap(QPixmap("./splums/images/default.png").scaledToHeight(85))
+        user_img.setPixmap(QPixmap("./images/").scaledToHeight(85))
         card_layout.addWidget(user_img)
+
         #User Name
         user_name = QLabel(user['User Name'])
         user_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         user_name.setStyleSheet("font-size: 16pt")
         card_layout.addWidget(user_name)
+
+        #Affiliation
+        user_affiliation = QLabel(user['Affiliation'])
+        user_affiliation.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        user_affiliation.setStyleSheet("font-size: 16pt")
+        card_layout.addWidget(user_affiliation)
+
+        #RSOs
+        user_rso = QLabel(user['RSOs'])
+        user_rso.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        user_rso.setStyleSheet("font-size: 16pt")
+        card_layout.addWidget(user_rso)
 
         #Permissions
         user_permissions = QLabel(f"{user['Permissions']}")
@@ -105,7 +131,8 @@ class MainWindow(QMainWindow):
         user_permissions.setStyleSheet(permission_stylesheet)
         user_permissions.setAlignment(Qt.AlignmentFlag.AlignCenter)
         card_layout.addWidget(user_permissions)
-
+        #Add time to top of card
+        card_layout.insertLayout(0, time_layout)
         card.setLayout(card_layout)
         return card
 
@@ -123,31 +150,38 @@ class MainWindow(QMainWindow):
         user_name.setStyleSheet("font-size: 16pt")
         card_layout.addWidget(user_name)
 
+        # Affiliation
+        user_affiliation = QLabel(user['Affiliation'])
+        user_affiliation.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        user_affiliation.setStyleSheet("font-size: 16pt")
+        card_layout.addWidget(user_affiliation)
+
+        card.setMaximumHeight(180)
         card.setLayout(card_layout)
         return card
 
     def update_table(self):
-        self.lab_table.setRowCount(math.ceil(len(self.users)/6))
+        non_attendant = self.users[:-1]
+        self.lab_table.setRowCount(math.ceil(len(non_attendant)/6))
 
         column = 0
         row = 0
         #Add User Card to the table on the screen
-        for user in self.users:
+        for user in non_attendant:
             card = self.user_card(user)
             self.lab_table.setCellWidget(row, column, card)
             self.lab_table.resizeColumnToContents(column)
             column += 1
-            #After 6th user move to next row
-            if column > 5:
+            #After 5th user move to next row
+            if column > 4:
                 column = 0
                 row += 1
                 # Resize columns and rows to fit the content
         self.lab_table.resizeColumnsToContents()
         self.lab_table.resizeRowsToContents()
 
-# Might need to move this into main
 splums = QApplication(sys.argv)
-splums.setStyle("Breeze")
+
 window = MainWindow()
 window.show()
 splums.exec()
