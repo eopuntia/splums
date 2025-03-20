@@ -196,7 +196,7 @@ class Picture(QWidget):
 
         #layout to contain buttons
         buttons_layout = QVBoxLayout()
-        self.setWindowTitle("Take Picture")
+        self.setWindowTitle("Take PictureT")
 
         #Might want to find some way to ensure this is always large enough to fit webcam? at the moment assumes resolution of
         #640, 480 specified in cam.py rescaling.
