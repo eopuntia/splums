@@ -17,7 +17,7 @@ def create(event, session):
 
         subject = s.scalar(select(Account).where(Account.account_id == event.data["subject_account_id"]))
         if subject is None:
-            print(f"err invalid subject id: {event.data["subject_account_id"]}")
+            print(f"err invalid subject id: {event.data['subject_account_id']}")
             return
 
         new_note = Note(creator_account=creator, subject_account=subject, text=event.data["text"])
@@ -34,7 +34,7 @@ def edit(event, session):
                 
         note = s.scalar(select(Note).where(Note.note_id == event.data["note_id"]))
         if note is None:
-            raise KeyError(f"err invalid note id: {event.data["note_id"]}")
+            raise KeyError(f"err invalid note id: {event.data['note_id']}")
         
         for update in event.data["edit_attrs"]:
             if update == "text":
@@ -56,7 +56,7 @@ def delete(event, session):
                 
         note = s.scalar(select(Note).where(Note.note_id == event.data["note_id"]))
         if note is None:
-            raise KeyError(f"err invalid note id: {event.data["note_id"]}")
+            raise KeyError(f"err invalid note id: {event.data['note_id']}")
         
         s.delete(note)
         s.commit()

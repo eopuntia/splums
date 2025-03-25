@@ -93,5 +93,10 @@ class EventBroker:
                 print(f"Archive User")
                 # self.archive_account(event)
 
+            case EventTypes.GET_USERS_BY_ROLE:
+                print(f"\033[93mGetting users...\033[0m")
+                result = account_events.get_users_by_role(event, self.session)
+                return result
+
             case _:
                 print(f"Error")
