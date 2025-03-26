@@ -1,123 +1,102 @@
 from events import Event
 from events import EventTypes
+from sqlalchemy import select
+import note_events, account_events, swipe_events
+from models.models import Account, Note, Role
 
-"""This is currently just a framework for the event broker.
-    Function names may be changed when they are actually developed."""
-def event_broker(event: Event):
-    match event.event_type:
-        case EventTypes.SWIPE_IN: # Swipe In
-            print("Swipe In")
-            # Call swipe processor
-            from swipe_processor import swipe_in_process
-            swipe_in_process(event)
+class EventBroker:
+    def __init__(self, session):
+        self.session = session
 
-        case EventTypes.ACCEPTED_SWIPE_IN: # Accepted Swipe In
-            print("Accepted Swipe In")
-            # Call all necessary modules
-            # towerLightGreen()
-            # showAttendantScreen(event)
-            # showLabScreen(event)
-            # updateDB(event)
-            # expectEnter()
-            
-        case EventTypes.DENIED_SWIPE_IN: # Denied Swipe In
-            print("Denied Swipe In")
-            # Call all necessary modules
-            # towerLightRed()
-            # updateDB(event)
+    def process_event(self, event):
+        match event.event_type:
+            case EventTypes.SWIPE_IN: 
+                print(f"Swipe In")
+                swipe_events.swipe_in(event, self.session, self)
 
-        case EventTypes.SWIPE_OUT: # Swipe Out
-            print("Swipe Out")
-            # Call swipe processor
-            from swipe_processor import swipe_out_process
-            swipe_out_process(event)
+            # TODO IMPLEMENT
+            case EventTypes.ACCEPTED_SWIPE_IN:
+                print(f"Accepted Swipe In")
+                # towerLightGreen()
+                # showAttendantScreen(event)
+                # showLabScreen(event)
+                # expectEnter()
+                
+            # TODO IMPLEMENT
+            case EventTypes.DENIED_SWIPE_IN:
+                print(f"Denied Swipe In")
+                # towerLightRed()
 
-        case EventTypes.ACCEPTED_SWIPE_OUT: # Accepted Swipe Out
-            print("Accepted Swipe Out")
-            # Call all necessary modules
-            # towerLightGreen()
-            # removeAttendantScreen(event)
-            # removeLabScreen(event)
-            # updateDB(event)
-            # expectExit()
-    
-        case EventTypes.DENIED_SWIPE_OUT: # Denied Swipe Out
-            print("Denied Swipe Out")
-            # Call all necessary modules
-            # towerLightRed()
-            # updateDB(event)
+            case EventTypes.SWIPE_OUT: 
+                print(f"Swipe Out")
+                swipe_events.swipe_out(event, self.session, self)
 
-        case EventTypes.EXPECTED_GATE_CROSSING: # Expected Gate Crossing
-            print("Expected Gate Crossing")
-            # Call all necessary modules
-            # updateDB(event)
+            # TODO IMPLEMENT
+            case EventTypes.ACCEPTED_SWIPE_OUT: 
+                print(f"Accepted Swipe Out")
+                # towerLightGreen()
+                # removeAttendantScreen(event)
+                # removeLabScreen(event)
+                # expectExit()
+        
+            # TODO IMPLEMENT
+            case EventTypes.DENIED_SWIPE_OUT: 
+                print(f"Denied Swipe Out")
+                # towerLightRed()
 
-        case EventTypes.UNEXPECTED_GATE_CROSSING: # Unexpected Gate Crossing
-            print("Unexpected Gate Crossing")
-            # Call all necessary modules
-            # activateAlarm()
-            # towerLightRed()
-            # updateDB(event)
+            # TODO IMPLEMENT
+            case EventTypes.EXPECTED_GATE_CROSSING: 
+                print(f"Expected Gate Crossing")
 
-        case EventTypes.CREATE_NEW_USER: # Create New User
-            print("Create New User")
-            # Call all necessary modules
-            import usercreation
-            usercreation.create_user(event)
-            # updateDB(event)
+            # TODO IMPLEMENT
+            case EventTypes.UNEXPECTED_GATE_CROSSING: 
+                print(f"Unexpected Gate Crossing")
+                # activateAlarm()
+                # towerLightRed()
 
-        case EventTypes.DELETE_USER: # Delete User
-            print("Delete User")
-            # Call all necessary modules
-            import usercreation
-            usercreation.delete_user(event)
-            # updateDB(event)
+            case EventTypes.CREATE_ACCOUNT: 
+                print(f"Create New Account")
+                account_events.create(event, self.session)
 
-        case EventTypes.EDIT_USER: # Edit User
-            print("Edit User")
-            # Call all necessary modules
-            import usercreation
-            usercreation.edit_user(event)
-            # updateDB(event)
+            case EventTypes.DELETE_ACCOUNT:
+                print(f"Delete Account")
+                account_events.delete(event, self.session)
 
-        case EventTypes.CREATE_NOTE: # Create Note
-            print("Create Note")
-            # Call all necessary modules
-            import notecreation
-            notecreation.create_note(event)
-            # updateDB(event)
+            case EventTypes.EDIT_ACCOUNT: 
+                print(f"Edit Account")
+                account_events.edit(event, self.session)
 
-        case EventTypes.EDIT_NOTE: # Edit Note
-            print("Edit Note")
-            # Call all necessary modules
-            import notecreation
-            notecreation.edit_note(event)
-            # updateDB(event)
+            case EventTypes.CREATE_NOTE: 
+                print(f"Create Note")
+                note_events.create(event, self.session)
 
-        case EventTypes.DELETE_NOTE: # Delete Note
-            print("Delete Note")
-            # Call all necessary modules
-            import notecreation
-            notecreation.delete_note(event)
-            # updateDB(event)
+            case EventTypes.DELETE_NOTE: 
+                print(f"Delete Note")
+                note_events.delete(event, self.session)
 
-        case EventTypes.OPEN_LAB: # Open Lab
-            print("Open Lab")
-            # Call all necessary modules
-            # editNote(event)
-            # updateDB(event)
+            case EventTypes.EDIT_NOTE: 
+                print(f"Edit Note")
+                note_events.edit(event, self.session)
 
-        case EventTypes.CLOSE_LAB: # Close Lab
-            print("Close Lab")
-            # Call all necessary modules
-            # editNote(event)
-            # updateDB(event)
+            # TODO IMPLEMENT
+            case EventTypes.OPEN_LAB: 
+                print(f"Open Lab")
+                self.open_lab(event)
 
-        case EventTypes.ARCHIVE_USER: # Archive User
-            print("Archive User")
-            # Call all necessary modules
-            # editNote(event)
-            # updateDB(event)
+            # TODO IMPLEMENT
+            case EventTypes.CLOSE_LAB: 
+                print(f"Close Lab")
+                self.close_lab(event)
 
-        case _:
-            print("Error")
+            # TODO IMPLEMENT
+            case EventTypes.ARCHIVE_ACCOUNT: 
+                print(f"Archive User")
+                # self.archive_account(event)
+
+            case EventTypes.GET_USERS_BY_ROLE:
+                print(f"\033[93mGetting users...\033[0m")
+                result = account_events.get_users_by_role(event, self.session)
+                return result
+
+            case _:
+                print(f"Error")
