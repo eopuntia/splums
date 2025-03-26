@@ -31,7 +31,7 @@ class Role(Base):
 class Account(Base):
     __tablename__ = 'account'
 
-    account_id: Mapped[int] = mapped_column(primary_key=True)
+    win: Mapped[int] = mapped_column(primary_key=True)
     # Similar to indicating the primary key with amapped_column, information like ForeignKeys are implied by the mapped_column.
     # Together with the Mapped[int], Sql alchemy has all the needed information.
     role_id: Mapped[int] = mapped_column(ForeignKey("role.role_id"))
@@ -57,8 +57,8 @@ class Account(Base):
     # Relationships where the account is the one in one-many
     # another field of foreign_keys is added for notes_subject and notes_creator since they both reference account ids so you need
     # to let SQL alchemy know which one is which.
-    notes_subject: Mapped[List["Note"]] = relationship(back_populates="subject_account", foreign_keys="Note.subject_account_id")
-    notes_creator: Mapped[List["Note"]] = relationship(back_populates="creator_account", foreign_keys="Note.creator_account_id")
+    notes_subject: Mapped[List["Note"]] = relationship(back_populates="subject_account", foreign_keys="Note.subject_win")
+    notes_creator: Mapped[List["Note"]] = relationship(back_populates="creator_account", foreign_keys="Note.creator_win")
     events: Mapped[List["Event"]] = relationship(back_populates="account")
     equipments: Mapped[List["Account_Equipment"]] = relationship(back_populates="account")
     
@@ -70,8 +70,8 @@ class Note(Base):
     __tablename__ = 'note'
 
     note_id: Mapped[int] = mapped_column(primary_key=True)
-    subject_account_id: Mapped[int] = mapped_column(ForeignKey("account.account_id"))
-    creator_account_id: Mapped[int] = mapped_column(ForeignKey("account.account_id"))
+    subject_win: Mapped[int] = mapped_column(ForeignKey("account.win"))
+    creator_win: Mapped[int] = mapped_column(ForeignKey("account.win"))
 
     text: Mapped[str] = mapped_column(Text)
 
@@ -85,8 +85,8 @@ class Note(Base):
     attendant_edit_perms: Mapped[bool] = mapped_column(default=False)
 
     # similarly to in the account table, it is necessary to let SQL alchemy know which keys specifically each one relates too.
-    subject_account: Mapped["Account"] = relationship(back_populates="notes_subject", foreign_keys=[subject_account_id])
-    creator_account: Mapped["Account"] = relationship(back_populates="notes_creator", foreign_keys=[creator_account_id])
+    subject_account: Mapped["Account"] = relationship(back_populates="notes_subject", foreign_keys=[subject_win])
+    creator_account: Mapped["Account"] = relationship(back_populates="notes_creator", foreign_keys=[creator_win])
 
 class Equipment(Base):
     __tablename__ = 'equipment'
@@ -104,7 +104,7 @@ class Account_Equipment(Base):
     account_equipment_id: Mapped[int] = mapped_column(primary_key=True)
 
     equipment_id: Mapped[int] = mapped_column(ForeignKey("equipment.equipment_id"))
-    account_id: Mapped[int] = mapped_column(ForeignKey("account.account_id"))
+    win: Mapped[int] = mapped_column(ForeignKey("account.win"))
 
     # this is an example of a very simple declaration that doesnt even need a mapped_column to add extra information. This is posible in some cases.
     completed_training: Mapped[bool]
@@ -125,7 +125,7 @@ class Event(Base):
 
     event_id: Mapped[int] = mapped_column(primary_key=True)
     event_type_id: Mapped[int] = mapped_column(ForeignKey("event_type.event_type_id"))
-    account_id: Mapped[Optional[int]] = mapped_column(ForeignKey("account.account_id"))
+    win: Mapped[Optional[int]] = mapped_column(ForeignKey("account.win"))
     occured_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

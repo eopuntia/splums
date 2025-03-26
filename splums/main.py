@@ -23,7 +23,7 @@ if __name__ == "__main__":
     #event_broker.process_event(Event(EventTypes.SWIPE_IN, {"win": "212222"}))
 #    event_broker.process_event(Event(EventTypes.SWIPE_OUT, {"win": "212222"}))
 
-#    event_broker.process_event(Event(EventTypes.CREATE_NOTE, {"text": "THIS IS A TEST NOTE", "subject_account_id": 212222, "creator_account_id": 1234}))
+#    event_broker.process_event(Event(EventTypes.CREATE_NOTE, {"text": "THIS IS A TEST NOTE", "subject_win": 212222, "creator_win": 1234}))
 
 #    event_broker.process_event(Event(EventTypes.EDIT_NOTE, {"note_id": 3, "edit_attrs": {"text": "new_text", "attendent_view_perms": 0}}))
 
@@ -31,9 +31,9 @@ if __name__ == "__main__":
 
 #    event_broker.process_event(Event(EventTypes.CREATE_ACCOUNT, {"surname": "lastname", "display_name": "disp_name", "given_name": "given_name", "role": "administrator", "win": 5555}))
     
-#    event_broker.process_event(Event(EventTypes.EDIT_ACCOUNT, {"account_id": 212222, "edit_attrs": {"role": "user"}}))
+#    event_broker.process_event(Event(EventTypes.EDIT_ACCOUNT, {"win": 212222, "edit_attrs": {"role": "user"}}))
 
-#    event_broker.process_event(Event(EventTypes.DELETE_ACCOUNT, {"account_id": 4321}))
+#    event_broker.process_event(Event(EventTypes.DELETE_ACCOUNT, {"win": 4321}))
 
     #Get the GUI started
     splums = QApplication(sys.argv)

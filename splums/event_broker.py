@@ -56,27 +56,27 @@ class EventBroker:
 
             case EventTypes.CREATE_ACCOUNT: 
                 print(f"Create New Account")
-                account_events.create(event, self.session)
+                return account_events.create(event, self.session)
 
             case EventTypes.DELETE_ACCOUNT:
                 print(f"Delete Account")
-                account_events.delete(event, self.session)
+                return account_events.delete(event, self.session)
 
             case EventTypes.EDIT_ACCOUNT: 
                 print(f"Edit Account")
-                account_events.edit(event, self.session)
+                return account_events.edit(event, self.session)
 
             case EventTypes.CREATE_NOTE: 
                 print(f"Create Note")
-                note_events.create(event, self.session)
+                return note_events.create(event, self.session)
 
             case EventTypes.DELETE_NOTE: 
                 print(f"Delete Note")
-                note_events.delete(event, self.session)
+                return note_events.delete(event, self.session)
 
             case EventTypes.EDIT_NOTE: 
                 print(f"Edit Note")
-                note_events.edit(event, self.session)
+                return note_events.edit(event, self.session)
 
             # TODO IMPLEMENT
             case EventTypes.OPEN_LAB: 
@@ -96,6 +96,16 @@ class EventBroker:
             case EventTypes.GET_USERS_BY_ROLE:
                 print(f"\033[93mGetting users...\033[0m")
                 result = account_events.get_users_by_role(event, self.session)
+                return result
+            
+            case EventTypes.GET_SWIPED_IN_USERS:
+                print(f"\033[93mGetting swiped-in users...\033[0m")
+                result = account_events.get_swiped_in_users(self.session)
+                return result
+            
+            case EventTypes.GET_NOTES_FOR_USER:
+                print(f"\033[93mGetting notes for user...\033[0m")
+                result = note_events.get_notes_for_user(event, self.session)
                 return result
 
             case _:
