@@ -4,9 +4,9 @@ from models.models import Account
 
 def swipe_in(event, session, event_broker):
     with session.begin() as s:
-        account = s.scalar(select(Account).where(Account.account_id == event.data["win"]))
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
         if account is None:
-            raise KeyError(f"invalid account_id: {event.data['win']}")
+            raise KeyError(f"invalid win: {event.data['win']}")
         else:
             if(account.role.name != "blacklisted"):
                 account.swiped_in = 1
@@ -17,9 +17,9 @@ def swipe_in(event, session, event_broker):
 
 def swipe_out(event, session, event_broker):
     with session.begin() as s:
-        account = s.scalar(select(Account).where(Account.account_id == event.data["win"]))
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
         if account is None:
-            raise KeyError(f"invalid account_id: {event.data['win']}")
+            raise KeyError(f"invalid win: {event.data['win']}")
         else:
             if(account.role.name != "blacklisted"):
                 account.swiped_in = 0

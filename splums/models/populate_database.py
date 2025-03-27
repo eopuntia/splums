@@ -20,13 +20,13 @@ with Session() as session:
 
     # the datetime fields get populated automatically. You can see specifying the role and status relations in account.
     # what this does behind the scenes is it will populate the ID's for you. Makes it very easy. 
-    renee = Account(account_id=212222, role=user, display_name="rez", 
+    renee = Account(win=212222, role=user, display_name="rez", 
                      given_name="Renee", surname="Rickert", photo_url="sample/renee/url")
 
-    kahrl = Account(account_id=1234, role=administrator, display_name="zathras", 
+    kahrl = Account(win=1234, role=administrator, display_name="zathras", 
                      given_name="Allin", surname="Kahrl", photo_url="sample/kahrl/url")
 
-    estlin = Account(account_id=4321, role=attendant, display_name="estlin", 
+    estlin = Account(win=4321, role=attendant, display_name="estlin", 
                      given_name="Estlin", surname="Mendez", photo_url="sample/estlin/url")
 
     # actually load the objects to be committed (still not in the DB, will happen after commit call.
@@ -37,8 +37,8 @@ with Session() as session:
     # it is also possible to bulk add elements while declaring them at the same time.
     session.execute(
         insert(Role),
-        [   {"name": "archived"},
-            {"name": "blacklisted"},
+        [   {"name": "Archived"},
+            {"name": "Blacklisted"},
         ],
     )
     session.execute( 
