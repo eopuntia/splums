@@ -5,7 +5,7 @@ from events import Event
 from events import EventTypes
 
 HOST = '127.0.0.1'
-PORT = 1000
+PORT = 7373
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((HOST, PORT))

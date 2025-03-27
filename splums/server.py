@@ -13,7 +13,7 @@ from models.models import Base
 
 # Server configuration
 HOST = '127.0.0.1'
-PORT = 1000
+PORT = 7373
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
