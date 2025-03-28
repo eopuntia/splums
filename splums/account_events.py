@@ -45,6 +45,7 @@ def edit(event, session):
         account = s.scalar(select(Account).where(Account.win == event.data["win"]))
         if account is None:
             raise KeyError(f"Invalid win: {event.data['win']}")
+
         for update in event.data["edit_attrs"]:
             if update == "role":
                 new_role = s.scalar(select(Role).where(Role.name == event.data["edit_attrs"][update]))
@@ -60,6 +61,10 @@ def edit(event, session):
                 account.display_name = event.data["edit_attrs"][update]
             if update == "photo_url":
                 account.photo_url = event.data["edit_attrs"][update]
+            if update == "affiliation":
+                account.affiliation = event.data["edit_attrs"][update]
+            if update == "rso":
+                account.rso = event.data["edit_attrs"][update]
 
         s.commit()
         return 1

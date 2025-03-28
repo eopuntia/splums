@@ -420,13 +420,19 @@ class EditAccount(QWidget):
 
     # TODO add proper error handling
     def save_edit(self):
-        print(self.win_box.text())
-        print(self.role.currentText())
-        print(self.display_name.text())
-        print(self.given_name.text())
-        print(self.surname.text())
-        print(self.affiliation.text())
-        print(self.rso.text())
+        data = {}
+        data['win'] = self.win
+        data['edit_attrs'] = {}
+        
+        data['edit_attrs']['display_name'] = self.display_name.text()
+        data['edit_attrs']['given_name'] = self.given_name.text()
+        data['edit_attrs']['surname'] = self.surname.text()
+        data['edit_attrs']['win'] = self.win_box.text()
+        data['edit_attrs']['affiliation'] = self.affiliation.text()
+        data['edit_attrs']['rso'] = self.rso.text()
+        data['edit_attrs']['role'] = self.role.currentText().lower()
+
+        edit_account(self.client, data)
 
     def show_notes(self):
         self.w = Notes()
@@ -619,6 +625,11 @@ class MainWindow(QMainWindow):
         # Resize rows and first column to fit images
         self.account_table.resizeRowsToContents()
         self.account_table.resizeColumnToContents(0)
+
+def edit_account(client, edit_data):
+    event = Event(EventTypes.EDIT_ACCOUNT, edit_data)
+
+    res = client.call_server(event)
 
 def get_account_data(client, account_win):
     event = Event(event_type=EventTypes.GET_DATA_FOR_USER, data = {'win': account_win})
