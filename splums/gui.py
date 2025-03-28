@@ -14,6 +14,7 @@ from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 import cam
 import event_broker
 
+# added this class, something to hold the state after you query the database.
 class Account():
     def __init__(self, build_info):
         self.win = build_info['win']
@@ -27,8 +28,9 @@ class Account():
         self.swiped_in = build_info['swiped_in']
         self.last_access = build_info['last_access']
 
-        self.permissions = ['soldering']
-        self.notes = ['note1']
+        # lazy loading
+        # load when gui needs
+        self.notes = []
 
 class Notes(QWidget):
     def __init__(self):
@@ -550,7 +552,8 @@ class MainWindow(QMainWindow):
 
         self.account_table.setHorizontalHeaderLabels(column_labels)
 
-        self.update_accounts()
+        self.initial_accounts_load()
+        self.render_accounts_to_screen()
 
         layout_accounts.addWidget(self.account_table)
 
@@ -561,51 +564,51 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout_main)
         self.setCentralWidget(widget)
 
-    #*******************************************************************************************
-    # Create and Update Accounts Table
-    #*******************************************************************************************
-
-    def update_accounts(self):
-        # TODO SEND EVENT TO QUERY THE ACCOUNTS
+    def initial_accounts_load(self):
         get_account_event = Event(event_type=EventTypes.GET_USERS_BY_ROLE, data = {'role': ''})
+        # for each account ordered by role, add to self.accounts based on each dict of data returned.
         for c in self.client_connection.call_server(get_account_event):
+            print(c)
             self.accounts.append(Account(c))
 
+        # load notes for each account
+        for acc in self.accounts:
+            for n in get_account_notes(self.client_connection, acc.win):
+                acc.notes.append(n)
+
+    def render_accounts_to_screen(self):
         self.account_table.setRowCount(len(self.accounts))
         self.headcount_display.display(len(self.accounts))
 
         row = 0
+        # for each acc loaded into the gui
         for acc in self.accounts:
             # Account Image
             account_image = QLabel()
-            # TODO update this to the file path from the person
-            print(acc.photo_url)
             account_image.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
             self.account_table.setCellWidget(row, 0, account_image)
+
 
             # Account Name
             account_name_cell = QTableWidgetItem(acc.given_name)
             account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.account_table.setItem(row, 1, account_name_cell)
 
-            # Permissions
-            account_permissions_cell = QLabel("")
-            perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in acc.permissions)
-            account_permissions_cell.setText(perm_string)
-            account_permissions_cell.setStyleSheet("font-size: 18pt;")
-            account_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.account_table.setCellWidget(row, 2, account_permissions_cell)
+#            # permission is based on color of permission in acc_permission
+#            account_permissions_cell = QLabel("")
+#            # TODO ADD THIS LATER
+#            perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in acc.permissions)
+#            account_permissions_cell.setText(perm_string)
+#            account_permissions_cell.setStyleSheet("font-size: 18pt;")
+#            account_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+#            self.account_table.setCellWidget(row, 2, account_permissions_cell)
 
-            # Notes
             note_layout = QHBoxLayout()
+            print(acc.notes)
             for note in acc.notes:
+                print(note)
                 note_button = QPushButton()
-                note_button.setText({
-                    "normal": "🟩",
-                    "discuss": "💡",
-                    "concern": "❗️",
-                    "banned": "🛑"
-                }.get(note, "Unrecognized note type"))
+                note_button.setText(note)
                 note_button.setFixedSize(QSize(60, 60))
                 note_layout.addWidget(note_button)
 
@@ -626,6 +629,19 @@ class MainWindow(QMainWindow):
         # Resize rows and first column to fit images
         self.account_table.resizeRowsToContents()
         self.account_table.resizeColumnToContents(0)
+
+def get_account_notes(client, account_win):
+    notes = []
+    event = Event(event_type=EventTypes.GET_NOTES_FOR_USER, data = {'win': account_win})
+
+    res = client.call_server(event)
+    if res is None:
+        return notes
+
+    for note in res:
+        notes.append(note['text'])
+
+    return notes
 
 if __name__ == '__main__':
     client_connection = client_connection('127.0.0.1', 7373)

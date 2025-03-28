@@ -88,19 +88,17 @@ def format_notes(unformatted_note):
         note_dicts.append(note_dict)
     return note_dicts
 
-#*******************************************************************************************
-# GET NOTES FOR USER
-#*******************************************************************************************
-# Takes GET_NOTES_FOR_USER event
+# TODO add proper error handling
 def get_notes_for_user(event: Event, session):
-    try:
-        with session() as s:
-            win = event.data.get('win', None)
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+                
 
-            requested_notes = s.scalars(select(Note).where(Note.subject_win == win))
-
-            return format_notes(requested_notes)
-    except Exception as e:
-        print(f"Error getting notes for user: {e}")
-        return -1
-
+        notes = s.scalars(select(Note).where(Note.subject_win == win))
+        if notes is None:
+            print("err invalid win")
+            return -1
+        return notes
