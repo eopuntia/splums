@@ -29,4 +29,5 @@ class EventTypes(Enum):
     GET_USERS_BY_AFFILIATION = 18
     GET_SWIPED_IN_USERS = 19
     GET_NOTES_FOR_USER = 20
+    GET_DATA_FOR_USER = 21
     

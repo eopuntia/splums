@@ -80,10 +80,6 @@ def delete(event, session):
         s.commit()
         return 1
     
-#*******************************************************************************************
-# ARCHIVE USER
-#*******************************************************************************************
-# takes win
 def archive_user(event: Event, session):
     try:
         with session() as s:
@@ -105,9 +101,6 @@ def archive_user(event: Event, session):
         s.rollback()
         return -1
 
-#*******************************************************************************************
-# AUTO DELETE USERS AFTER 10 YEARS
-#*******************************************************************************************
 def auto_delete_user(session):
     with session() as s:
         print("Deleting users...")
@@ -115,9 +108,6 @@ def auto_delete_user(session):
         for user in archived_users:
             delete(Event(event_type=EventTypes.DELETE_USER, data={'win': user.win}), session)
 
-#*******************************************************************************************
-# AUTO ARCHIVE USERS AFTER 10 MONTHS
-#*******************************************************************************************
 def auto_archive_user(session):
     with session() as s:
         print("Archiving users...")
@@ -125,10 +115,6 @@ def auto_archive_user(session):
         for user in users_to_archive:
             archive_user(Event(event_type=EventTypes.ARCHIVE_USER, data={'win': user.win}))
 
-#*******************************************************************************************
-# PROMOTE/DEMOTE A USER
-#*******************************************************************************************
-# Takes win and role.name
 def change_user_type(event: Event, session): # Promote or demote a user as an administrator
     try:
         with session() as s:
@@ -154,15 +140,6 @@ def change_user_type(event: Event, session): # Promote or demote a user as an ad
     except Exception as e:
         print(f"\033[91mUnexpected error:\033[0m {e}")
 
-
-"""
-EVENT BROKER USER DATABASE QUERIES
-"""
-
-#*******************************************************************************************
-# FORMAT REQUESTED USER TO SEND TO SERVER
-#*******************************************************************************************
-# Takes queried users
 def format_users(unformatted_user):
     user_dicts = []
     for user in unformatted_user:
@@ -181,10 +158,6 @@ def format_users(unformatted_user):
         user_dicts.append(user_dict)
     return user_dicts
 
-#*******************************************************************************************
-# GET USERS BY REQUESTED ROLE
-#*******************************************************************************************
-# Takes GET_USERS_BY_ROLE event
 def get_users_by_role(event: Event, session):
     try:
         with session() as s:
@@ -206,10 +179,32 @@ def get_users_by_role(event: Event, session):
         print(f"Error getting users by role: {e}")
         return -1
 
-#*******************************************************************************************
-# GET SWIPED IN USERS
-#*******************************************************************************************
-# Called by GET_SWIPED_IN_USERS event
+# TODO add proper error handling
+def get_data_for_user(event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+                
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        if account is None:
+            raise KeyError(f"Invalid win: {event.data['win']}")
+
+        # since this is matched on key we need to keep track of it
+        role = account.role.name
+
+        acc_data = account.__dict__
+        acc_data.pop('_sa_instance_state')
+        # remove the id
+        acc_data.pop('role_id')
+        # add the actual role
+        acc_data['role'] = role
+
+        print(f"in get_data_for_user {acc_data}")
+
+        return acc_data.copy()
+
 def get_swiped_in_users(session):
     try:
         with session() as s:

@@ -95,10 +95,12 @@ def get_notes_for_user(event: Event, session):
         for key in required_keys:
             if key not in event.data:
                 raise KeyError(f"Missing required key: {key}")
-                
 
-        notes = s.scalars(select(Note).where(Note.subject_win == win))
-        if notes is None:
-            print("err invalid win")
-            return -1
-        return notes
+        notes = s.scalars(select(Note).where(Note.subject_win == event.data['win'])).all()
+        total_notes = []
+
+        for n in notes:
+            total_notes.append(n.text)
+
+        return total_notes
+

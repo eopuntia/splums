@@ -1,6 +1,7 @@
 import socket
 import pickle
 
+import time
 from client import *
 import os
 import sys
@@ -87,93 +88,6 @@ class Notes(QWidget):
             current_item = self.list_widget.takeItem(current_row)
             del current_item
 
-class EditAccount(QWidget):
-    def __init__(self, account_table):
-        # TODO this needs to have the information filled in and editeable
-        # TODO It then needs to have a save button to confirm the changes
-        super().__init__()
-
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
-
-        self.account_table = account_table
-        layout = QFormLayout()
-        self.setWindowTitle("Edit Account")
-
-        current_account_row = self.account_table.currentRow()
-
-        if current_account_row > 0:
-            account_id = self.account_table.item(current_account_row, 4)
-            print(account_id.text())
-        
-        self.win_box = QLineEdit()
-        self.win_box.setPlaceholderText("WIN...")
-        self.win_box.setInputMask('999999999')
-
-        self.role = QComboBox()
-        name_regex = QRegularExpression("[A-Za-z]+")
-        name_validator = QRegularExpressionValidator(name_regex)
- 
-        self.display_name = QLineEdit()
-        self.display_name.setPlaceholderText("Display Name...")
-        self.display_name.setValidator(name_validator)
- 
-        self.given_name = QLineEdit()
-        self.given_name.setPlaceholderText("Given Name...")
-        self.given_name.setValidator(name_validator)
-        # self.given_name.textChanged.connect(self.update_win)
- 
-        self.surname = QLineEdit()
-        self.surname.setPlaceholderText("Last Name...")
-        
-        self.surname.setValidator(name_validator)
-        # self.surname.textChanged.connect(self.update_win)
-
-        self.permissions = QComboBox()
-
-        self.affiliation = QLineEdit()
-        self.affiliation.setPlaceholderText("Affiliation...")
-        self.affiliation. setValidator(name_validator)
- 
-        self.rso = QLineEdit()
-        self.rso.setPlaceholderText("Registered Student Org...")
-        self.rso. setValidator(name_validator)
-       
-        layout.addRow("WIN:", self.win_box)
-        layout.addRow("Role:", self.role)
-        layout.addRow("Display Name:", self.display_name)
-        layout.addRow("Given Name:", self.given_name)
-        layout.addRow("Last Name:", self.surname)
-        layout.addRow("Permissions:", self.permissions)
-        layout.addRow("Affiliation:", self.affiliation)
-        layout.addRow("RSO:", self.rso)
- 
-        photo_button = QPushButton("Take Photo")
-        photo_button.clicked.connect(self.show_photo)
-
-        #Notes button
-        notes_button = QPushButton("Notes")
-        notes_button.clicked.connect(self.show_notes)
-
-        layout.addWidget(photo_button)
-        layout.addWidget(notes_button)
- 
-        # Set layout for the widget
-        self.setObjectName("Main")
-        self.setLayout(layout)
- 
-    # def get_photo(self):
-    #     # Call cam.py to open the camera and take a picture
-    #     self.photo_url = cam.take_picture(self.win_box.text())
-    #     print(self.win_box.text())
-    #     #self.show_photo()
- 
-    def show_notes(self):
-        self.w = Notes()
-        self.w.show()
-
-    def show_photo(self):
-        self.w = Picture()
-        self.w.show()
 
 class Picture(QWidget):
     def __init__(self):
@@ -405,6 +319,123 @@ class AddAccount(QSqlDatabase, QWidget):
         event_broker.event_broker(new_event)
         self.close()
 
+class EditAccount(QWidget):
+    def __init__(self, win, client):
+        # TODO make it so uses win to grab information for the user that is selected
+        # TODO It then needs to have a save button to confirm the changes
+        super().__init__()
+        self.client = client
+        self.win = win
+
+        print(f"editing the account of win: {win}")
+
+        self.setWindowTitle("Edit Account")
+
+        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+
+        layout = QFormLayout()
+
+        self.win_box = QLineEdit()
+        self.role = QComboBox()
+        self.display_name = QLineEdit()
+        self.given_name = QLineEdit()
+        self.surname = QLineEdit()
+        self.permissions = QComboBox()
+        self.affiliation = QLineEdit()
+        self.rso = QLineEdit()
+
+        notes_button = QPushButton("Notes")
+        photo_button = QPushButton("Take Photo")
+        save_button = QPushButton("Save")
+
+        photo_button.clicked.connect(self.show_photo)
+        notes_button.clicked.connect(self.show_notes)
+        save_button.clicked.connect(self.save_edit)
+
+        layout.addRow("WIN:", self.win_box)
+        layout.addRow("Role:", self.role)
+        layout.addRow("Display Name:", self.display_name)
+        layout.addRow("Given Name:", self.given_name)
+        layout.addRow("Surname:", self.surname)
+        layout.addRow("Permissions:", self.permissions)
+        layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("RSO:", self.rso)
+
+        layout.addWidget(photo_button)
+        layout.addWidget(notes_button)
+        layout.addWidget(save_button)
+
+        self.setObjectName("Main")
+        self.setLayout(layout)
+
+        win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
+        name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+
+        self.win_box.setPlaceholderText("WIN...")
+        self.win_box.setValidator(win_validator)
+            
+        # TODO IMPLEMENT ROLE FUNCTIONALITY
+        # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
+        self.role.addItem("User")
+        self.role.addItem("Administrator")
+        self.role.addItem("Attendant")
+ 
+        self.display_name.setPlaceholderText("Display Name...")
+        self.display_name.setValidator(name_validator)
+ 
+        self.given_name.setPlaceholderText("Given Name...")
+        self.given_name.setValidator(name_validator)
+ 
+        self.surname.setPlaceholderText("Surname...")
+        self.surname.setValidator(name_validator)
+        
+        # TODO ADD PROPER PERMISSIONS
+        self.permissions.addItem("Drill Press")
+        self.permissions.addItem("CNC Machine")
+        self.permissions.addItem("Laser Cutter")
+
+
+        self.affiliation.setPlaceholderText("Affiliation...")
+        self.affiliation.setValidator(name_validator)
+ 
+        self.rso.setPlaceholderText("Registered Student Org...")
+        self.rso.setValidator(name_validator)
+
+        self.initial_load()
+            
+    def initial_load(self):
+        acc_data = get_account_data(self.client, self.win)
+
+        self.win_box.setText(str(acc_data['win']))
+        self.display_name.setText(acc_data['display_name'])
+        self.given_name.setText(acc_data['given_name'])
+        self.surname.setText(acc_data['surname'])
+        if acc_data['affiliation']is not None:
+            self.affiliation.setText(acc_data['affiliation'])
+
+        if acc_data['rso'] is not None:
+            self.rso.setText(acc_data['rso'])
+
+        self.role.setCurrentText(acc_data['role'].capitalize())
+
+    # TODO add proper error handling
+    def save_edit(self):
+        print(self.win_box.text())
+        print(self.role.currentText())
+        print(self.display_name.text())
+        print(self.given_name.text())
+        print(self.surname.text())
+        print(self.affiliation.text())
+        print(self.rso.text())
+
+    def show_notes(self):
+        self.w = Notes()
+        self.w.show()
+
+    def show_photo(self):
+        self.w = Picture()
+        self.w.show()
+
 class MainWindow(QMainWindow):
     def __init__(self, client_connection):
         super().__init__()
@@ -463,9 +494,20 @@ class MainWindow(QMainWindow):
 
         self.initial_accounts_load()
         self.render_accounts_to_screen()
+        self.show()
 
+    # sends the win of the account that you want to edit to the widget as well as the client
+    # connection. from there it grabs and edits the data how it wants.
     def edit_account(self):
-        self.w = EditAccount(self.account_table)
+        # TODO get the currently selected account
+        # TODO figure out the win of the currently selected account
+        selected_row = self.account_table.currentRow()
+
+        if selected_row == -1:
+            print('no account selected, click to select the account you want to edit')
+            return
+
+        self.w = EditAccount(self.accounts[selected_row].win, self.client_connection)
         self.w.show()
 
     def add_account(self):
@@ -578,6 +620,15 @@ class MainWindow(QMainWindow):
         self.account_table.resizeRowsToContents()
         self.account_table.resizeColumnToContents(0)
 
+def get_account_data(client, account_win):
+    event = Event(event_type=EventTypes.GET_DATA_FOR_USER, data = {'win': account_win})
+
+    res = client.call_server(event)
+    if res is None:
+        return None
+
+    return res
+
 def get_account_notes(client, account_win):
     notes = []
     event = Event(event_type=EventTypes.GET_NOTES_FOR_USER, data = {'win': account_win})
@@ -587,20 +638,17 @@ def get_account_notes(client, account_win):
         return notes
 
     for note in res:
-        notes.append(note['text'])
+        notes.append(note)
 
     return notes
 
 if __name__ == '__main__':
     client_connection = client_connection('127.0.0.1', 7373)
-    # spawn the gui
     attendant_gui = QApplication(sys.argv)
 
-    # set the styling
     qssfile="./splums/qss/style.qss"
     with open(qssfile,"r") as f:
         attendant_gui.setStyleSheet(f.read())
 
     window = MainWindow(client_connection)
-    window.show()
     sys.exit(attendant_gui.exec())

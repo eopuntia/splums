@@ -108,5 +108,11 @@ class EventBroker:
                 result = note_events.get_notes_for_user(event, self.session)
                 return result
 
+            case EventTypes.GET_DATA_FOR_USER:
+                print(f"\033[93mGetting data for user...\033[0m")
+                result = account_events.get_data_for_user(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
             case _:
                 print(f"Error")

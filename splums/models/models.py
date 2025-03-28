@@ -42,6 +42,9 @@ class Account(Base):
     photo_url: Mapped[str] = mapped_column(String(255))
     swiped_in: Mapped[bool] = mapped_column(default=False)
 
+    affiliation: Mapped[Optional[str]] = mapped_column(String(255))
+    rso: Mapped[Optional[str]] = mapped_column(String(255))
+
     # this syntax is slightly verbose and maybe there is a better way to do this, but it makes it so the timefield is automatically
     # populated to the current time whenever you add a record without needing to specify yourself.
     created_at: Mapped[datetime.datetime] = mapped_column(

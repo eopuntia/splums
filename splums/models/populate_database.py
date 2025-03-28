@@ -21,7 +21,8 @@ with Session() as session:
     # the datetime fields get populated automatically. You can see specifying the role and status relations in account.
     # what this does behind the scenes is it will populate the ID's for you. Makes it very easy. 
     renee = Account(win=212222, role=user, display_name="rez", 
-                     given_name="Renee", surname="Rickert", photo_url="sample/renee/url")
+                     given_name="Renee", surname="Rickert", photo_url="sample/renee/url",
+                     affiliation="Student employee", rso="Computer Club")
 
     kahrl = Account(win=1234, role=administrator, display_name="zathras", 
                      given_name="Allin", surname="Kahrl", photo_url="sample/kahrl/url")
@@ -68,6 +69,8 @@ with Session() as session:
     # the ids for creator and subject will be populated automatically.
     note1 = Note(creator_account=kahrl, subject_account=renee, text="renee does not know how to tig weld but she can mig")
     session.add(note1)
+    note2 = Note(creator_account=kahrl, subject_account=renee, text="renee likes fls")
+    session.add(note2)
 
     # it is always necessary to commit, no changes are applied until commit is applied.
     session.commit()

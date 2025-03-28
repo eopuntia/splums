@@ -12,6 +12,7 @@ class client_connection():
         self.client.connect((host, ip))
 
     def call_server(self, event: Event):
+        print(f"sending the event {event.data} to the server in client.py")
         self.client.sendall(pickle.dumps(event))  # Send event to server
 
         # Receive server response
