@@ -1,13 +1,12 @@
 import socket
 import pickle
 
-import time
 from client import *
 import os
 import sys
 
 from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber
-from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression
+from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from sqlalchemy.exc import SQLAlchemyError
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
@@ -33,140 +32,6 @@ class Account():
         # load when gui needs
         self.notes = []
 
-class Notes(QWidget):
-    def __init__(self):
-        super().__init__()
-        layout = QGridLayout(self)
-        self.setWindowTitle("Notes")
-        self.setObjectName("Main")
-        self.setLayout(layout)
-        # Style Sheet for default styling options on widgets
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
-        self.list_widget = QListWidget(self)
-        self.list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        add_button = QPushButton('Add Note')
-        add_button.clicked.connect(self.add_note)
-        edit_button = QPushButton('Edit Note')
-        edit_button.clicked.connect(self.edit_note)
-        remove_button = QPushButton('Remove Note')
-        remove_button.clicked.connect(self.remove_note)
-        save_button = QPushButton('Save')
-
-        self.list_widget.setStyleSheet("""
-            QListWidget::item {
-                padding: 5px;
-                border-bottom: 1px solid #000;
-                margin-bottom: 2px;
-            }
-            QListWidget::item:selected {
-                background-color: #0078d4;
-                color: white;
-            }
-        """)
-        layout.addWidget(self.list_widget)
-        layout.addWidget(add_button)
-        layout.addWidget(edit_button)
-        layout.addWidget(remove_button)
-        layout.addWidget(save_button)
-
-    def add_note(self):
-        text, ok = QInputDialog.getText(self, 'Add a New Note', 'New Note:')
-        if ok and text:
-            self.list_widget.addItem(text)
-
-    def edit_note(self):
-        current_row = self.list_widget.currentRow()
-        if current_row >= 0:
-            current_item = self.list_widget.currentItem()
-            text, ok = QInputDialog.getText(self, 'Edit Note', 'Edit Note:', text=current_item.text())
-            if ok and text:
-                current_item.setText(text)
-    
-    def remove_note(self):
-        current_row = self.list_widget.currentRow()
-        if current_row >= 0:
-            current_item = self.list_widget.takeItem(current_row)
-            del current_item
-
-
-class Picture(QWidget):
-    def __init__(self):
-        super().__init__()
-        #Overall layout, picture will be on left, buttons on right
-        overall_layout = QVBoxLayout()
-
-        #The label which will contain the video feed. Initializes to loading text that is replaced when cam connection made.
-        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
-
-        #Bottom layout
-        bottom_layout = QHBoxLayout()
-
-        #Init save confirmation space instead of hidden, makes it so picture doesn't move up and down.
-        self.save_message = QLabel(" ")
-
-        #layout to contain buttons
-        buttons_layout = QVBoxLayout()
-        self.setWindowTitle("Take PictureT")
-
-        #Might want to find some way to ensure this is always large enough to fit webcam? at the moment assumes resolution of
-        #640, 480 specified in cam.py rescaling.
-        self.setMinimumSize(QSize(670, 600))
-        self.photo_button = QPushButton("Take Picture")
-        self.photo_button.clicked.connect(self.take_picture)
-
-        self.retake_button = QPushButton("Retake")
-        self.retake_button.clicked.connect(self.retake_picture)
-        #Retake button hidden by default
-        self.retake_button.hide()
-
-        self.exit_button = QPushButton("Exit")
-        self.exit_button.clicked.connect(self.close)
-
-        # buttons_layout.addStretch(1)
-        #Add everything to their respective layouts
-        overall_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
-        buttons_layout.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_layout.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_layout.addWidget(self.exit_button, alignment = Qt.AlignmentFlag.AlignRight)\
-        
-        bottom_layout.addWidget(self.save_message)
-        bottom_layout.addLayout(buttons_layout)
-        overall_layout.addLayout(bottom_layout)
-
-        #Start the camera thread
-        #TODO: REPLACE temp_name_replace_me with the account being modified
-        self.cam_worker = cam.CamWorker("temp_name_replace me")
-
-        #Connect the signal being emitted from the cam worker thread to the image_update function of this window
-        #Allows for the video feed of cam to be displayed in GUI
-        self.cam_worker.image_update.connect(self.image_update_slot)
-
-        #Start camera thread (this makes the thread's run function execute)
-        self.cam_worker.start()
-        self.setObjectName("Main")
-        self.setLayout(overall_layout)
-
-    def image_update_slot(self, image):
-        #Update the videofeed with the latest provided frame
-        self.feed_label.setPixmap(QPixmap.fromImage(image))
-
-    def take_picture(self):
-        #Calls the cam take picture function
-        self.cam_worker.take_picture()
-        #Hides photo button and asks if user wants to retake
-        self.photo_button.hide()
-        self.retake_button.show()
-        self.save_message.setText("Photo saved!")
-    
-    def retake_picture(self):
-        self.cam_worker.retake_picture()
-        self.retake_button.hide()
-        self.photo_button.show()
-        self.save_message.setText(" ")
-
-    def closeEvent(self, event):
-        self.cam_worker.stop()
-        
 #For the AddUser button
 class AddUser(QDialog):
     def __init__(self):
@@ -319,7 +184,155 @@ class AddAccount(QSqlDatabase, QWidget):
         event_broker.event_broker(new_event)
         self.close()
 
+class Notes(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QGridLayout(self)
+        self.setWindowTitle("Notes")
+        self.setObjectName("Main")
+        self.setLayout(layout)
+        # Style Sheet for default styling options on widgets
+        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+        self.list_widget = QListWidget(self)
+        self.list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        add_button = QPushButton('Add Note')
+        add_button.clicked.connect(self.add_note)
+        edit_button = QPushButton('Edit Note')
+        edit_button.clicked.connect(self.edit_note)
+        remove_button = QPushButton('Remove Note')
+        remove_button.clicked.connect(self.remove_note)
+        save_button = QPushButton('Save')
+
+        self.list_widget.setStyleSheet("""
+            QListWidget::item {
+                padding: 5px;
+                border-bottom: 1px solid #000;
+                margin-bottom: 2px;
+            }
+            QListWidget::item:selected {
+                background-color: #0078d4;
+                color: white;
+            }
+        """)
+        layout.addWidget(self.list_widget)
+        layout.addWidget(add_button)
+        layout.addWidget(edit_button)
+        layout.addWidget(remove_button)
+        layout.addWidget(save_button)
+
+    def add_note(self):
+        text, ok = QInputDialog.getText(self, 'Add a New Note', 'New Note:')
+        if ok and text:
+            self.list_widget.addItem(text)
+
+    def edit_note(self):
+        current_row = self.list_widget.currentRow()
+        if current_row >= 0:
+            current_item = self.list_widget.currentItem()
+            text, ok = QInputDialog.getText(self, 'Edit Note', 'Edit Note:', text=current_item.text())
+            if ok and text:
+                current_item.setText(text)
+    
+    def remove_note(self):
+        current_row = self.list_widget.currentRow()
+        if current_row >= 0:
+            current_item = self.list_widget.takeItem(current_row)
+            del current_item
+
+
+class Picture(QWidget):
+    photo_update = pyqtSignal()
+    def __init__(self, client, win):
+        super().__init__()
+        self.client = client
+        self.win = str(win)
+
+        self.setWindowTitle("Take Picture")
+
+        #Might want to find some way to ensure this is always large enough to fit webcam? at the moment assumes resolution of
+        #640, 480 specified in cam.py rescaling.
+        self.setMinimumSize(QSize(670, 600))
+
+        main_layout = QVBoxLayout()
+        bottom_row = QHBoxLayout()
+        buttons_block = QVBoxLayout()
+
+        self.setObjectName("Main")
+        self.setLayout(main_layout)
+
+        #The label which will contain the video feed. Initializes to loading text that is replaced when cam connection made.
+        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
+        #Init save confirmation space instead of hidden, makes it so picture doesn't move up and down.
+        self.save_message = QLabel(" ")
+
+        self.photo_button = QPushButton("Take Photo")
+        self.save_button = QPushButton("Save Photo")
+        self.retake_button = QPushButton("Retake")
+        self.exit_button = QPushButton("Exit")
+
+        self.retake_button.hide()
+        self.save_button.hide()
+
+        bottom_row.addWidget(self.save_message)
+        bottom_row.addLayout(buttons_block)
+
+        main_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
+        main_layout.addLayout(bottom_row)
+
+        buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.save_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.exit_button, alignment = Qt.AlignmentFlag.AlignRight)
+
+        self.photo_button.clicked.connect(self.take_picture)
+        self.retake_button.clicked.connect(self.retake_picture)
+        self.save_button.clicked.connect(self.save_photo)
+        self.exit_button.clicked.connect(self.close)
+
+        #Start the camera thread
+        self.cam_worker = cam.CamWorker(self.win)
+
+        #Connect the signal being emitted from the cam worker thread to the image_update function of this window
+        #Allows for the video feed of cam to be displayed in GUI
+        self.cam_worker.image_update.connect(self.image_update_slot)
+
+        #Start camera thread (this makes the thread's run function execute)
+        self.cam_worker.start()
+
+    def image_update_slot(self, image):
+        #Update the videofeed with the latest provided frame
+        self.feed_label.setPixmap(QPixmap.fromImage(image))
+
+    def take_picture(self):
+        self.cam_worker.take_picture()
+        #Hides photo button and asks if user wants to retake
+        self.photo_button.hide()
+        self.save_button.show()
+        self.retake_button.show()
+    
+    def save_photo(self):
+        self.save_message.setText("Photo saved!")
+        self.cam_worker.save_photo()
+        self.save_button.hide()
+        self.retake_button.hide()
+        self.photo_button.show()
+
+        self.photo_update.emit()
+
+    def retake_picture(self):
+        self.cam_worker.retake_picture()
+        self.retake_button.hide()
+        self.save_button.hide()
+        self.photo_button.show()
+        self.save_message.setText(" ")
+
+    def closeEvent(self, event):
+        self.cam_worker.stop()
+        
+
 class EditAccount(QWidget):
+    photo_update = pyqtSignal()
+    save_update = pyqtSignal()
     def __init__(self, win, client):
         # TODO make it so uses win to grab information for the user that is selected
         # TODO It then needs to have a save button to confirm the changes
@@ -394,7 +407,6 @@ class EditAccount(QWidget):
         self.permissions.addItem("CNC Machine")
         self.permissions.addItem("Laser Cutter")
 
-
         self.affiliation.setPlaceholderText("Affiliation...")
         self.affiliation.setValidator(name_validator)
  
@@ -433,16 +445,23 @@ class EditAccount(QWidget):
         data['edit_attrs']['role'] = self.role.currentText().lower()
 
         edit_account(self.client, data)
+        self.save_update.emit()
 
     def show_notes(self):
         self.w = Notes()
         self.w.show()
 
     def show_photo(self):
-        self.w = Picture()
+        self.w = Picture(self.client, self.win)
         self.w.show()
+        self.w.photo_update.connect(self.update_photo)
+
+    def update_photo(self):
+        print("calling photo_update.emit() in editwindow")
+        self.photo_update.emit()
 
 class MainWindow(QMainWindow):
+    save_update = pyqtSignal()
     def __init__(self, client_connection):
         super().__init__()
         self.client_connection = client_connection
@@ -450,12 +469,12 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Student Projects Lab User Management System")
         self.setMinimumSize(QSize(1280, 720))
 
-        main_widget = QWidget()
-        main_widget.setObjectName("Main")
+        self.main_widget = QWidget()
+        self.main_widget.setObjectName("Main")
 
         layout_main = QVBoxLayout()
-        main_widget.setLayout(layout_main)
-        self.setCentralWidget(main_widget)
+        self.main_widget.setLayout(layout_main)
+        self.setCentralWidget(self.main_widget)
 
         # initialize as empty for now
         self.accounts = []
@@ -492,6 +511,7 @@ class MainWindow(QMainWindow):
         layout_topsplit.addLayout(topright_bar)
 
         self.account_table = self.initialize_account_table()
+        self.account_table.setUpdatesEnabled(True)
 
         layout_accounts = QHBoxLayout()
         layout_main.addLayout(layout_accounts)
@@ -505,8 +525,6 @@ class MainWindow(QMainWindow):
     # sends the win of the account that you want to edit to the widget as well as the client
     # connection. from there it grabs and edits the data how it wants.
     def edit_account(self):
-        # TODO get the currently selected account
-        # TODO figure out the win of the currently selected account
         selected_row = self.account_table.currentRow()
 
         if selected_row == -1:
@@ -516,8 +534,31 @@ class MainWindow(QMainWindow):
         self.w = EditAccount(self.accounts[selected_row].win, self.client_connection)
         self.w.show()
 
+        # connect signal to pressing the save button 
+        self.w.photo_update.connect(self.update_photos)
+        self.w.save_update.connect(self.add_account)
+
+    def update_photos(self):
+        print("calling update_photos in main")
+        account_name_cell = QTableWidgetItem("renee")
+        self.account_table.setItem(0, 1, account_name_cell)
+        
+        row = 0
+        # for each acc loaded into the gui
+        for acc in self.accounts:
+            print(f"{acc.photo_url}")
+            account_photo = QLabel()
+            account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
+
+            print(f'setting account_table slot to account photo for {acc.given_name}')
+            self.account_table.setCellWidget(row, 0, account_photo)
+            row += 1
+
+        self.setWindowTitle("new title")
+
     def add_account(self):
-        print("Adding Account")
+        account_name_cell = QTableWidgetItem("renee")
+        self.account_table.setItem(0, 1, account_name_cell)
 
     def sign_out(self):
         print("Signing out")
@@ -529,6 +570,7 @@ class MainWindow(QMainWindow):
         new_button.clicked.connect(function)
         new_button.setFixedSize(QSize(button_dim[0], button_dim[1]))
         new_button.setIconSize(QSize(button_icon_dim[0], button_icon_dim[1]))
+        new_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
         return new_button
 
     def initialize_lcd(self, digit_count, button_dim, digit):
@@ -555,7 +597,7 @@ class MainWindow(QMainWindow):
         new_account_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         new_account_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
 
-        column_labels = [" ", "Account", "Permissions", "Notes", "Head Count"]
+        column_labels = ["Photo", "Account", "Permissions", "Notes", "Head Count"]
         new_account_table.setHorizontalHeaderLabels(column_labels)
 
         return new_account_table
@@ -580,10 +622,12 @@ class MainWindow(QMainWindow):
         # for each acc loaded into the gui
         for acc in self.accounts:
             # Account Image
-            account_image = QLabel()
-            account_image.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
-            self.account_table.setCellWidget(row, 0, account_image)
+            account_photo = QLabel()
+            account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
 
+            self.account_table.setCellWidget(row, 0, None)
+            print(f'setting account_table slot to account photo for {acc.given_name}')
+            self.account_table.setCellWidget(row, 0, account_photo)
 
             # Account Name
             account_name_cell = QTableWidgetItem(acc.given_name)
@@ -662,4 +706,5 @@ if __name__ == '__main__':
         attendant_gui.setStyleSheet(f.read())
 
     window = MainWindow(client_connection)
-    sys.exit(attendant_gui.exec())
+
+    attendant_gui.exec()
