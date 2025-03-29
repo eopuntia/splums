@@ -5,7 +5,7 @@ from client import *
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea
 from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from sqlalchemy.exc import SQLAlchemyError
@@ -30,215 +30,41 @@ class Account():
 
         # lazy loading
         # load when gui needs
-        self.notes = []
-
-#For the AddUser button
-class AddUser(QDialog):
-    def __init__(self):
-        super().__init__()
-        layout = QFormLayout()
-        self.setWindowTitle("Add User")
-
-        self.email = QLineEdit()
-        self.password = QLineEdit()
-        self.password.setEchoMode(QLineEdit.EchoMode.Password)
- 
-        # Add User button
-        add_button = QPushButton("Add User")
-        layout.addRow("Password:", self.password)
-        layout.addWidget(add_button)
-        add_button.clicked.connect(self.accept)
-     
-        # Set layout for the widget
-        self.setObjectName("Main")
-        self.setLayout(layout)
-
-    def get_email_and_pwd(self):
-            return self.email.text(), self.password.text()
-
-class AddAccount(QSqlDatabase, QWidget):
-    def __init__(self):
-        super().__init__()
-        layout = QFormLayout()
-        self.setWindowTitle("Add Account")
- 
-        # Style Sheet for default styling options on widgets
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
- 
-        # Create WIN input box
-        self.win_box = QLineEdit()
-        self.win_box.setPlaceholderText("WIN...")
-        self.win_box.setInputMask('999999999')
-        # self.win_box.textChanged.connect(self.update_win)
-
-        name_regex = QRegularExpression("[A-Za-z]+")
-        name_validator = QRegularExpressionValidator(name_regex)
- 
-        # Create display name box
-        self.display_name = QLineEdit()
-        self.display_name.setPlaceholderText("Display Name...")
-        self.display_name.setValidator(name_validator)
-        # self.display_name.textChanged.connect(self.update_win)
- 
-        # Create given name box
-        self.given_name = QLineEdit()
-        self.given_name.setPlaceholderText("Given Name...")
-        self.given_name.setValidator(name_validator)
-        # self.given_name.textChanged.connect(self.update_win)
- 
-        # Create surname box
-        self.surname = QLineEdit()
-        self.surname.setPlaceholderText("Surname...")
-        
-        self.surname.setValidator(name_validator)
-        # self.surname.textChanged.connect(self.update_win)
- 
-        # Fetch roles from the database
-        roles = []
-        select_roles = QSqlQuery(QSqlDatabase.database())
-        select_roles.exec("SELECT user_type FROM user_types")
- 
-        while select_roles.next():
-            role = select_roles.value(0)
-            roles.append(role)
-            print(role)
- 
-        # Role selection combobox
-        self.r_combobox = QComboBox()
-        for role in roles:
-            self.r_combobox.addItem(role)
-
-        # Create affiliation box
-        self.affiliation = QLineEdit()
-        self.affiliation.setPlaceholderText("Affiliation...")
-        self.affiliation. setValidator(name_validator)
- 
-        # Create rso box
-        self.rso = QLineEdit()
-        self.rso.setPlaceholderText("Registered Student Org...")
-        self.rso. setValidator(name_validator)
-
-        # Add fields to the form layout
-        layout.addRow("WIN:", self.win_box)
-        layout.addRow("Role:", self.r_combobox)
-        layout.addRow("Display Name:", self.display_name)
-        layout.addRow("Given Name:", self.given_name)
-        layout.addRow("Surname:", self.surname)
-        layout.addRow("Affiliation:", self.affiliation)
-        layout.addRow("RSO:", self.rso)
- 
-        # Create button that opens camera using cam.py
-        photo_button = QPushButton("Take Photo")
-        photo_button.clicked.connect(self.show_photo)
- 
-        # Add account button
-        add_button = QPushButton("Add Account")
-        add_button.clicked.connect(self.add_act)
- 
-        layout.addWidget(photo_button)
-        layout.addWidget(add_button)
-        # Set layout for the widget
-        self.setObjectName("Main")
-        self.setLayout(layout)
- 
-    # def get_photo(self):
-    #     # Call cam.py to open the camera and take a picture
-    #     self.photo_url = cam.take_picture(self.win_box.text())
-    #     print(self.win_box.text())
-    #     #self.show_photo()
- 
-    def show_photo(self):
-        self.w = Picture()
-        self.w.show()
- 
-    def add_act(self):
-        win = self.win_box.text()
-        print(win)
-        role = self.r_combobox.currentText()
-        print(role)
-        display_name = self.display_name.text()
-        print(display_name)
-        given_name = self.given_name.text()
-        print(given_name)
-        surname = self.surname.text()
-        print(surname)
-
-       # if role == "admin" or role == "attendant":
-         #    userDialog = AddUser()
-          #   if userDialog.exec() == QDialog.DialogCode.Accepted:
-          #       email, password = userDialog.get_email_and_pwd()
-           #      print(email, password)
-
-        new_event = Event(
-        EventTypes.CREATE_NEW_USER,
-            {
-                "win": win,
-                "role": role,
-                "display_name": display_name,
-                "given_name": given_name,
-                "surname": surname,
-                "photo_url": self.photo_url
-            }
-        )
- 
-        event_broker.event_broker(new_event)
-        self.close()
+        self.note = ""
 
 class Notes(QWidget):
-    def __init__(self):
+    save_update = pyqtSignal()
+    def __init__(self, client, win):
         super().__init__()
-        layout = QGridLayout(self)
+        self.client = client
+        self.win = win
+        main_layout = QGridLayout(self)
         self.setWindowTitle("Notes")
         self.setObjectName("Main")
-        self.setLayout(layout)
+        self.setLayout(main_layout)
+
         # Style Sheet for default styling options on widgets
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
-        self.list_widget = QListWidget(self)
-        self.list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        add_button = QPushButton('Add Note')
-        add_button.clicked.connect(self.add_note)
-        edit_button = QPushButton('Edit Note')
-        edit_button.clicked.connect(self.edit_note)
-        remove_button = QPushButton('Remove Note')
-        remove_button.clicked.connect(self.remove_note)
+        
+        self.text_box = QPlainTextEdit()
+        self.text_box.setPlainText(get_account_note(self.client, self.win))
+
         save_button = QPushButton('Save')
 
-        self.list_widget.setStyleSheet("""
-            QListWidget::item {
-                padding: 5px;
-                border-bottom: 1px solid #000;
-                margin-bottom: 2px;
-            }
-            QListWidget::item:selected {
-                background-color: #0078d4;
-                color: white;
-            }
-        """)
-        layout.addWidget(self.list_widget)
-        layout.addWidget(add_button)
-        layout.addWidget(edit_button)
-        layout.addWidget(remove_button)
-        layout.addWidget(save_button)
+        main_layout.addWidget(self.text_box)
+        main_layout.addWidget(save_button)
 
-    def add_note(self):
-        text, ok = QInputDialog.getText(self, 'Add a New Note', 'New Note:')
-        if ok and text:
-            self.list_widget.addItem(text)
+        save_button.clicked.connect(self.save_note)
 
-    def edit_note(self):
-        current_row = self.list_widget.currentRow()
-        if current_row >= 0:
-            current_item = self.list_widget.currentItem()
-            text, ok = QInputDialog.getText(self, 'Edit Note', 'Edit Note:', text=current_item.text())
-            if ok and text:
-                current_item.setText(text)
-    
-    def remove_note(self):
-        current_row = self.list_widget.currentRow()
-        if current_row >= 0:
-            current_item = self.list_widget.takeItem(current_row)
-            del current_item
+    def save_note(self):
+        data = {}
+        data['win'] = self.win
+        data['edit_attrs'] = {}
+        data['edit_attrs']['text'] = self.text_box.toPlainText()
 
+        edit_note(self.client, data)
+
+        self.save_update.emit()
 
 class Picture(QWidget):
     photo_update = pyqtSignal()
@@ -328,7 +154,6 @@ class Picture(QWidget):
 
     def closeEvent(self, event):
         self.cam_worker.stop()
-        
 
 class EditAccount(QWidget):
     photo_update = pyqtSignal()
@@ -448,8 +273,9 @@ class EditAccount(QWidget):
         self.save_update.emit()
 
     def show_notes(self):
-        self.w = Notes()
+        self.w = Notes(self.client, self.win)
         self.w.show()
+        self.w.save_update.connect(self.update_note)
 
     def show_photo(self):
         self.w = Picture(self.client, self.win)
@@ -457,11 +283,12 @@ class EditAccount(QWidget):
         self.w.photo_update.connect(self.update_photo)
 
     def update_photo(self):
-        print("calling photo_update.emit() in editwindow")
         self.photo_update.emit()
 
+    def update_note(self):
+        self.save_update.emit()
+
 class MainWindow(QMainWindow):
-    save_update = pyqtSignal()
     def __init__(self, client_connection):
         super().__init__()
         self.client_connection = client_connection
@@ -547,11 +374,9 @@ class MainWindow(QMainWindow):
         row = 0
         # for each acc loaded into the gui
         for acc in self.accounts:
-            print(f"{acc.photo_url}")
             account_photo = QLabel()
             account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
 
-            print(f'setting account_table slot to account photo for {acc.given_name}')
             self.account_table.setCellWidget(row, 0, account_photo)
             row += 1
 
@@ -612,8 +437,9 @@ class MainWindow(QMainWindow):
 
         # load notes for each account
         for acc in self.accounts:
-            for n in get_account_notes(self.client_connection, acc.win):
-                acc.notes.append(n)
+            res = get_account_note(self.client_connection, acc.win)
+            print(f"res: {res}")
+            acc.note = res
 
     def render_accounts_to_screen(self):
         self.account_table.setRowCount(len(self.accounts))
@@ -630,7 +456,7 @@ class MainWindow(QMainWindow):
             self.account_table.setCellWidget(row, 0, account_photo)
 
             # Account Name
-            account_name_cell = QTableWidgetItem(acc.given_name)
+            account_name_cell = QTableWidgetItem(acc.display_name)
             account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.account_table.setItem(row, 1, account_name_cell)
 
@@ -644,19 +470,13 @@ class MainWindow(QMainWindow):
 #            self.account_table.setCellWidget(row, 2, account_permissions_cell)
 
             # horizontal row of buttons for each note this is the layout for the actual notewidget
-            note_layout = QHBoxLayout()
-            for note in acc.notes:
-                # each note gets a button that shows its text
-                note_button = QPushButton()
-                note_button.setText(note)
-                note_button.setFixedSize(QSize(60, 60))
-                note_layout.addWidget(note_button)
+            note_text_cell = QTextEdit(acc.note)
+            note_text_cell.setReadOnly(True)
+            note_text_cell.setStyleSheet("font-size: 12pt;")
+            note_text_cell.setFixedHeight(100)
+            note_text_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            note_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            notewidget = QWidget()
-            notewidget.setLayout(note_layout)
-            self.account_table.setCellWidget(row, 3, notewidget)
+            self.account_table.setCellWidget(row, 3, note_text_cell)
 
             # Account ID
             account_id_hidden = QTableWidgetItem(acc.win)
@@ -675,6 +495,11 @@ def edit_account(client, edit_data):
 
     res = client.call_server(event)
 
+def edit_note(client, edit_data):
+    event = Event(EventTypes.EDIT_NOTE_FOR_USER, edit_data)
+
+    res = client.call_server(event)
+
 def get_account_data(client, account_win):
     event = Event(event_type=EventTypes.GET_DATA_FOR_USER, data = {'win': account_win})
 
@@ -684,18 +509,17 @@ def get_account_data(client, account_win):
 
     return res
 
-def get_account_notes(client, account_win):
-    notes = []
-    event = Event(event_type=EventTypes.GET_NOTES_FOR_USER, data = {'win': account_win})
+def get_account_note(client, account_win):
+    note = ""
+    event = Event(event_type=EventTypes.GET_NOTE_FOR_USER, data = {'win': account_win})
 
     res = client.call_server(event)
     if res is None:
-        return notes
+        return note
 
-    for note in res:
-        notes.append(note)
+    note = res
 
-    return notes
+    return note
 
 if __name__ == '__main__':
     client_connection = client_connection('127.0.0.1', 7373)

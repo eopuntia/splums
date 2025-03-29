@@ -114,5 +114,11 @@ class EventBroker:
                 print(f"result after event_broker call: {result}")
                 return result
 
+            case EventTypes.EDIT_NOTE_FOR_USER:
+                print(f"\033[93mEditing note for user...\033[0m")
+                result = note_events.edit_note_for_user(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
             case _:
                 print(f"Error")

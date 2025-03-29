@@ -30,4 +30,5 @@ class EventTypes(Enum):
     GET_SWIPED_IN_USERS = 19
     GET_NOTE_FOR_USER = 20
     GET_DATA_FOR_USER = 21
+    EDIT_NOTE_FOR_USER = 22
     
