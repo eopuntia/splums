@@ -88,6 +88,7 @@ class MainWindow(QMainWindow):
         self.lab_table.resizeColumnsToContents()
 
         widget = QWidget()
+        widget.setObjectName("Main")
         widget.setLayout(layout_main)
         self.setCentralWidget(widget)
 
@@ -180,8 +181,12 @@ class MainWindow(QMainWindow):
         self.lab_table.resizeColumnsToContents()
         self.lab_table.resizeRowsToContents()
 
-splums = QApplication(sys.argv)
 
-window = MainWindow()
-window.show()
-splums.exec()
+if __name__ == '__main__':
+    lab_gui = QApplication(sys.argv)
+    window = MainWindow()
+    qssfile="./splums/qss/style.qss"
+    with open(qssfile,"r") as f:
+        lab_gui.setStyleSheet(f.read())
+    window.show()
+    lab_gui.exec()
