@@ -89,7 +89,7 @@ def format_notes(unformatted_note):
     return note_dicts
 
 # TODO add proper error handling
-def get_notes_for_user(event: Event, session):
+def get_note_for_user(event: Event, session):
     with session.begin() as s:
         required_keys = ["win"]
         for key in required_keys:
@@ -97,10 +97,10 @@ def get_notes_for_user(event: Event, session):
                 raise KeyError(f"Missing required key: {key}")
 
         notes = s.scalars(select(Note).where(Note.subject_win == event.data['win'])).all()
-        total_notes = []
+        note = ""
 
         for n in notes:
-            total_notes.append(n.text)
+            note += n.text
 
-        return total_notes
+        return note
 
