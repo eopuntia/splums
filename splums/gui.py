@@ -536,13 +536,14 @@ class MainWindow(QMainWindow):
 
         # connect signal to pressing the save button 
         self.w.photo_update.connect(self.update_photos)
-        self.w.save_update.connect(self.add_account)
+        self.w.save_update.connect(self.update_save)
+
+    def update_save(self):
+        self.accounts.clear()
+        self.initial_accounts_load()
+        self.render_accounts_to_screen()
 
     def update_photos(self):
-        print("calling update_photos in main")
-        account_name_cell = QTableWidgetItem("renee")
-        self.account_table.setItem(0, 1, account_name_cell)
-        
         row = 0
         # for each acc loaded into the gui
         for acc in self.accounts:
@@ -626,7 +627,6 @@ class MainWindow(QMainWindow):
             account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
 
             self.account_table.setCellWidget(row, 0, None)
-            print(f'setting account_table slot to account photo for {acc.given_name}')
             self.account_table.setCellWidget(row, 0, account_photo)
 
             # Account Name
