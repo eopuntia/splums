@@ -99,7 +99,12 @@ def edit_note_for_user(event: Event, session):
 
         for update in event.data["edit_attrs"]:
             if update == "text":
-                note.text = event.data["edit_attrs"][update]
+                if note is None:
+                    # TODO ADD ADMINISTRATORS NAME
+                    note = Note(subject_win=event.data['win'], creator_win=event.data['win'], text = event.data["edit_attrs"][update])
+                    s.add(note)
+                else:
+                    note.text = event.data["edit_attrs"][update]
             if update == "attendent_view_perms":
                 note.attendant_view_perms = event.data["edit_attrs"][update]
             if update == "attendent_edit_perms":

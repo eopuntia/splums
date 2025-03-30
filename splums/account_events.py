@@ -14,21 +14,25 @@ ARCHIVE_USERS_AFTER_MONTHS = 10
 # TODO add proper error handling
 def create(event, session):
     with session.begin() as s:
-        required_keys = ["given_name", "display_name", "surname", "role", "win"]
+        required_keys = ["win", "edit_attrs"]
+        print(f'EVENTDATA: {event.data}')
         for key in required_keys:
             if key not in event.data:
                 raise KeyError(f"Missing required key: {key}")
                 
-        account_role = s.scalar(select(Role).where(Role.name == event.data["role"]))
+        account_role = s.scalar(select(Role).where(Role.name == event.data["edit_attrs"]["role"]))
         if account_role is None:
             raise KeyError(f"Invalid role: {event.data['role']}")
 
+
         account = Account(win = event.data["win"], 
                           role=account_role, 
-                          given_name = event.data["given_name"], 
-                          surname = event.data["surname"], 
-                          display_name = event.data["display_name"], 
-                          photo_url = event.data.get("photo_url", "/no/img"))
+                          given_name = event.data["edit_attrs"]["given_name"], 
+                          surname = event.data["edit_attrs"]["surname"], 
+                          display_name = event.data["edit_attrs"]["display_name"], 
+                          affiliation = event.data["edit_attrs"]["affiliation"],
+                          rso = event.data["edit_attrs"]["rso"],
+                          photo_url = event.data.get("photo_url", "./images/" + event.data["win"] + ".jpg"))
 
         s.add(account)
         s.commit()

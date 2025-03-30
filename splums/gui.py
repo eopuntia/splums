@@ -310,6 +310,136 @@ class EditAccount(QWidget):
     def update_note(self):
         self.save_update.emit()
 
+class AddAccount(QWidget):
+    save_update = pyqtSignal()
+    def __init__(self, client):
+        super().__init__()
+        self.client = client
+
+        self.setWindowTitle("New Account")
+
+        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+
+        layout = QFormLayout()
+
+        self.win_box = QLineEdit()
+        self.role = QComboBox()
+        self.display_name = QLineEdit()
+        self.given_name = QLineEdit()
+        self.surname = QLineEdit()
+
+        self.permissions = QGroupBox()
+        self.perm_layout = QVBoxLayout()
+
+        self.drill_press = QCheckBox("Drill Press")
+        self.cnc_machine = QCheckBox("CNC Machine")
+        self.laser_cutter = QCheckBox("Laser Cutter")
+        self.soldering_station = QCheckBox("Soldering Station")
+        self.welding_station = QCheckBox("Welding Station")
+
+        self.perm_layout.addWidget(self.drill_press)
+        self.perm_layout.addWidget(self.cnc_machine)
+        self.perm_layout.addWidget(self.laser_cutter)
+        self.perm_layout.addWidget(self.soldering_station)
+        self.perm_layout.addWidget(self.welding_station)
+
+        self.permissions.setLayout(self.perm_layout)
+
+        self.affiliation = QLineEdit()
+        self.rso = QLineEdit()
+
+        photo_button = QPushButton("Take Photo")
+        save_button = QPushButton("Save")
+
+        photo_button.clicked.connect(self.show_photo)
+        save_button.clicked.connect(self.save_edit)
+
+        layout.addRow("WIN:", self.win_box)
+        layout.addRow("Role:", self.role)
+        layout.addRow("Display Name:", self.display_name)
+        layout.addRow("Given Name:", self.given_name)
+        layout.addRow("Surname:", self.surname)
+        layout.addRow("Permissions:", self.permissions)
+        layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("RSO:", self.rso)
+
+        layout.addWidget(photo_button)
+        layout.addWidget(save_button)
+
+        self.setObjectName("Main")
+        self.setLayout(layout)
+
+        win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
+        name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+
+        self.win_box.setPlaceholderText("WIN...")
+        self.win_box.setValidator(win_validator)
+            
+        # TODO IMPLEMENT ROLE FUNCTIONALITY
+        # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
+        self.role.addItem("User")
+        self.role.addItem("Administrator")
+        self.role.addItem("Attendant")
+ 
+        self.display_name.setPlaceholderText("Display Name...")
+        self.display_name.setValidator(name_validator)
+ 
+        self.given_name.setPlaceholderText("Given Name...")
+        self.given_name.setValidator(name_validator)
+ 
+        self.surname.setPlaceholderText("Surname...")
+        self.surname.setValidator(name_validator)
+
+        self.affiliation.setPlaceholderText("Affiliation...")
+        self.affiliation.setValidator(name_validator)
+ 
+        self.rso.setPlaceholderText("Registered Student Org...")
+        self.rso.setValidator(name_validator)
+
+    # TODO add proper error handling
+    # TODO ADD CHECK FOR IF WIN IS ALREADY TAKEN
+    def save_edit(self):
+        if self.win_box.text() == "":
+            print("err invalid win")
+            return
+        if self.display_name.text() == "":
+            print("err must enter display name")
+            return
+        if self.given_name.text() == "":
+            print("err must enter given_name")
+            return
+        if self.surname.text() == "":
+            print("err must enter surname")
+            return
+        data = {}
+        data['win'] = self.win_box.text()
+        data['edit_attrs'] = {}
+        
+        data['edit_attrs']['display_name'] = self.display_name.text()
+        data['edit_attrs']['given_name'] = self.given_name.text()
+        data['edit_attrs']['surname'] = self.surname.text()
+        data['edit_attrs']['win'] = self.win_box.text()
+        data['edit_attrs']['affiliation'] = self.affiliation.text()
+        data['edit_attrs']['rso'] = self.rso.text()
+        data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['permissions'] = []
+
+
+        for item in self.permissions.findChildren(QCheckBox):
+            if item.isChecked():
+                data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
+
+        new_account(self.client, data)
+
+        self.save_update.emit()
+
+    def show_photo(self):
+        if self.win_box.text() == "":
+            print("err invalid win")
+            return
+        self.w = Picture(self.client, self.win_box.text())
+        self.w.show()
+
 class MainWindow(QMainWindow):
     def __init__(self, client_connection):
         super().__init__()
@@ -405,8 +535,10 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("new title")
 
     def add_account(self):
-        account_name_cell = QTableWidgetItem("renee")
-        self.account_table.setItem(0, 1, account_name_cell)
+        self.w = AddAccount(self.client_connection)
+        self.w.show()
+
+        self.w.save_update.connect(self.update_save)
 
     def sign_out(self):
         print("Signing out")
@@ -514,6 +646,11 @@ class MainWindow(QMainWindow):
 
 def edit_account(client, edit_data):
     event = Event(EventTypes.EDIT_ACCOUNT, edit_data)
+
+    res = client.call_server(event)
+
+def new_account(client, edit_data):
+    event = Event(EventTypes.CREATE_ACCOUNT, edit_data)
 
     res = client.call_server(event)
 
