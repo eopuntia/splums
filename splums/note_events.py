@@ -88,8 +88,27 @@ def format_notes(unformatted_note):
         note_dicts.append(note_dict)
     return note_dicts
 
+def edit_note_for_user(event: Event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+
+        note = s.scalar(select(Note).where(Note.subject_win == event.data['win']))
+
+        for update in event.data["edit_attrs"]:
+            if update == "text":
+                note.text = event.data["edit_attrs"][update]
+            if update == "attendent_view_perms":
+                note.attendant_view_perms = event.data["edit_attrs"][update]
+            if update == "attendent_edit_perms":
+                note.attendant_edit_perms = event.data["edit_attrs"][update]
+
+        s.commit()
+    
 # TODO add proper error handling
-def get_notes_for_user(event: Event, session):
+def get_note_for_user(event: Event, session):
     with session.begin() as s:
         required_keys = ["win"]
         for key in required_keys:
@@ -97,10 +116,10 @@ def get_notes_for_user(event: Event, session):
                 raise KeyError(f"Missing required key: {key}")
 
         notes = s.scalars(select(Note).where(Note.subject_win == event.data['win'])).all()
-        total_notes = []
+        note = ""
 
         for n in notes:
-            total_notes.append(n.text)
+            note += n.text
 
-        return total_notes
+        return note
 

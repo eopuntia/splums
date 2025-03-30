@@ -103,14 +103,20 @@ class EventBroker:
                 result = account_events.get_swiped_in_users(self.session)
                 return result
             
-            case EventTypes.GET_NOTES_FOR_USER:
-                print(f"\033[93mGetting notes for user...\033[0m")
-                result = note_events.get_notes_for_user(event, self.session)
+            case EventTypes.GET_NOTE_FOR_USER:
+                print(f"\033[93mGetting note for user...\033[0m")
+                result = note_events.get_note_for_user(event, self.session)
                 return result
 
             case EventTypes.GET_DATA_FOR_USER:
                 print(f"\033[93mGetting data for user...\033[0m")
                 result = account_events.get_data_for_user(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
+            case EventTypes.EDIT_NOTE_FOR_USER:
+                print(f"\033[93mEditing note for user...\033[0m")
+                result = note_events.edit_note_for_user(event, self.session)
                 print(f"result after event_broker call: {result}")
                 return result
 
