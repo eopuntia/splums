@@ -33,4 +33,5 @@ class EventTypes(Enum):
     EDIT_NOTE_FOR_USER = 22
     GET_PERMS_FOR_USER = 23
     CHECK_IF_WIN_EXISTS = 24
+    GET_ALL_PERMS = 25
     

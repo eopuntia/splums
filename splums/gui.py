@@ -160,6 +160,7 @@ class Picture(QWidget):
     def closeEvent(self, event):
         self.cam_worker.stop()
 
+
 class EditAccount(QWidget):
     photo_update = pyqtSignal()
     save_update = pyqtSignal()
@@ -187,17 +188,13 @@ class EditAccount(QWidget):
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
 
-        self.drill_press = QCheckBox("Drill Press")
-        self.cnc_machine = QCheckBox("CNC Machine")
-        self.laser_cutter = QCheckBox("Laser Cutter")
-        self.soldering_station = QCheckBox("Soldering Station")
-        self.welding_station = QCheckBox("Welding Station")
+        perm_list = get_permissions_from_db(self.client)
+        button_list = []
+        for item in perm_list:
+            button_list.append(QCheckBox(item))
 
-        self.perm_layout.addWidget(self.drill_press)
-        self.perm_layout.addWidget(self.cnc_machine)
-        self.perm_layout.addWidget(self.laser_cutter)
-        self.perm_layout.addWidget(self.soldering_station)
-        self.perm_layout.addWidget(self.welding_station)
+        for item in button_list:
+            self.perm_layout.addWidget(item)
 
         self.permissions.setLayout(self.perm_layout)
 
@@ -454,17 +451,13 @@ class AddAccount(QWidget):
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
 
-        self.drill_press = QCheckBox("Drill Press")
-        self.cnc_machine = QCheckBox("CNC Machine")
-        self.laser_cutter = QCheckBox("Laser Cutter")
-        self.soldering_station = QCheckBox("Soldering Station")
-        self.welding_station = QCheckBox("Welding Station")
+        perm_list = get_permissions_from_db(self.client)
+        button_list = []
+        for item in perm_list:
+            button_list.append(QCheckBox(item))
 
-        self.perm_layout.addWidget(self.drill_press)
-        self.perm_layout.addWidget(self.cnc_machine)
-        self.perm_layout.addWidget(self.laser_cutter)
-        self.perm_layout.addWidget(self.soldering_station)
-        self.perm_layout.addWidget(self.welding_station)
+        for item in button_list:
+            self.perm_layout.addWidget(item)
 
         self.permissions.setLayout(self.perm_layout)
 
@@ -818,6 +811,15 @@ def check_if_win_exists(client, account_win):
 
 def get_account_data(client, account_win):
     event = Event(event_type=EventTypes.GET_DATA_FOR_USER, data = {'win': account_win})
+
+    res = client.call_server(event)
+    if res is None:
+        return None
+
+    return res
+
+def get_permissions_from_db(client):
+    event = Event(event_type=EventTypes.GET_ALL_PERMS, data = {'win': ''})
 
     res = client.call_server(event)
     if res is None:
