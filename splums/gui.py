@@ -5,7 +5,7 @@ from client import *
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox
 from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from sqlalchemy.exc import SQLAlchemyError
@@ -405,21 +405,31 @@ class AddAccount(QWidget):
     # TODO ADD CHECK FOR IF WIN IS ALREADY TAKEN
     def save_edit(self):
         if self.win_box.text() == "":
-            print("err invalid win")
+            err_msg = QMessageBox(self)
+            err_msg.setText('enter a valid win')
+            err_msg.exec()
             return
 
         if check_if_win_exists(self.client, self.win_box.text()):
-            print("this win already exists, input unique win")
+            err_msg = QMessageBox(self)
+            err_msg.setText('an account with this win already exists')
+            err_msg.exec()
             return
 
         if self.display_name.text() == "":
-            print("err must enter display name")
+            err_msg = QMessageBox(self)
+            err_msg.setText('a display name is required')
+            err_msg.exec()
             return
         if self.given_name.text() == "":
-            print("err must enter given_name")
+            err_msg = QMessageBox(self)
+            err_msg.setText('a given name is required')
+            err_msg.exec()
             return
         if self.surname.text() == "":
-            print("err must enter surname")
+            err_msg = QMessageBox(self)
+            err_msg.setText('a surname is required')
+            err_msg.exec()
             return
         data = {}
         data['win'] = self.win_box.text()
@@ -519,7 +529,9 @@ class MainWindow(QMainWindow):
         selected_row = self.account_table.currentRow()
 
         if selected_row == -1:
-            print('no account selected, click to select the account you want to edit')
+            err_msg = QMessageBox(self)
+            err_msg.setText('click to select the account you want to edit')
+            err_msg.exec()
             return
 
         self.w = EditAccount(self.accounts[selected_row].win, self.client_connection)
@@ -700,7 +712,6 @@ def get_account_permissions(client, account_win):
         return None
 
     return res
-
 
 def get_account_note(client, account_win):
     note = ""
