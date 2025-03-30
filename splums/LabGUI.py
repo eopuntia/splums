@@ -74,21 +74,12 @@ class MainWindow(QMainWindow):
         layout_lab.addWidget(self.lab_table)
         layout_lab.setStretch(0,1)
 
-        #Attendant card in the bottom right
-        attendant_layout = QVBoxLayout()
-        attendant_card = self.attendant_card(self.users[-1])
-        attendant_layout.addWidget(attendant_card)
 
-        layout_attendant =QHBoxLayout()
-        layout_attendant.addLayout(layout_lab)
-        layout_attendant.addLayout(attendant_layout)
-
-        layout_main.addLayout(layout_attendant)
+        layout_main.addLayout(layout_lab)
         self.lab_table.resizeRowsToContents()
         self.lab_table.resizeColumnsToContents()
 
         widget = QWidget()
-        widget.setObjectName("Main")
         widget.setLayout(layout_main)
         self.setCentralWidget(widget)
 
@@ -177,16 +168,17 @@ class MainWindow(QMainWindow):
             if column > 4:
                 column = 0
                 row += 1
-                # Resize columns and rows to fit the content
+
+        attendant_card_widget = self.attendant_card(self.users[-1])
+        self.lab_table.setCellWidget(row, 4, attendant_card_widget)
+
+
+        # Resize columns and rows to fit the content
         self.lab_table.resizeColumnsToContents()
         self.lab_table.resizeRowsToContents()
 
+splums = QApplication(sys.argv)
 
-if __name__ == '__main__':
-    lab_gui = QApplication(sys.argv)
-    window = MainWindow()
-    qssfile="./splums/qss/style.qss"
-    with open(qssfile,"r") as f:
-        lab_gui.setStyleSheet(f.read())
-    window.show()
-    lab_gui.exec()
+window = MainWindow()
+window.show()
+splums.exec()
