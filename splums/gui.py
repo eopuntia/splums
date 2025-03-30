@@ -407,6 +407,11 @@ class AddAccount(QWidget):
         if self.win_box.text() == "":
             print("err invalid win")
             return
+
+        if check_if_win_exists(self.client, self.win_box.text()):
+            print("this win already exists, input unique win")
+            return
+
         if self.display_name.text() == "":
             print("err must enter display name")
             return
@@ -665,6 +670,18 @@ def edit_note(client, edit_data):
     event = Event(EventTypes.EDIT_NOTE_FOR_USER, edit_data)
 
     res = client.call_server(event)
+
+def check_if_win_exists(client, account_win):
+    event_data = {}
+    event_data['win'] = account_win
+    event = Event(EventTypes.CHECK_IF_WIN_EXISTS, event_data)
+
+    res = client.call_server(event)
+
+    if res["win"]:
+        return True
+    else:
+        return False
 
 def get_account_data(client, account_win):
     event = Event(event_type=EventTypes.GET_DATA_FOR_USER, data = {'win': account_win})

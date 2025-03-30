@@ -234,6 +234,19 @@ def get_perms_for_user(event, session):
         return perm_data.copy()
 
 # TODO add proper error handling
+def check_if_win_exists(event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+                
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        if account is None:
+            return { "win" : False }
+        else: return { "win" : True } 
+
+# TODO add proper error handling
 def get_data_for_user(event, session):
     with session.begin() as s:
         required_keys = ["win"]

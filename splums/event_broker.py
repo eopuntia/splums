@@ -126,5 +126,11 @@ class EventBroker:
                 print(f"result after event_broker call: {result}")
                 return result
 
+            case EventTypes.CHECK_IF_WIN_EXISTS:
+                print(f"\033[93mChecking if win is already in DB...\033[0m")
+                result = account_events.check_if_win_exists(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
             case _:
                 print(f"Error")
