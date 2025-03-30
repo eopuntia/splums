@@ -232,6 +232,8 @@ class EditAccount(QWidget):
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
 
         self.win_box.setPlaceholderText("WIN...")
+        self.win_box.setReadOnly(True)
+
         self.win_box.setValidator(win_validator)
             
         # TODO IMPLEMENT ROLE FUNCTIONALITY
