@@ -31,4 +31,5 @@ class EventTypes(Enum):
     GET_NOTE_FOR_USER = 20
     GET_DATA_FOR_USER = 21
     EDIT_NOTE_FOR_USER = 22
+    GET_PERMS_FOR_USER = 23
     

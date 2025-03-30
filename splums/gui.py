@@ -159,8 +159,6 @@ class EditAccount(QWidget):
     photo_update = pyqtSignal()
     save_update = pyqtSignal()
     def __init__(self, win, client):
-        # TODO make it so uses win to grab information for the user that is selected
-        # TODO It then needs to have a save button to confirm the changes
         super().__init__()
         self.client = client
         self.win = win
@@ -265,6 +263,15 @@ class EditAccount(QWidget):
         if acc_data['rso'] is not None:
             self.rso.setText(acc_data['rso'])
 
+        permissions = get_account_permissions(self.client, self.win)
+        print(permissions)
+        for item in self.permissions.findChildren(QCheckBox):
+            for perm in permissions:
+                print(f'{item.text()} on {perm}')
+                if item.text().lower().replace(" ", "_") == perm:
+                    print(f'need to check the state of {perm}')
+                    item.setChecked(True)
+
         self.role.setCurrentText(acc_data['role'].capitalize())
 
     # TODO add proper error handling
@@ -283,14 +290,12 @@ class EditAccount(QWidget):
         data['edit_attrs']['permissions'] = []
         data['edit_attrs']['no_permissions'] = []
 
-
         for item in self.permissions.findChildren(QCheckBox):
             if item.isChecked():
                 data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
             else:
                 data['edit_attrs']['no_permissions'].append(item.text().lower().replace(" ", "_"))
 
-        print(f"STUFF TO DELETE {data['edit_attrs']['no_permissions']}")
         edit_account(self.client, data)
         self.save_update.emit()
 
@@ -667,6 +672,16 @@ def get_account_data(client, account_win):
         return None
 
     return res
+
+def get_account_permissions(client, account_win):
+    event = Event(event_type=EventTypes.GET_PERMS_FOR_USER, data = {'win': account_win})
+
+    res = client.call_server(event)
+    if res is None:
+        return None
+
+    return res
+
 
 def get_account_note(client, account_win):
     note = ""

@@ -212,6 +212,27 @@ def get_users_by_role(event: Event, session):
         print(f"Error getting users by role: {e}")
         return -1
 
+def get_perms_for_user(event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+                
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        if account is None:
+            raise KeyError(f"Invalid win: {event.data['win']}")
+
+        perms = s.scalars(select(Account_Equipment).where(
+            Account_Equipment.account == account
+        )).all()
+        perm_data = []
+        for perm in perms:
+            perm_data.append(perm.equipment.name)
+
+        print(f"PERM DATA{perm_data}")
+        return perm_data.copy()
+
 # TODO add proper error handling
 def get_data_for_user(event, session):
     with session.begin() as s:
