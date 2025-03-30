@@ -1,6 +1,6 @@
 from events import Event
 from sqlalchemy import select
-from models.models import Account, Role
+from models.models import Account, Role, Account_Equipment, Equipment
 
 from events import Event, EventTypes
 
@@ -52,6 +52,30 @@ def edit(event, session):
                 if new_role is None:
                     raise KeyError(f"Invalid role: {event.data['edit_attrs'][update]}")
                 account.role = new_role
+            if update == "no_permissions":
+                for equip in event.data["edit_attrs"]["no_permissions"]:
+                    print(f"GOING TO DELETE {equip}")
+                    e_del = s.scalar(select(Equipment.equipment_id).where(Equipment.name == equip))
+                    if e_del:
+                        del_equip = s.scalars(
+                            select(Account_Equipment)
+                            .where(Account_Equipment.account == account)
+                            .where(Account_Equipment.equipment_id == e_del)
+                        )
+                        for val in del_equip:
+                            s.delete(val)
+                        
+            if update == "permissions":
+                for equip in event.data["edit_attrs"]["permissions"]:
+                    add_e = s.scalar(select(Equipment).where(Equipment.name == equip))
+                    existing_rel = s.scalar(select(Account_Equipment).where(
+                        Account_Equipment.account == account,
+                        Account_Equipment.equipment == add_e
+                    ))
+                    if not existing_rel:
+                        acc_equip = Account_Equipment(account=account, equipment=add_e, completed_training=True)
+                        account.equipments.append(acc_equip)
+
 
             if update == "surname":
                 account.surname = event.data["edit_attrs"][update]

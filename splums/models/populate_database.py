@@ -21,14 +21,14 @@ with Session() as session:
     # the datetime fields get populated automatically. You can see specifying the role and status relations in account.
     # what this does behind the scenes is it will populate the ID's for you. Makes it very easy. 
     renee = Account(win=212222, role=user, display_name="rez", 
-                     given_name="Renee", surname="Rickert", photo_url="sample/renee/url",
+                     given_name="Renee", surname="Rickert", photo_url="./images/212222.jpg",
                      affiliation="Student employee", rso="Computer Club")
 
     kahrl = Account(win=1234, role=administrator, display_name="zathras", 
-                     given_name="Allin", surname="Kahrl", photo_url="sample/kahrl/url")
+                     given_name="Allin", surname="Kahrl", photo_url="./images/1234.jpg")
 
     estlin = Account(win=4321, role=attendant, display_name="estlin", 
-                     given_name="Estlin", surname="Mendez", photo_url="sample/estlin/url")
+                     given_name="Estlin", surname="Mendez", photo_url="./images/4321.jpg")
 
     # actually load the objects to be committed (still not in the DB, will happen after commit call.
     # important to note is that since user, active, administrator, and attendant were related in these object definitions, 
@@ -45,10 +45,10 @@ with Session() as session:
     session.execute( 
         insert(Equipment),
         [
-            {"name": "Drill Press", "icon_url": "sample/url"},
-            {"name": "CNC Machine", "icon_url": "sample/url"},
-            {"name": "Laser Cutter", "icon_url": "sample/url"},
-            {"name": "Soldering Station", "icon_url": "sample/url"},
+            {"name": "drill_press", "icon_url": "./splums/images/drill_press.png"},
+            {"name": "cnc_machine", "icon_url": "./splums/images/cnc_machine.png"},
+            {"name": "laser_cutter", "icon_url": "./splums/images/laser_cutter.png"},
+            {"name": "soldering_station", "icon_url": "./splums/images/soldering_station.png"},
         ],
     )
     session.execute( 
@@ -63,14 +63,12 @@ with Session() as session:
     )
     
     # example of adding account_equipment record, can also define objects in line.
-    renee_welding = Account_Equipment(account=renee, equipment=Equipment(name="Welding Station", icon_url="sample/url"), completed_training=False)
+    renee_welding = Account_Equipment(account=renee, equipment=Equipment(name="welding_station", icon_url="./splums/images/welding_station.png"), completed_training=False)
     session.add(renee_welding)
 
     # the ids for creator and subject will be populated automatically.
     note1 = Note(creator_account=kahrl, subject_account=renee, text="renee does not know how to tig weld but she can mig")
     session.add(note1)
-    note2 = Note(creator_account=kahrl, subject_account=renee, text="renee likes fls")
-    session.add(note2)
 
     # it is always necessary to commit, no changes are applied until commit is applied.
     session.commit()

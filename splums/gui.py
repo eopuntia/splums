@@ -5,7 +5,7 @@ from client import *
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox
 from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from sqlalchemy.exc import SQLAlchemyError
@@ -178,7 +178,24 @@ class EditAccount(QWidget):
         self.display_name = QLineEdit()
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
-        self.permissions = QComboBox()
+
+        self.permissions = QGroupBox()
+        self.perm_layout = QVBoxLayout()
+
+        self.drill_press = QCheckBox("Drill Press")
+        self.cnc_machine = QCheckBox("CNC Machine")
+        self.laser_cutter = QCheckBox("Laser Cutter")
+        self.soldering_station = QCheckBox("Soldering Station")
+        self.welding_station = QCheckBox("Welding Station")
+
+        self.perm_layout.addWidget(self.drill_press)
+        self.perm_layout.addWidget(self.cnc_machine)
+        self.perm_layout.addWidget(self.laser_cutter)
+        self.perm_layout.addWidget(self.soldering_station)
+        self.perm_layout.addWidget(self.welding_station)
+
+        self.permissions.setLayout(self.perm_layout)
+
         self.affiliation = QLineEdit()
         self.rso = QLineEdit()
 
@@ -226,11 +243,6 @@ class EditAccount(QWidget):
  
         self.surname.setPlaceholderText("Surname...")
         self.surname.setValidator(name_validator)
-        
-        # TODO ADD PROPER PERMISSIONS
-        self.permissions.addItem("Drill Press")
-        self.permissions.addItem("CNC Machine")
-        self.permissions.addItem("Laser Cutter")
 
         self.affiliation.setPlaceholderText("Affiliation...")
         self.affiliation.setValidator(name_validator)
@@ -268,7 +280,17 @@ class EditAccount(QWidget):
         data['edit_attrs']['affiliation'] = self.affiliation.text()
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['permissions'] = []
+        data['edit_attrs']['no_permissions'] = []
 
+
+        for item in self.permissions.findChildren(QCheckBox):
+            if item.isChecked():
+                data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
+            else:
+                data['edit_attrs']['no_permissions'].append(item.text().lower().replace(" ", "_"))
+
+        print(f"STUFF TO DELETE {data['edit_attrs']['no_permissions']}")
         edit_account(self.client, data)
         self.save_update.emit()
 
