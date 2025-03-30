@@ -23,6 +23,8 @@ class Account():
         self.surname = build_info['surname']
         self.photo_url = build_info['photo_url']
         self.role = build_info['role']
+        self.affiliation = build_info['affiliation']
+        self.rso = build_info['rso']
         self.created_at = build_info['created_at']
         self.last_updated_at = build_info['last_updated_at']
         self.swiped_in = build_info['swiped_in']
@@ -176,6 +178,8 @@ class EditAccount(QWidget):
         self.display_name = QLineEdit()
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
+        self.affiliation = QComboBox()
+        self.rso = QLineEdit()
 
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
@@ -193,9 +197,6 @@ class EditAccount(QWidget):
         self.perm_layout.addWidget(self.welding_station)
 
         self.permissions.setLayout(self.perm_layout)
-
-        self.affiliation = QLineEdit()
-        self.rso = QLineEdit()
 
         notes_button = QPushButton("Notes")
         photo_button = QPushButton("Take Photo")
@@ -232,6 +233,13 @@ class EditAccount(QWidget):
         self.role.addItem("User")
         self.role.addItem("Administrator")
         self.role.addItem("Attendant")
+
+        self.affiliation.addItem("Undergrad")
+        self.affiliation.addItem("Graduate")
+        self.affiliation.addItem("Researcher")
+        self.affiliation.addItem("Staff")
+        self.affiliation.addItem("Faculty")
+        self.affiliation.addItem("Other")
  
         self.display_name.setPlaceholderText("Display Name...")
         self.display_name.setValidator(name_validator)
@@ -257,8 +265,6 @@ class EditAccount(QWidget):
         self.display_name.setText(acc_data['display_name'])
         self.given_name.setText(acc_data['given_name'])
         self.surname.setText(acc_data['surname'])
-        if acc_data['affiliation']is not None:
-            self.affiliation.setText(acc_data['affiliation'])
 
         if acc_data['rso'] is not None:
             self.rso.setText(acc_data['rso'])
@@ -273,6 +279,7 @@ class EditAccount(QWidget):
                         item.setChecked(True)
 
         self.role.setCurrentText(acc_data['role'].capitalize())
+        self.affiliation.setCurrentText(acc_data['affiliation'].capitalize())
 
     # TODO add proper error handling
     def save_edit(self):
@@ -284,7 +291,7 @@ class EditAccount(QWidget):
         data['edit_attrs']['given_name'] = self.given_name.text()
         data['edit_attrs']['surname'] = self.surname.text()
         data['edit_attrs']['win'] = self.win_box.text()
-        data['edit_attrs']['affiliation'] = self.affiliation.text()
+        data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = self.role.currentText().lower()
         data['edit_attrs']['permissions'] = []
