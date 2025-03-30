@@ -41,6 +41,20 @@ def create(event, session):
 
         s.add(account)
         s.commit()
+
+    # once created add the permissions
+    with session.begin() as s:
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        
+        for update in event.data["edit_attrs"]:
+            if update == "permissions":
+                for equip in event.data["edit_attrs"]["permissions"]:
+                    add_e = s.scalar(select(Equipment).where(Equipment.name == equip))
+                    acc_equip = Account_Equipment(account=account, equipment=add_e, completed_training=True)
+                    account.equipments.append(acc_equip)
+
+        s.commit()
+
         return 1
 
 # TODO add proper error handling
@@ -67,6 +81,7 @@ def edit(event, session):
                     raise KeyError(f"Invalid affiliation: {event.data['edit_attrs'][update]}")
 
                 account.affiliation = new_affiliation
+
             if update == "no_permissions":
                 for equip in event.data["edit_attrs"]["no_permissions"]:
                     print(f"GOING TO DELETE {equip}")
@@ -90,7 +105,6 @@ def edit(event, session):
                     if not existing_rel:
                         acc_equip = Account_Equipment(account=account, equipment=add_e, completed_training=True)
                         account.equipments.append(acc_equip)
-
 
             if update == "surname":
                 account.surname = event.data["edit_attrs"][update]
