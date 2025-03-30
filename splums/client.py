@@ -25,6 +25,7 @@ class client_connection():
                 elif response_data == -1:
                     print(f"\033[92m[SERVER RESPONSE]\033[0m ERROR!")
                 elif response_data:
+                    print(f"in client, response_data is {response_data}")
                     return response_data
                 else:
                     print(f"\033[92m[SERVER RESPONSE]\033[0m NO DATA")

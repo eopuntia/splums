@@ -1,7 +1,7 @@
 from events import Event
 from events import EventTypes
 from sqlalchemy import select
-import note_events, account_events, swipe_events
+import note_events, account_events, swipe_events, permission_events
 from models.models import Account, Note, Role
 
 class EventBroker:
@@ -123,6 +123,17 @@ class EventBroker:
             case EventTypes.GET_PERMS_FOR_USER:
                 print(f"\033[93mGetting Perms for user...\033[0m")
                 result = account_events.get_perms_for_user(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
+            case EventTypes.CHECK_IF_WIN_EXISTS:
+                print(f"\033[93mChecking if win is already in DB...\033[0m")
+                result = account_events.check_if_win_exists(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+            case EventTypes.GET_ALL_PERMS:
+                print(f"\033[93mGetting every permission from DB...\033[0m")
+                result = permission_events.get_all_perms(event, self.session)
                 print(f"result after event_broker call: {result}")
                 return result
 

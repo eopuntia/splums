@@ -5,7 +5,7 @@ from client import *
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox
 from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from sqlalchemy.exc import SQLAlchemyError
@@ -23,6 +23,8 @@ class Account():
         self.surname = build_info['surname']
         self.photo_url = build_info['photo_url']
         self.role = build_info['role']
+        self.affiliation = build_info['affiliation']
+        self.rso = build_info['rso']
         self.created_at = build_info['created_at']
         self.last_updated_at = build_info['last_updated_at']
         self.swiped_in = build_info['swiped_in']
@@ -50,11 +52,14 @@ class Notes(QWidget):
         self.text_box.setPlainText(get_account_note(self.client, self.win))
 
         save_button = QPushButton('Save')
+        exit_button = QPushButton("Exit")
 
         main_layout.addWidget(self.text_box)
         main_layout.addWidget(save_button)
+        main_layout.addWidget(exit_button)
 
         save_button.clicked.connect(self.save_note)
+        exit_button.clicked.connect(self.close)
 
     def save_note(self):
         data = {}
@@ -155,6 +160,7 @@ class Picture(QWidget):
     def closeEvent(self, event):
         self.cam_worker.stop()
 
+
 class EditAccount(QWidget):
     photo_update = pyqtSignal()
     save_update = pyqtSignal()
@@ -176,34 +182,31 @@ class EditAccount(QWidget):
         self.display_name = QLineEdit()
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
+        self.affiliation = QComboBox()
+        self.rso = QLineEdit()
 
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
 
-        self.drill_press = QCheckBox("Drill Press")
-        self.cnc_machine = QCheckBox("CNC Machine")
-        self.laser_cutter = QCheckBox("Laser Cutter")
-        self.soldering_station = QCheckBox("Soldering Station")
-        self.welding_station = QCheckBox("Welding Station")
+        perm_list = get_permissions_from_db(self.client)
+        button_list = []
+        for item in perm_list:
+            button_list.append(QCheckBox(item))
 
-        self.perm_layout.addWidget(self.drill_press)
-        self.perm_layout.addWidget(self.cnc_machine)
-        self.perm_layout.addWidget(self.laser_cutter)
-        self.perm_layout.addWidget(self.soldering_station)
-        self.perm_layout.addWidget(self.welding_station)
+        for item in button_list:
+            self.perm_layout.addWidget(item)
 
         self.permissions.setLayout(self.perm_layout)
-
-        self.affiliation = QLineEdit()
-        self.rso = QLineEdit()
 
         notes_button = QPushButton("Notes")
         photo_button = QPushButton("Take Photo")
         save_button = QPushButton("Save")
+        exit_button = QPushButton("Exit")
 
         photo_button.clicked.connect(self.show_photo)
         notes_button.clicked.connect(self.show_notes)
         save_button.clicked.connect(self.save_edit)
+        exit_button.clicked.connect(self.close)
 
         layout.addRow("WIN:", self.win_box)
         layout.addRow("Role:", self.role)
@@ -217,6 +220,7 @@ class EditAccount(QWidget):
         layout.addWidget(photo_button)
         layout.addWidget(notes_button)
         layout.addWidget(save_button)
+        layout.addWidget(exit_button)
 
         self.setObjectName("Main")
         self.setLayout(layout)
@@ -225,6 +229,8 @@ class EditAccount(QWidget):
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
 
         self.win_box.setPlaceholderText("WIN...")
+        self.win_box.setReadOnly(True)
+
         self.win_box.setValidator(win_validator)
             
         # TODO IMPLEMENT ROLE FUNCTIONALITY
@@ -232,6 +238,13 @@ class EditAccount(QWidget):
         self.role.addItem("User")
         self.role.addItem("Administrator")
         self.role.addItem("Attendant")
+
+        self.affiliation.addItem("Undergrad")
+        self.affiliation.addItem("Graduate")
+        self.affiliation.addItem("Researcher")
+        self.affiliation.addItem("Staff")
+        self.affiliation.addItem("Faculty")
+        self.affiliation.addItem("Other")
  
         self.display_name.setPlaceholderText("Display Name...")
         self.display_name.setValidator(name_validator)
@@ -257,8 +270,6 @@ class EditAccount(QWidget):
         self.display_name.setText(acc_data['display_name'])
         self.given_name.setText(acc_data['given_name'])
         self.surname.setText(acc_data['surname'])
-        if acc_data['affiliation']is not None:
-            self.affiliation.setText(acc_data['affiliation'])
 
         if acc_data['rso'] is not None:
             self.rso.setText(acc_data['rso'])
@@ -273,6 +284,7 @@ class EditAccount(QWidget):
                         item.setChecked(True)
 
         self.role.setCurrentText(acc_data['role'].capitalize())
+        self.affiliation.setCurrentText(acc_data['affiliation'].capitalize())
 
     # TODO add proper error handling
     def save_edit(self):
@@ -284,7 +296,7 @@ class EditAccount(QWidget):
         data['edit_attrs']['given_name'] = self.given_name.text()
         data['edit_attrs']['surname'] = self.surname.text()
         data['edit_attrs']['win'] = self.win_box.text()
-        data['edit_attrs']['affiliation'] = self.affiliation.text()
+        data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = self.role.currentText().lower()
         data['edit_attrs']['permissions'] = []
@@ -315,6 +327,106 @@ class EditAccount(QWidget):
     def update_note(self):
         self.save_update.emit()
 
+class SecondCreation(QWidget):
+    save_update = pyqtSignal()
+    def __init__(self, client, win):
+        super().__init__()
+        self.client = client
+        self.win = str(win)
+
+        self.setWindowTitle("Take picture and create notes")
+
+        #Might want to find some way to ensure this is always large enough to fit webcam? at the moment assumes resolution of
+        #640, 480 specified in cam.py rescaling.
+        self.setMinimumSize(QSize(670, 600))
+
+        main_layout = QVBoxLayout()
+        bottom_row = QHBoxLayout()
+        buttons_block = QVBoxLayout()
+
+        self.setObjectName("Main")
+        self.setLayout(main_layout)
+
+        #The label which will contain the video feed. Initializes to loading text that is replaced when cam connection made.
+        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
+        #Init save confirmation space instead of hidden, makes it so picture doesn't move up and down.
+        self.save_message = QLabel(" ")
+
+        self.photo_button = QPushButton("Take Photo")
+        self.save_button = QPushButton("Save Photo")
+        self.retake_button = QPushButton("Retake")
+        self.notes_button = QPushButton("Notes")
+        self.exit_button = QPushButton("Exit")
+
+        self.retake_button.hide()
+        self.save_button.hide()
+
+        bottom_row.addWidget(self.save_message)
+        bottom_row.addLayout(buttons_block)
+
+        main_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
+        main_layout.addLayout(bottom_row)
+
+        buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.save_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.notes_button, alignment = Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.exit_button, alignment = Qt.AlignmentFlag.AlignRight)
+
+        self.photo_button.clicked.connect(self.take_picture)
+        self.retake_button.clicked.connect(self.retake_picture)
+        self.save_button.clicked.connect(self.save_photo)
+        self.notes_button.clicked.connect(self.spawn_notes)
+        self.exit_button.clicked.connect(self.close)
+
+        #Start the camera thread
+        self.cam_worker = cam.CamWorker(self.win)
+
+        #Connect the signal being emitted from the cam worker thread to the image_update function of this window
+        #Allows for the video feed of cam to be displayed in GUI
+        self.cam_worker.image_update.connect(self.image_update_slot)
+
+        #Start camera thread (this makes the thread's run function execute)
+        self.cam_worker.start()
+
+    def spawn_notes(self):
+        self.w = Notes(self.client, self.win)
+        self.w.show()
+        self.w.save_update.connect(self.note_update)
+
+    def note_update(self):
+        self.save_update.emit()
+
+    def image_update_slot(self, image):
+        #Update the videofeed with the latest provided frame
+        self.feed_label.setPixmap(QPixmap.fromImage(image))
+
+    def take_picture(self):
+        self.cam_worker.take_picture()
+        #Hides photo button and asks if user wants to retake
+        self.photo_button.hide()
+        self.save_button.show()
+        self.retake_button.show()
+    
+    def save_photo(self):
+        self.save_message.setText("Photo saved!")
+        self.cam_worker.save_photo()
+        self.save_button.hide()
+        self.retake_button.hide()
+        self.photo_button.show()
+
+        self.save_update.emit()
+
+    def retake_picture(self):
+        self.cam_worker.retake_picture()
+        self.retake_button.hide()
+        self.save_button.hide()
+        self.photo_button.show()
+        self.save_message.setText(" ")
+
+    def closeEvent(self, event):
+        self.cam_worker.stop()
+
 class AddAccount(QWidget):
     save_update = pyqtSignal()
     def __init__(self, client):
@@ -332,32 +444,27 @@ class AddAccount(QWidget):
         self.display_name = QLineEdit()
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
+        self.affiliation = QComboBox()
+        self.rso = QLineEdit()
+        self.exit_button = QPushButton("Exit")
 
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
 
-        self.drill_press = QCheckBox("Drill Press")
-        self.cnc_machine = QCheckBox("CNC Machine")
-        self.laser_cutter = QCheckBox("Laser Cutter")
-        self.soldering_station = QCheckBox("Soldering Station")
-        self.welding_station = QCheckBox("Welding Station")
+        perm_list = get_permissions_from_db(self.client)
+        button_list = []
+        for item in perm_list:
+            button_list.append(QCheckBox(item))
 
-        self.perm_layout.addWidget(self.drill_press)
-        self.perm_layout.addWidget(self.cnc_machine)
-        self.perm_layout.addWidget(self.laser_cutter)
-        self.perm_layout.addWidget(self.soldering_station)
-        self.perm_layout.addWidget(self.welding_station)
+        for item in button_list:
+            self.perm_layout.addWidget(item)
 
         self.permissions.setLayout(self.perm_layout)
 
-        self.affiliation = QLineEdit()
-        self.rso = QLineEdit()
+        create_button = QPushButton("Create Account")
 
-        photo_button = QPushButton("Take Photo")
-        save_button = QPushButton("Save")
-
-        photo_button.clicked.connect(self.show_photo)
-        save_button.clicked.connect(self.save_edit)
+        create_button.clicked.connect(self.create_acc)
+        self.exit_button.clicked.connect(self.close)
 
         layout.addRow("WIN:", self.win_box)
         layout.addRow("Role:", self.role)
@@ -368,8 +475,8 @@ class AddAccount(QWidget):
         layout.addRow("Affiliation:", self.affiliation)
         layout.addRow("RSO:", self.rso)
 
-        layout.addWidget(photo_button)
-        layout.addWidget(save_button)
+        layout.addWidget(create_button)
+        layout.addWidget(self.exit_button)
 
         self.setObjectName("Main")
         self.setLayout(layout)
@@ -395,26 +502,45 @@ class AddAccount(QWidget):
         self.surname.setPlaceholderText("Surname...")
         self.surname.setValidator(name_validator)
 
-        self.affiliation.setPlaceholderText("Affiliation...")
-        self.affiliation.setValidator(name_validator)
+        self.affiliation.addItem("Undergrad")
+        self.affiliation.addItem("Graduate")
+        self.affiliation.addItem("Researcher")
+        self.affiliation.addItem("Staff")
+        self.affiliation.addItem("Faculty")
+        self.affiliation.addItem("Other")
  
         self.rso.setPlaceholderText("Registered Student Org...")
         self.rso.setValidator(name_validator)
 
     # TODO add proper error handling
     # TODO ADD CHECK FOR IF WIN IS ALREADY TAKEN
-    def save_edit(self):
+    def create_acc(self):
         if self.win_box.text() == "":
-            print("err invalid win")
+            err_msg = QMessageBox(self)
+            err_msg.setText('enter a valid win')
+            err_msg.exec()
             return
+
+        if check_if_win_exists(self.client, self.win_box.text()):
+            err_msg = QMessageBox(self)
+            err_msg.setText('an account with this win already exists')
+            err_msg.exec()
+            return
+
         if self.display_name.text() == "":
-            print("err must enter display name")
+            err_msg = QMessageBox(self)
+            err_msg.setText('a display name is required')
+            err_msg.exec()
             return
         if self.given_name.text() == "":
-            print("err must enter given_name")
+            err_msg = QMessageBox(self)
+            err_msg.setText('a given name is required')
+            err_msg.exec()
             return
         if self.surname.text() == "":
-            print("err must enter surname")
+            err_msg = QMessageBox(self)
+            err_msg.setText('a surname is required')
+            err_msg.exec()
             return
         data = {}
         data['win'] = self.win_box.text()
@@ -424,11 +550,10 @@ class AddAccount(QWidget):
         data['edit_attrs']['given_name'] = self.given_name.text()
         data['edit_attrs']['surname'] = self.surname.text()
         data['edit_attrs']['win'] = self.win_box.text()
-        data['edit_attrs']['affiliation'] = self.affiliation.text()
+        data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = self.role.currentText().lower()
         data['edit_attrs']['permissions'] = []
-
 
         for item in self.permissions.findChildren(QCheckBox):
             if item.isChecked():
@@ -436,14 +561,18 @@ class AddAccount(QWidget):
 
         new_account(self.client, data)
 
+        self.second_creation_screen()
+
         self.save_update.emit()
 
-    def show_photo(self):
-        if self.win_box.text() == "":
-            print("err invalid win")
-            return
-        self.w = Picture(self.client, self.win_box.text())
+    def second_creation_screen(self):
+        self.w = SecondCreation(self.client, self.win_box.text())
         self.w.show()
+        self.w.save_update.connect(self.update)
+        self.close()
+
+    def update(self):
+        self.save_update.emit()
 
 class MainWindow(QMainWindow):
     def __init__(self, client_connection):
@@ -514,7 +643,9 @@ class MainWindow(QMainWindow):
         selected_row = self.account_table.currentRow()
 
         if selected_row == -1:
-            print('no account selected, click to select the account you want to edit')
+            err_msg = QMessageBox(self)
+            err_msg.setText('click to select the account you want to edit')
+            err_msg.exec()
             return
 
         self.w = EditAccount(self.accounts[selected_row].win, self.client_connection)
@@ -666,8 +797,29 @@ def edit_note(client, edit_data):
 
     res = client.call_server(event)
 
+def check_if_win_exists(client, account_win):
+    event_data = {}
+    event_data['win'] = account_win
+    event = Event(EventTypes.CHECK_IF_WIN_EXISTS, event_data)
+
+    res = client.call_server(event)
+
+    if res["win"]:
+        return True
+    else:
+        return False
+
 def get_account_data(client, account_win):
     event = Event(event_type=EventTypes.GET_DATA_FOR_USER, data = {'win': account_win})
+
+    res = client.call_server(event)
+    if res is None:
+        return None
+
+    return res
+
+def get_permissions_from_db(client):
+    event = Event(event_type=EventTypes.GET_ALL_PERMS, data = {'win': ''})
 
     res = client.call_server(event)
     if res is None:
@@ -683,7 +835,6 @@ def get_account_permissions(client, account_win):
         return None
 
     return res
-
 
 def get_account_note(client, account_win):
     note = ""
