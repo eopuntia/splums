@@ -1,6 +1,6 @@
 from events import Event
 from sqlalchemy import select
-from models.models import Account, Role
+from models.models import Account, Role, Account_Equipment, Equipment
 
 from events import Event, EventTypes
 
@@ -14,21 +14,25 @@ ARCHIVE_USERS_AFTER_MONTHS = 10
 # TODO add proper error handling
 def create(event, session):
     with session.begin() as s:
-        required_keys = ["given_name", "display_name", "surname", "role", "win"]
+        required_keys = ["win", "edit_attrs"]
+        print(f'EVENTDATA: {event.data}')
         for key in required_keys:
             if key not in event.data:
                 raise KeyError(f"Missing required key: {key}")
                 
-        account_role = s.scalar(select(Role).where(Role.name == event.data["role"]))
+        account_role = s.scalar(select(Role).where(Role.name == event.data["edit_attrs"]["role"]))
         if account_role is None:
             raise KeyError(f"Invalid role: {event.data['role']}")
 
+
         account = Account(win = event.data["win"], 
                           role=account_role, 
-                          given_name = event.data["given_name"], 
-                          surname = event.data["surname"], 
-                          display_name = event.data["display_name"], 
-                          photo_url = event.data.get("photo_url", "/no/img"))
+                          given_name = event.data["edit_attrs"]["given_name"], 
+                          surname = event.data["edit_attrs"]["surname"], 
+                          display_name = event.data["edit_attrs"]["display_name"], 
+                          affiliation = event.data["edit_attrs"]["affiliation"],
+                          rso = event.data["edit_attrs"]["rso"],
+                          photo_url = event.data.get("photo_url", "./images/" + event.data["win"] + ".jpg"))
 
         s.add(account)
         s.commit()
@@ -45,12 +49,37 @@ def edit(event, session):
         account = s.scalar(select(Account).where(Account.win == event.data["win"]))
         if account is None:
             raise KeyError(f"Invalid win: {event.data['win']}")
+
         for update in event.data["edit_attrs"]:
             if update == "role":
                 new_role = s.scalar(select(Role).where(Role.name == event.data["edit_attrs"][update]))
                 if new_role is None:
                     raise KeyError(f"Invalid role: {event.data['edit_attrs'][update]}")
                 account.role = new_role
+            if update == "no_permissions":
+                for equip in event.data["edit_attrs"]["no_permissions"]:
+                    print(f"GOING TO DELETE {equip}")
+                    e_del = s.scalar(select(Equipment.equipment_id).where(Equipment.name == equip))
+                    if e_del:
+                        del_equip = s.scalars(
+                            select(Account_Equipment)
+                            .where(Account_Equipment.account == account)
+                            .where(Account_Equipment.equipment_id == e_del)
+                        )
+                        for val in del_equip:
+                            s.delete(val)
+                        
+            if update == "permissions":
+                for equip in event.data["edit_attrs"]["permissions"]:
+                    add_e = s.scalar(select(Equipment).where(Equipment.name == equip))
+                    existing_rel = s.scalar(select(Account_Equipment).where(
+                        Account_Equipment.account == account,
+                        Account_Equipment.equipment == add_e
+                    ))
+                    if not existing_rel:
+                        acc_equip = Account_Equipment(account=account, equipment=add_e, completed_training=True)
+                        account.equipments.append(acc_equip)
+
 
             if update == "surname":
                 account.surname = event.data["edit_attrs"][update]
@@ -60,6 +89,10 @@ def edit(event, session):
                 account.display_name = event.data["edit_attrs"][update]
             if update == "photo_url":
                 account.photo_url = event.data["edit_attrs"][update]
+            if update == "affiliation":
+                account.affiliation = event.data["edit_attrs"][update]
+            if update == "rso":
+                account.rso = event.data["edit_attrs"][update]
 
         s.commit()
         return 1
@@ -80,10 +113,6 @@ def delete(event, session):
         s.commit()
         return 1
     
-#*******************************************************************************************
-# ARCHIVE USER
-#*******************************************************************************************
-# takes win
 def archive_user(event: Event, session):
     try:
         with session() as s:
@@ -105,9 +134,6 @@ def archive_user(event: Event, session):
         s.rollback()
         return -1
 
-#*******************************************************************************************
-# AUTO DELETE USERS AFTER 10 YEARS
-#*******************************************************************************************
 def auto_delete_user(session):
     with session() as s:
         print("Deleting users...")
@@ -115,9 +141,6 @@ def auto_delete_user(session):
         for user in archived_users:
             delete(Event(event_type=EventTypes.DELETE_USER, data={'win': user.win}), session)
 
-#*******************************************************************************************
-# AUTO ARCHIVE USERS AFTER 10 MONTHS
-#*******************************************************************************************
 def auto_archive_user(session):
     with session() as s:
         print("Archiving users...")
@@ -125,10 +148,6 @@ def auto_archive_user(session):
         for user in users_to_archive:
             archive_user(Event(event_type=EventTypes.ARCHIVE_USER, data={'win': user.win}))
 
-#*******************************************************************************************
-# PROMOTE/DEMOTE A USER
-#*******************************************************************************************
-# Takes win and role.name
 def change_user_type(event: Event, session): # Promote or demote a user as an administrator
     try:
         with session() as s:
@@ -154,15 +173,6 @@ def change_user_type(event: Event, session): # Promote or demote a user as an ad
     except Exception as e:
         print(f"\033[91mUnexpected error:\033[0m {e}")
 
-
-"""
-EVENT BROKER USER DATABASE QUERIES
-"""
-
-#*******************************************************************************************
-# FORMAT REQUESTED USER TO SEND TO SERVER
-#*******************************************************************************************
-# Takes queried users
 def format_users(unformatted_user):
     user_dicts = []
     for user in unformatted_user:
@@ -181,10 +191,6 @@ def format_users(unformatted_user):
         user_dicts.append(user_dict)
     return user_dicts
 
-#*******************************************************************************************
-# GET USERS BY REQUESTED ROLE
-#*******************************************************************************************
-# Takes GET_USERS_BY_ROLE event
 def get_users_by_role(event: Event, session):
     try:
         with session() as s:
@@ -206,10 +212,53 @@ def get_users_by_role(event: Event, session):
         print(f"Error getting users by role: {e}")
         return -1
 
-#*******************************************************************************************
-# GET SWIPED IN USERS
-#*******************************************************************************************
-# Called by GET_SWIPED_IN_USERS event
+def get_perms_for_user(event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+                
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        if account is None:
+            raise KeyError(f"Invalid win: {event.data['win']}")
+
+        perms = s.scalars(select(Account_Equipment).where(
+            Account_Equipment.account == account
+        )).all()
+        perm_data = []
+        for perm in perms:
+            perm_data.append(perm.equipment.name)
+
+        print(f"PERM DATA{perm_data}")
+        return perm_data.copy()
+
+# TODO add proper error handling
+def get_data_for_user(event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+                
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        if account is None:
+            raise KeyError(f"Invalid win: {event.data['win']}")
+
+        # since this is matched on key we need to keep track of it
+        role = account.role.name
+
+        acc_data = account.__dict__
+        acc_data.pop('_sa_instance_state')
+        # remove the id
+        acc_data.pop('role_id')
+        # add the actual role
+        acc_data['role'] = role
+
+        print(f"in get_data_for_user {acc_data}")
+
+        return acc_data.copy()
+
 def get_swiped_in_users(session):
     try:
         with session() as s:

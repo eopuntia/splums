@@ -53,6 +53,7 @@ def call_event_broker():
                 
                 # Process event and generate a response
                 response_data = event_broker.process_event(event)
+                print(f"{event.data}, {response_data}")
 
                 # Try to send response to client
                 try:

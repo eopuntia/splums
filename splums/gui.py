@@ -1,233 +1,122 @@
+import socket
+import pickle
+
+from client import *
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber
-from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox
+from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
-from main import session
-from models.models import users
-from events import Event
-from events import EventTypes
 from sqlalchemy.exc import SQLAlchemyError
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
-
-from main import get_session
 
 import cam
 import event_broker
 
+# added this class, something to hold the state after you query the database.
+class Account():
+    def __init__(self, build_info):
+        self.win = build_info['win']
+        self.display_name = build_info['display_name']
+        self.given_name = build_info['given_name']
+        self.surname = build_info['surname']
+        self.photo_url = build_info['photo_url']
+        self.role = build_info['role']
+        self.created_at = build_info['created_at']
+        self.last_updated_at = build_info['last_updated_at']
+        self.swiped_in = build_info['swiped_in']
+        self.last_access = build_info['last_access']
+
+        # lazy loading
+        # load when gui needs
+        self.note = ""
+
 class Notes(QWidget):
-    def __init__(self):
+    save_update = pyqtSignal()
+    def __init__(self, client, win):
         super().__init__()
-        layout = QGridLayout(self)
+        self.client = client
+        self.win = win
+        main_layout = QGridLayout(self)
         self.setWindowTitle("Notes")
         self.setObjectName("Main")
-        self.setLayout(layout)
+        self.setLayout(main_layout)
+
         # Style Sheet for default styling options on widgets
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
-        self.list_widget = QListWidget(self)
-        self.list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        add_button = QPushButton('Add Note')
-        add_button.clicked.connect(self.add_note)
-        edit_button = QPushButton('Edit Note')
-        edit_button.clicked.connect(self.edit_note)
-        remove_button = QPushButton('Remove Note')
-        remove_button.clicked.connect(self.remove_note)
+        
+        self.text_box = QPlainTextEdit()
+        self.text_box.setPlainText(get_account_note(self.client, self.win))
+
         save_button = QPushButton('Save')
-        save_button.clicked.connect(self.save_to_db)
 
-        self.list_widget.setStyleSheet("""
-    QListWidget::item {
-        padding: 5px;
-        border-bottom: 1px solid #000;
-        margin-bottom: 2px;
-    }
-    QListWidget::item:selected {
-        background-color: #0078d4;
-        color: white;
-    }
-""")
-        
-        layout.addWidget(self.list_widget)
-        layout.addWidget(add_button)
-        layout.addWidget(edit_button)
-        layout.addWidget(remove_button)
-        layout.addWidget(save_button)
+        main_layout.addWidget(self.text_box)
+        main_layout.addWidget(save_button)
 
-    def add_note(self):
-        text, ok = QInputDialog.getText(self, 'Add a New Note', 'New Note:')
-        if ok and text:
-            self.list_widget.addItem(text)
+        save_button.clicked.connect(self.save_note)
 
-    def edit_note(self):
-        current_row = self.list_widget.currentRow()
-        if current_row >= 0:
-            current_item = self.list_widget.currentItem()
-            text, ok = QInputDialog.getText(self, 'Edit Note', 'Edit Note:', text=current_item.text())
-            if ok and text:
-                current_item.setText(text)
-    
-    def remove_note(self):
-        current_row = self.list_widget.currentRow()
-        if current_row >= 0:
-            current_item = self.list_widget.takeItem(current_row)
-            del current_item
-    
-    def save_to_db(self):
-        print("Save to db?")
+    def save_note(self):
+        data = {}
+        data['win'] = self.win
+        data['edit_attrs'] = {}
+        data['edit_attrs']['text'] = self.text_box.toPlainText()
 
-class EditAccount(QWidget):
-    def __init__(self, account_table):
-        super().__init__()
-        self.account_table = account_table
-        layout = QFormLayout()
-        self.setWindowTitle("Edit Account")
+        edit_note(self.client, data)
 
-        current_account_row = self.account_table.currentRow()
-
-        if current_account_row > 0:
-            account_id = self.account_table.item(current_account_row, 4)
-            print(account_id.text())
-        
-        
-        #Make a Select statement (with SQLAlchemy and event broker?) to find in the database where the student_id is equal to the account_id of the current account
-        #Add the relevant fields from the database to the fields below with setText() instead of setPlaceholderText()
-            
-       
-
- 
-        # Style Sheet for default styling options on widgets
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
- 
-        # Create WIN input box
-        self.win_box = QLineEdit()
-        self.win_box.setPlaceholderText("WIN...")
-        self.win_box.setInputMask('999999999')
-
-        self.role = QComboBox()
-        name_regex = QRegularExpression("[A-Za-z]+")
-        name_validator = QRegularExpressionValidator(name_regex)
- 
-        # Create display name box
-        self.display_name = QLineEdit()
-        self.display_name.setPlaceholderText("Display Name...")
-        self.display_name.setValidator(name_validator)
-
- 
-        # Create given name box
-        self.given_name = QLineEdit()
-        self.given_name.setPlaceholderText("Given Name...")
-        self.given_name.setValidator(name_validator)
-        # self.given_name.textChanged.connect(self.update_win)
- 
-        # Create surname box
-        self.surname = QLineEdit()
-        self.surname.setPlaceholderText("Last Name...")
-        
-        self.surname.setValidator(name_validator)
-        # self.surname.textChanged.connect(self.update_win)
-
-        self.permissions = QComboBox()
-
-          # Create affiliation box
-        self.affiliation = QLineEdit()
-        self.affiliation.setPlaceholderText("Affiliation...")
-        self.affiliation. setValidator(name_validator)
- 
-           # Create rso box
-        self.rso = QLineEdit()
-        self.rso.setPlaceholderText("Registered Student Org...")
-        self.rso. setValidator(name_validator)
- 
-       
-        # Add fields to the form layout
-        layout.addRow("WIN:", self.win_box)
-        layout.addRow("Role:", self.role)
-        layout.addRow("Display Name:", self.display_name)
-        layout.addRow("Given Name:", self.given_name)
-        layout.addRow("Last Name:", self.surname)
-        layout.addRow("Permissions:", self.permissions)
-        layout.addRow("Affiliation:", self.affiliation)
-        layout.addRow("RSO:", self.rso)
- 
-        # Create button that opens camera using cam.py
-        photo_button = QPushButton("Take Photo")
-        photo_button.clicked.connect(self.show_photo)
-
- 
-        #Notes button
-        notes_button = QPushButton("Notes")
-        notes_button.clicked.connect(self.show_notes)
-
-        layout.addWidget(photo_button)
-        layout.addWidget(notes_button)
- 
-        # Set layout for the widget
-        self.setObjectName("Main")
-        self.setLayout(layout)
- 
-    # def get_photo(self):
-    #     # Call cam.py to open the camera and take a picture
-    #     self.photo_url = cam.take_picture(self.win_box.text())
-    #     print(self.win_box.text())
-    #     #self.show_photo()
- 
-    def show_notes(self):
-        self.w = Notes()
-        self.w.show()
-
-    def show_photo(self):
-        self.w = Picture()
-        self.w.show()
+        self.save_update.emit()
 
 class Picture(QWidget):
-    def __init__(self):
+    photo_update = pyqtSignal()
+    def __init__(self, client, win):
         super().__init__()
-        #Overall layout, picture will be on left, buttons on right
-        overall_layout = QVBoxLayout()
+        self.client = client
+        self.win = str(win)
 
-        #The label which will contain the video feed. Initializes to loading text that is replaced when cam connection made.
-        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
-
-        #Bottom layout
-        bottom_layout = QHBoxLayout()
-
-        #Init save confirmation space instead of hidden, makes it so picture doesn't move up and down.
-        self.save_message = QLabel(" ")
-
-
-        #layout to contain buttons
-        buttons_layout = QVBoxLayout()
-        self.setWindowTitle("Take PictureT")
+        self.setWindowTitle("Take Picture")
 
         #Might want to find some way to ensure this is always large enough to fit webcam? at the moment assumes resolution of
         #640, 480 specified in cam.py rescaling.
         self.setMinimumSize(QSize(670, 600))
-        self.photo_button = QPushButton("Take Picture")
-        self.photo_button.clicked.connect(self.take_picture)
 
+        main_layout = QVBoxLayout()
+        bottom_row = QHBoxLayout()
+        buttons_block = QVBoxLayout()
+
+        self.setObjectName("Main")
+        self.setLayout(main_layout)
+
+        #The label which will contain the video feed. Initializes to loading text that is replaced when cam connection made.
+        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
+        #Init save confirmation space instead of hidden, makes it so picture doesn't move up and down.
+        self.save_message = QLabel(" ")
+
+        self.photo_button = QPushButton("Take Photo")
+        self.save_button = QPushButton("Save Photo")
         self.retake_button = QPushButton("Retake")
-        self.retake_button.clicked.connect(self.retake_picture)
-        #Retake button hidden by default
-        self.retake_button.hide()
-
         self.exit_button = QPushButton("Exit")
+
+        self.retake_button.hide()
+        self.save_button.hide()
+
+        bottom_row.addWidget(self.save_message)
+        bottom_row.addLayout(buttons_block)
+
+        main_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
+        main_layout.addLayout(bottom_row)
+
+        buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.save_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.exit_button, alignment = Qt.AlignmentFlag.AlignRight)
+
+        self.photo_button.clicked.connect(self.take_picture)
+        self.retake_button.clicked.connect(self.retake_picture)
+        self.save_button.clicked.connect(self.save_photo)
         self.exit_button.clicked.connect(self.close)
 
-        # buttons_layout.addStretch(1)
-        #Add everything to their respective layouts
-        overall_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
-        buttons_layout.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_layout.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_layout.addWidget(self.exit_button, alignment = Qt.AlignmentFlag.AlignRight)\
-        
-        bottom_layout.addWidget(self.save_message)
-        bottom_layout.addLayout(buttons_layout)
-        overall_layout.addLayout(bottom_layout)
-
         #Start the camera thread
-        #TODO: REPLACE temp_name_replace_me with the account being modified
-        self.cam_worker = cam.CamWorker("temp_name_replace me")
+        self.cam_worker = cam.CamWorker(self.win)
 
         #Connect the signal being emitted from the cam worker thread to the image_update function of this window
         #Allows for the video feed of cam to be displayed in GUI
@@ -235,483 +124,521 @@ class Picture(QWidget):
 
         #Start camera thread (this makes the thread's run function execute)
         self.cam_worker.start()
-        self.setObjectName("Main")
-        self.setLayout(overall_layout)
 
     def image_update_slot(self, image):
         #Update the videofeed with the latest provided frame
         self.feed_label.setPixmap(QPixmap.fromImage(image))
 
     def take_picture(self):
-        #Calls the cam take picture function
         self.cam_worker.take_picture()
         #Hides photo button and asks if user wants to retake
         self.photo_button.hide()
+        self.save_button.show()
         self.retake_button.show()
-        self.save_message.setText("Photo saved!")
     
+    def save_photo(self):
+        self.save_message.setText("Photo saved!")
+        self.cam_worker.save_photo()
+        self.save_button.hide()
+        self.retake_button.hide()
+        self.photo_button.show()
+
+        self.photo_update.emit()
+
     def retake_picture(self):
         self.cam_worker.retake_picture()
         self.retake_button.hide()
+        self.save_button.hide()
         self.photo_button.show()
         self.save_message.setText(" ")
 
-         
     def closeEvent(self, event):
         self.cam_worker.stop()
-        
-#For the AddUser button
-class AddUser(QDialog):
-    def __init__(self):
+
+class EditAccount(QWidget):
+    photo_update = pyqtSignal()
+    save_update = pyqtSignal()
+    def __init__(self, win, client):
         super().__init__()
-        layout = QFormLayout()
-        self.setWindowTitle("Add User")
+        self.client = client
+        self.win = win
 
-        self.email = QLineEdit()
-        self.password = QLineEdit()
-        self.password.setEchoMode(QLineEdit.EchoMode.Password)
- 
-        # Add User button
-        add_button = QPushButton("Add User")
-        layout.addRow("Password:", self.password)
-        layout.addWidget(add_button)
-        add_button.clicked.connect(self.accept)
-     
- 
-        # Set layout for the widget
-        self.setObjectName("Main")
-        self.setLayout(layout)
+        print(f"editing the account of win: {win}")
 
-    def get_email_and_pwd(self):
-            return self.email.text(), self.password.text()
+        self.setWindowTitle("Edit Account")
 
-
-class AddAccount(QSqlDatabase, QWidget):
-    def __init__(self):
-        super().__init__()
-        layout = QFormLayout()
-        self.setWindowTitle("Add Account")
- 
-        # Style Sheet for default styling options on widgets
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
- 
-        # Create WIN input box
+
+        layout = QFormLayout()
+
         self.win_box = QLineEdit()
-        self.win_box.setPlaceholderText("WIN...")
-        self.win_box.setInputMask('999999999')
-        # self.win_box.textChanged.connect(self.update_win)
-
-        name_regex = QRegularExpression("[A-Za-z]+")
-        name_validator = QRegularExpressionValidator(name_regex)
- 
-        # Create display name box
+        self.role = QComboBox()
         self.display_name = QLineEdit()
-        self.display_name.setPlaceholderText("Display Name...")
-        self.display_name.setValidator(name_validator)
-        # self.display_name.textChanged.connect(self.update_win)
- 
-        # Create given name box
         self.given_name = QLineEdit()
-        self.given_name.setPlaceholderText("Given Name...")
-        self.given_name.setValidator(name_validator)
-        # self.given_name.textChanged.connect(self.update_win)
- 
-        # Create surname box
         self.surname = QLineEdit()
-        self.surname.setPlaceholderText("Surname...")
-        
-        self.surname.setValidator(name_validator)
-        # self.surname.textChanged.connect(self.update_win)
- 
-        # Fetch roles from the database
-        roles = []
-        select_roles = QSqlQuery(QSqlDatabase.database())
-        select_roles.exec("SELECT user_type FROM user_types")
- 
-        while select_roles.next():
-            role = select_roles.value(0)
-            roles.append(role)
-            print(role)
- 
-        # Role selection combobox
-        self.r_combobox = QComboBox()
-        for role in roles:
-            self.r_combobox.addItem(role)
 
-          # Create affiliation box
+        self.permissions = QGroupBox()
+        self.perm_layout = QVBoxLayout()
+
+        self.drill_press = QCheckBox("Drill Press")
+        self.cnc_machine = QCheckBox("CNC Machine")
+        self.laser_cutter = QCheckBox("Laser Cutter")
+        self.soldering_station = QCheckBox("Soldering Station")
+        self.welding_station = QCheckBox("Welding Station")
+
+        self.perm_layout.addWidget(self.drill_press)
+        self.perm_layout.addWidget(self.cnc_machine)
+        self.perm_layout.addWidget(self.laser_cutter)
+        self.perm_layout.addWidget(self.soldering_station)
+        self.perm_layout.addWidget(self.welding_station)
+
+        self.permissions.setLayout(self.perm_layout)
+
         self.affiliation = QLineEdit()
-        self.affiliation.setPlaceholderText("Affiliation...")
-        self.affiliation. setValidator(name_validator)
- 
-           # Create rso box
         self.rso = QLineEdit()
-        self.rso.setPlaceholderText("Registered Student Org...")
-        self.rso. setValidator(name_validator)
 
-        # Add fields to the form layout
+        notes_button = QPushButton("Notes")
+        photo_button = QPushButton("Take Photo")
+        save_button = QPushButton("Save")
+
+        photo_button.clicked.connect(self.show_photo)
+        notes_button.clicked.connect(self.show_notes)
+        save_button.clicked.connect(self.save_edit)
+
         layout.addRow("WIN:", self.win_box)
-        layout.addRow("Role:", self.r_combobox)
+        layout.addRow("Role:", self.role)
         layout.addRow("Display Name:", self.display_name)
         layout.addRow("Given Name:", self.given_name)
         layout.addRow("Surname:", self.surname)
+        layout.addRow("Permissions:", self.permissions)
         layout.addRow("Affiliation:", self.affiliation)
         layout.addRow("RSO:", self.rso)
- 
-        # Create button that opens camera using cam.py
-        photo_button = QPushButton("Take Photo")
-        photo_button.clicked.connect(self.show_photo)
- 
-        # Add account button
-        add_button = QPushButton("Add Account")
-        add_button.clicked.connect(self.add_act)
- 
+
         layout.addWidget(photo_button)
-        layout.addWidget(add_button)
-        # Set layout for the widget
+        layout.addWidget(notes_button)
+        layout.addWidget(save_button)
+
         self.setObjectName("Main")
         self.setLayout(layout)
+
+        win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
+        name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+
+        self.win_box.setPlaceholderText("WIN...")
+        self.win_box.setValidator(win_validator)
+            
+        # TODO IMPLEMENT ROLE FUNCTIONALITY
+        # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
+        self.role.addItem("User")
+        self.role.addItem("Administrator")
+        self.role.addItem("Attendant")
  
-    # def get_photo(self):
-    #     # Call cam.py to open the camera and take a picture
-    #     self.photo_url = cam.take_picture(self.win_box.text())
-    #     print(self.win_box.text())
-    #     #self.show_photo()
+        self.display_name.setPlaceholderText("Display Name...")
+        self.display_name.setValidator(name_validator)
  
-    def show_photo(self):
-        self.w = Picture()
+        self.given_name.setPlaceholderText("Given Name...")
+        self.given_name.setValidator(name_validator)
+ 
+        self.surname.setPlaceholderText("Surname...")
+        self.surname.setValidator(name_validator)
+
+        self.affiliation.setPlaceholderText("Affiliation...")
+        self.affiliation.setValidator(name_validator)
+ 
+        self.rso.setPlaceholderText("Registered Student Org...")
+        self.rso.setValidator(name_validator)
+
+        self.initial_load()
+            
+    def initial_load(self):
+        acc_data = get_account_data(self.client, self.win)
+
+        self.win_box.setText(str(acc_data['win']))
+        self.display_name.setText(acc_data['display_name'])
+        self.given_name.setText(acc_data['given_name'])
+        self.surname.setText(acc_data['surname'])
+        if acc_data['affiliation']is not None:
+            self.affiliation.setText(acc_data['affiliation'])
+
+        if acc_data['rso'] is not None:
+            self.rso.setText(acc_data['rso'])
+
+        permissions = get_account_permissions(self.client, self.win)
+        print(permissions)
+        for item in self.permissions.findChildren(QCheckBox):
+            for perm in permissions:
+                print(f'{item.text()} on {perm}')
+                if item.text().lower().replace(" ", "_") == perm:
+                    print(f'need to check the state of {perm}')
+                    item.setChecked(True)
+
+        self.role.setCurrentText(acc_data['role'].capitalize())
+
+    # TODO add proper error handling
+    def save_edit(self):
+        data = {}
+        data['win'] = self.win
+        data['edit_attrs'] = {}
+        
+        data['edit_attrs']['display_name'] = self.display_name.text()
+        data['edit_attrs']['given_name'] = self.given_name.text()
+        data['edit_attrs']['surname'] = self.surname.text()
+        data['edit_attrs']['win'] = self.win_box.text()
+        data['edit_attrs']['affiliation'] = self.affiliation.text()
+        data['edit_attrs']['rso'] = self.rso.text()
+        data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['permissions'] = []
+        data['edit_attrs']['no_permissions'] = []
+
+        for item in self.permissions.findChildren(QCheckBox):
+            if item.isChecked():
+                data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
+            else:
+                data['edit_attrs']['no_permissions'].append(item.text().lower().replace(" ", "_"))
+
+        edit_account(self.client, data)
+        self.save_update.emit()
+
+    def show_notes(self):
+        self.w = Notes(self.client, self.win)
         self.w.show()
- 
- 
- 
- 
-    def add_act(self):
-        win = self.win_box.text()
-        print(win)
-        role = self.r_combobox.currentText()
-        print(role)
-        display_name = self.display_name.text()
-        print(display_name)
-        given_name = self.given_name.text()
-        print(given_name)
-        surname = self.surname.text()
-        print(surname)
+        self.w.save_update.connect(self.update_note)
 
-       # if role == "admin" or role == "attendant":
-         #    userDialog = AddUser()
-          #   if userDialog.exec() == QDialog.DialogCode.Accepted:
-          #       email, password = userDialog.get_email_and_pwd()
-           #      print(email, password)
+    def show_photo(self):
+        self.w = Picture(self.client, self.win)
+        self.w.show()
+        self.w.photo_update.connect(self.update_photo)
 
-        new_event = Event(
-          EventTypes.CREATE_NEW_USER,
-         {
-             "win": win,
-              "role": role,
-             "display_name": display_name,
-               "given_name": given_name,
-              "surname": surname,
-               "photo_url": self.photo_url
-           }
-       )
+    def update_photo(self):
+        self.photo_update.emit()
+
+    def update_note(self):
+        self.save_update.emit()
+
+class AddAccount(QWidget):
+    save_update = pyqtSignal()
+    def __init__(self, client):
+        super().__init__()
+        self.client = client
+
+        self.setWindowTitle("New Account")
+
+        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+
+        layout = QFormLayout()
+
+        self.win_box = QLineEdit()
+        self.role = QComboBox()
+        self.display_name = QLineEdit()
+        self.given_name = QLineEdit()
+        self.surname = QLineEdit()
+
+        self.permissions = QGroupBox()
+        self.perm_layout = QVBoxLayout()
+
+        self.drill_press = QCheckBox("Drill Press")
+        self.cnc_machine = QCheckBox("CNC Machine")
+        self.laser_cutter = QCheckBox("Laser Cutter")
+        self.soldering_station = QCheckBox("Soldering Station")
+        self.welding_station = QCheckBox("Welding Station")
+
+        self.perm_layout.addWidget(self.drill_press)
+        self.perm_layout.addWidget(self.cnc_machine)
+        self.perm_layout.addWidget(self.laser_cutter)
+        self.perm_layout.addWidget(self.soldering_station)
+        self.perm_layout.addWidget(self.welding_station)
+
+        self.permissions.setLayout(self.perm_layout)
+
+        self.affiliation = QLineEdit()
+        self.rso = QLineEdit()
+
+        photo_button = QPushButton("Take Photo")
+        save_button = QPushButton("Save")
+
+        photo_button.clicked.connect(self.show_photo)
+        save_button.clicked.connect(self.save_edit)
+
+        layout.addRow("WIN:", self.win_box)
+        layout.addRow("Role:", self.role)
+        layout.addRow("Display Name:", self.display_name)
+        layout.addRow("Given Name:", self.given_name)
+        layout.addRow("Surname:", self.surname)
+        layout.addRow("Permissions:", self.permissions)
+        layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("RSO:", self.rso)
+
+        layout.addWidget(photo_button)
+        layout.addWidget(save_button)
+
+        self.setObjectName("Main")
+        self.setLayout(layout)
+
+        win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
+        name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+
+        self.win_box.setPlaceholderText("WIN...")
+        self.win_box.setValidator(win_validator)
+            
+        # TODO IMPLEMENT ROLE FUNCTIONALITY
+        # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
+        self.role.addItem("User")
+        self.role.addItem("Administrator")
+        self.role.addItem("Attendant")
  
-        event_broker.event_broker(new_event)
-        self.close()
+        self.display_name.setPlaceholderText("Display Name...")
+        self.display_name.setValidator(name_validator)
+ 
+        self.given_name.setPlaceholderText("Given Name...")
+        self.given_name.setValidator(name_validator)
+ 
+        self.surname.setPlaceholderText("Surname...")
+        self.surname.setValidator(name_validator)
+
+        self.affiliation.setPlaceholderText("Affiliation...")
+        self.affiliation.setValidator(name_validator)
+ 
+        self.rso.setPlaceholderText("Registered Student Org...")
+        self.rso.setValidator(name_validator)
+
+    # TODO add proper error handling
+    # TODO ADD CHECK FOR IF WIN IS ALREADY TAKEN
+    def save_edit(self):
+        if self.win_box.text() == "":
+            print("err invalid win")
+            return
+        if self.display_name.text() == "":
+            print("err must enter display name")
+            return
+        if self.given_name.text() == "":
+            print("err must enter given_name")
+            return
+        if self.surname.text() == "":
+            print("err must enter surname")
+            return
+        data = {}
+        data['win'] = self.win_box.text()
+        data['edit_attrs'] = {}
+        
+        data['edit_attrs']['display_name'] = self.display_name.text()
+        data['edit_attrs']['given_name'] = self.given_name.text()
+        data['edit_attrs']['surname'] = self.surname.text()
+        data['edit_attrs']['win'] = self.win_box.text()
+        data['edit_attrs']['affiliation'] = self.affiliation.text()
+        data['edit_attrs']['rso'] = self.rso.text()
+        data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['permissions'] = []
 
 
-    
+        for item in self.permissions.findChildren(QCheckBox):
+            if item.isChecked():
+                data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
+
+        new_account(self.client, data)
+
+        self.save_update.emit()
+
+    def show_photo(self):
+        if self.win_box.text() == "":
+            print("err invalid win")
+            return
+        self.w = Picture(self.client, self.win_box.text())
+        self.w.show()
 
 class MainWindow(QMainWindow):
-
-#*******************************************************************************************
-# Button Functions
-#*******************************************************************************************
-    def add_account(self):
-        
-        print("Adding Account")
-        self.db.open()
-        if(self.db.isOpen()):
-           self.w = AddAccount()
-           self.w.show()
-
-
-    def edit_account(self):
-        self.w = EditAccount(self.account_table)
-        self.w.show()
-
-    def sign_out(self):
-        print("Signing out")    
-
-
-    def __init__(self):
+    def __init__(self, client_connection):
         super().__init__()
-            #Table containing all the accounts
-        self.account_table = QTableWidget()
-        #selection = self.account_table.selectionModel()
-        self.headcount_display = QLCDNumber(self)
-        #self.account_table.selectRow(0)
-              # Connect to MariaDB (Docker)
-        print(QSqlDatabase.drivers()) 
-        plugin_path = QLibraryInfo.LibraryPath
-        qt_install_path = QCoreApplication.libraryPaths()
-        #print("Possible Qt Plugin Paths:", qt_install_path)
-
-        #sqldrivers_path = os.path.join(plugin_path, "sqldrivers")
-
-        print("Qt SQL Drivers Path:", plugin_path)
-        self.db = QSqlDatabase.addDatabase("QMARIADB")  
-        driver = self.db.driver()
-     
-        self.db.setHostName("127.0.0.1")
-        self.db.setPort(3307) 
-        self.db.setDatabaseName("splums")
-        self.db.setUserName("splums")
-        self.db.setPassword("example")
-        self.db.open()
-        if(self.db.isOpen()):
-            self.update_accounts()
-        else:
-            print("Failed to connect to MariaDB:", self.db.lastError().text())
-       
-     
+        self.client_connection = client_connection
 
         self.setWindowTitle("Student Projects Lab User Management System")
-
-        #Styling moved to style.qss, keeping this here in case font sizes here ends up being more optimal
-        # self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
-
-        #Main layout, the over-arching vertical layout that The button bar and the displayed users are apart of
-        layout_main = QVBoxLayout()
-
-        #Minimum and maximum gui sizes
         self.setMinimumSize(QSize(1280, 720))
-        # self.setMaximumSize(QSize(300, 300))
 
+        self.main_widget = QWidget()
+        self.main_widget.setObjectName("Main")
 
-        #set margins of the layout (how close to the edges they are)
-        # layout_main.setContentsMargins(1,1,1,1)
+        layout_main = QVBoxLayout()
+        self.main_widget.setLayout(layout_main)
+        self.setCentralWidget(self.main_widget)
 
-        #Set spacing between all of this layouts elements
-        # layout_main.setSpacing(2)
-        
+        # initialize as empty for now
+        self.accounts = []
+
+        button_dim=[100, 80]
+        button_icon_dim=[50, 50]
+
+        # digit width, dimensions, digit value
+        self.headcount_display = self.initialize_lcd(2, [button_dim[0]-30, button_dim[1]-25], 0)
+
+        self.add_button = self.initialize_button("Add Account", "./splums/images/add.svg", self.add_account, button_dim, button_icon_dim)
+        self.edit_button = self.initialize_button("Edit Account", "./splums/images/edit.svg", self.edit_account, button_dim, button_icon_dim)
+        self.signout_button = self.initialize_button("Sign Out", "./splums/images/signout.svg", self.sign_out, button_dim, button_icon_dim)
+
         layout_topsplit = QHBoxLayout()
+        layout_main.addLayout(layout_topsplit)
 
-        #*******************************************************************************************
-        # BUTTON BAR
-        #*******************************************************************************************
-        layout_buttonbar = QHBoxLayout()
-        layout_buttonbar.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        button_bar = QHBoxLayout()
+        button_bar.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        button_bar.addWidget(self.add_button)
+        button_bar.addWidget(self.edit_button)
+        button_bar.addWidget(self.signout_button)
+        layout_topsplit.addLayout(button_bar)
 
-        #Button bar buttons
-
-        #Create and connect buttons to functions
-
-        #Add Account Button
-        self.button_add = QToolButton(self)
-        self.button_add.setText("Add Account")
-        self.button_add.setIcon(QIcon("./splums/images/add.svg"))
-        self.button_add.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-
-        self.button_add.clicked.connect(self.add_account)
-
-
-        #Edit Account Button
-        self.button_edit = QToolButton(self)
-        self.button_edit.setText("Edit Account")
-        self.button_edit.setIcon(QIcon("./splums/images/edit.svg"))
-        self.button_edit.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-
-        self.button_edit.clicked.connect(self.edit_account)
-
-        #Sign Out Button
-        self.button_sign_out = QToolButton(self)
-        self.button_sign_out.setText("Sign Out")
-        self.button_sign_out.setIcon(QIcon("./splums/images/signout.svg"))
-
-        self.button_sign_out.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-        self.button_sign_out.clicked.connect(self.sign_out)
-
-
-        #Set dimensions of buttonbar buttons
-        bdim=[100, 80]
-        bicondim=[50, 50]
-        self.button_add.setFixedSize(QSize(bdim[0], bdim[1]))
-        self.button_edit.setFixedSize(QSize(bdim[0], bdim[1]))
-        self.button_sign_out.setFixedSize(QSize(bdim[0], bdim[1]))
-
-        self.button_add.setIconSize(QSize(bicondim[0], bicondim[1]))
-        self.button_edit.setIconSize(QSize(bicondim[0], bicondim[1]))
-        self.button_sign_out.setIconSize(QSize(bicondim[0], bicondim[1]))
-
-
-
-        #Add the buttons to the button bar
-        layout_buttonbar.addWidget(self.button_add)
-        layout_buttonbar.addWidget(self.button_edit)
-        layout_buttonbar.addWidget(self.button_sign_out)
-
-        #Add the button bar to the main layout
-        layout_topsplit.addLayout(layout_buttonbar)
-
-
-        #*******************************************************************************************
-        # Head Count
-        #*******************************************************************************************
-
-        #Righthand toolbar for headcount 
-        layout_rightbar = QHBoxLayout()
-        layout_rightbar.setAlignment(Qt.AlignmentFlag.AlignRight)
-
-
-        layout_rightbar = QHBoxLayout()
-        layout_rightbar.setAlignment(Qt.AlignmentFlag.AlignRight)
-
-
-        layout_headcount = QVBoxLayout()
-        layout_headcount.setSpacing(0)
+        topright_bar = QHBoxLayout()
+        topright_bar.setAlignment(Qt.AlignmentFlag.AlignRight)
+        headcount_label_and_lcd = QVBoxLayout()
         headcount_header = QLabel(" Headcount")
         headcount_header.setStyleSheet("font-weight: bold;")
         headcount_header.setObjectName("HeadcountHeader")
-        layout_headcount.addWidget(headcount_header)
+        headcount_label_and_lcd.addWidget(headcount_header)
+        headcount_label_and_lcd.addWidget(self.headcount_display)
+        topright_bar.addLayout(headcount_label_and_lcd)
+        layout_topsplit.addLayout(topright_bar)
 
-        self.headcount_display.setDigitCount(2)
-        layout_headcount.addWidget(self.headcount_display)
-        layout_rightbar.addLayout(layout_headcount)
-        layout_topsplit.addLayout(layout_rightbar)
+        self.account_table = self.initialize_account_table()
+        self.account_table.setUpdatesEnabled(True)
 
-
-
-        layout_main.addLayout(layout_topsplit)
-        self.headcount_display.setFixedSize(QSize(bdim[0]-30, bdim[1]-25))
-        self.headcount_display.display(0)
-
-        #*******************************************************************************************
-        # Account Table
-        #*******************************************************************************************
-        
         layout_accounts = QHBoxLayout()
-
-        #Table containing all the accounts
-        self.account_table = QTableWidget()
-
-
-        self.account_table.verticalHeader().setVisible(False)
-
-        #Configuring way table can be interacted
-        self.account_table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self.account_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.account_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.account_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.account_table.setHorizontalScrollMode(QAbstractItemView.ScrollMode(0))
-
-
-
-
-
-        #Setting up columns
-        self.account_table.setColumnCount(5)
-
-        #Automatic handling of resizing window for table
-        self.account_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.account_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.account_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        self.account_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        column_labels = [" ", "Account", "Permissions", "Notes", "Head Count"]
-
-        self.account_table.setHorizontalHeaderLabels(column_labels)
-
-        self.update_accounts()
-        
-
+        layout_main.addLayout(layout_accounts)
 
         layout_accounts.addWidget(self.account_table)
 
+        self.initial_accounts_load()
+        self.render_accounts_to_screen()
+        self.show()
 
-        layout_main.addLayout(layout_accounts)
+    # sends the win of the account that you want to edit to the widget as well as the client
+    # connection. from there it grabs and edits the data how it wants.
+    def edit_account(self):
+        selected_row = self.account_table.currentRow()
 
+        if selected_row == -1:
+            print('no account selected, click to select the account you want to edit')
+            return
 
-        widget = QWidget()
-        widget.setObjectName("Main")
-        widget.setLayout(layout_main)
-        self.setCentralWidget(widget)
-   
+        self.w = EditAccount(self.accounts[selected_row].win, self.client_connection)
+        self.w.show()
 
-    #*******************************************************************************************
-    # Create and Update Accounts Table
-    #*******************************************************************************************
+        # connect signal to pressing the save button 
+        self.w.photo_update.connect(self.update_photos)
+        self.w.save_update.connect(self.update_save)
 
-    def update_accounts(self):
-        accounts = []
+    def update_save(self):
+        self.accounts.clear()
+        self.initial_accounts_load()
+        self.render_accounts_to_screen()
 
-        #select_accounts.exec("SELECT u.display_name, u.photo_url, n.text, e.name, e.icon_url FROM user as u LEFT JOIN note as n on n.account_id = u.account_id JOIN account-equipment as ae ON ae.account_id = u.account_id, JOIN equipment as e ON e.equipment_id = ae.equipment_id") ")
-        #Question: Should we allow users with no machines on their profile to be displayed?
-        # while select_accounts.next():
-            #   account = {
-            #       "Account Name": select_accounts.value(0),
-            #       "Permissions": ["Red"],
-            #       "Notes": select_accounts.value(1),
-            #       "url": "temp.png"
-            #  }
-            #  accounts.append(account)
+    def update_photos(self):
+        row = 0
+        # for each acc loaded into the gui
+        for acc in self.accounts:
+            account_photo = QLabel()
+            account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
 
-            #IMPORTANT: We need a SQLAlchemy query, that gets the name, permissions, etc. from the database when the accounts are logged in.
-            #I assume we're doing this from the Event Broker. We can replace the for loop with a while loop and loop through
-            #the query, populating the important fields and adding them to the dictionary which will be filled below.
-            #It might be a while loop like the one above.
-        
-        for i in range(6):
-            account = {
-                "Account Name": "Clara McGrew",
-                "Permissions": ["Red"],
-                "Notes": ["normal"],
-                "url": "temp.png",
-                "Account ID": "111111111"
-            }
-            accounts.append(account)
-        
-        head_count = len(accounts)
-        self.account_table.setRowCount(head_count)
-        self.headcount_display.display(head_count)
+            self.account_table.setCellWidget(row, 0, account_photo)
+            row += 1
+
+        self.setWindowTitle("new title")
+
+    def add_account(self):
+        self.w = AddAccount(self.client_connection)
+        self.w.show()
+
+        self.w.save_update.connect(self.update_save)
+
+    def sign_out(self):
+        print("Signing out")
+
+    def initialize_button(self, title, icon_path, function, button_dim, button_icon_dim):
+        new_button = QToolButton(self)
+        new_button.setText(title)
+        new_button.setIcon(QIcon(icon_path))
+        new_button.clicked.connect(function)
+        new_button.setFixedSize(QSize(button_dim[0], button_dim[1]))
+        new_button.setIconSize(QSize(button_icon_dim[0], button_icon_dim[1]))
+        new_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        return new_button
+
+    def initialize_lcd(self, digit_count, button_dim, digit):
+        new_lcd = QLCDNumber(self)
+        new_lcd.setDigitCount(digit_count)
+        new_lcd.setFixedSize(QSize(button_dim[0], button_dim[1]))
+        new_lcd.display(digit)
+        return new_lcd
+
+    def initialize_account_table(self):
+        new_account_table = QTableWidget()
+        new_account_table.verticalHeader().setVisible(False)
+
+        new_account_table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        new_account_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        new_account_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        new_account_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        new_account_table.setHorizontalScrollMode(QAbstractItemView.ScrollMode(0))
+
+        new_account_table.setColumnCount(5)
+
+        new_account_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        new_account_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        new_account_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        new_account_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+
+        column_labels = ["Photo", "Account", "Permissions", "Notes", "Head Count"]
+        new_account_table.setHorizontalHeaderLabels(column_labels)
+
+        return new_account_table
+
+    def initial_accounts_load(self):
+        get_account_event = Event(event_type=EventTypes.GET_USERS_BY_ROLE, data = {'role': ''})
+        # for each account ordered by role, add to self.accounts based on each dict of data returned.
+        for c in self.client_connection.call_server(get_account_event):
+            print(c)
+            self.accounts.append(Account(c))
+
+        # load notes for each account
+        for acc in self.accounts:
+            res = get_account_note(self.client_connection, acc.win)
+            print(f"res: {res}")
+            acc.note = res
+
+    def render_accounts_to_screen(self):
+        self.account_table.setRowCount(len(self.accounts))
+        self.headcount_display.display(len(self.accounts))
 
         row = 0
-        for account in accounts:
+        # for each acc loaded into the gui
+        for acc in self.accounts:
             # Account Image
-            account_image = QLabel()
-            account_image.setPixmap(QPixmap("./splums/images/default.png").scaledToHeight(85))
-            self.account_table.setCellWidget(row, 0, account_image)
+            account_photo = QLabel()
+            account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
+
+            self.account_table.setCellWidget(row, 0, None)
+            self.account_table.setCellWidget(row, 0, account_photo)
 
             # Account Name
-            account_name_cell = QTableWidgetItem(account["Account Name"])
+            account_name_cell = QTableWidgetItem(acc.display_name)
             account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.account_table.setItem(row, 1, account_name_cell)
 
-            # Permissions
-            account_permissions_cell = QLabel("")
-            perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in account["Permissions"])
-            account_permissions_cell.setText(perm_string)
-            account_permissions_cell.setStyleSheet("font-size: 18pt;")
-            account_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.account_table.setCellWidget(row, 2, account_permissions_cell)
+#            # permission is based on color of permission in acc_permission
+#            account_permissions_cell = QLabel("")
+#            # TODO ADD THIS LATER
+#            perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in acc.permissions)
+#            account_permissions_cell.setText(perm_string)
+#            account_permissions_cell.setStyleSheet("font-size: 18pt;")
+#            account_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+#            self.account_table.setCellWidget(row, 2, account_permissions_cell)
 
-            # Notes
-            note_layout = QHBoxLayout()
-            for note in account["Notes"]:
-                note_button = QPushButton()
-                note_button.setText({
-                    "normal": "🟩",
-                    "discuss": "💡",
-                    "concern": "❗️",
-                    "banned": "🛑"
-                }.get(note, "Unrecognized note type"))
-                note_button.setFixedSize(QSize(60, 60))
-                note_layout.addWidget(note_button)
-            note_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            # horizontal row of buttons for each note this is the layout for the actual notewidget
+            note_text_cell = QTextEdit(acc.note)
+            note_text_cell.setReadOnly(True)
+            note_text_cell.setStyleSheet("font-size: 12pt;")
+            note_text_cell.setFixedHeight(100)
+            note_text_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            notewidget = QWidget()
-            notewidget.setLayout(note_layout)
-            self.account_table.setCellWidget(row, 3, notewidget)
+            self.account_table.setCellWidget(row, 3, note_text_cell)
 
             # Account ID
-            account_id_hidden = QTableWidgetItem(account["Account ID"])
+            account_id_hidden = QTableWidgetItem(acc.win)
             account_id_hidden.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.account_table.setItem(row, 4, account_id_hidden)
             self.account_table.setColumnHidden(4, True)
@@ -722,14 +649,60 @@ class MainWindow(QMainWindow):
         self.account_table.resizeRowsToContents()
         self.account_table.resizeColumnToContents(0)
 
+def edit_account(client, edit_data):
+    event = Event(EventTypes.EDIT_ACCOUNT, edit_data)
+
+    res = client.call_server(event)
+
+def new_account(client, edit_data):
+    event = Event(EventTypes.CREATE_ACCOUNT, edit_data)
+
+    res = client.call_server(event)
+
+def edit_note(client, edit_data):
+    event = Event(EventTypes.EDIT_NOTE_FOR_USER, edit_data)
+
+    res = client.call_server(event)
+
+def get_account_data(client, account_win):
+    event = Event(event_type=EventTypes.GET_DATA_FOR_USER, data = {'win': account_win})
+
+    res = client.call_server(event)
+    if res is None:
+        return None
+
+    return res
+
+def get_account_permissions(client, account_win):
+    event = Event(event_type=EventTypes.GET_PERMS_FOR_USER, data = {'win': account_win})
+
+    res = client.call_server(event)
+    if res is None:
+        return None
+
+    return res
+
+
+def get_account_note(client, account_win):
+    note = ""
+    event = Event(event_type=EventTypes.GET_NOTE_FOR_USER, data = {'win': account_win})
+
+    res = client.call_server(event)
+    if res is None:
+        return note
+
+    note = res
+
+    return note
 
 if __name__ == '__main__':
+    client_connection = client_connection('127.0.0.1', 7373)
     attendant_gui = QApplication(sys.argv)
-    qssfile="./splums/qss/style.qss"
- 
 
+    qssfile="./splums/qss/style.qss"
     with open(qssfile,"r") as f:
         attendant_gui.setStyleSheet(f.read())
-    window = MainWindow()
-    window.show()
-    sys.exit(attendant_gui.exec())
+
+    window = MainWindow(client_connection)
+
+    attendant_gui.exec()

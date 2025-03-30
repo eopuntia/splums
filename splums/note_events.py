@@ -88,19 +88,43 @@ def format_notes(unformatted_note):
         note_dicts.append(note_dict)
     return note_dicts
 
-#*******************************************************************************************
-# GET NOTES FOR USER
-#*******************************************************************************************
-# Takes GET_NOTES_FOR_USER event
-def get_notes_for_user(event: Event, session):
-    try:
-        with session() as s:
-            win = event.data.get('win', None)
+def edit_note_for_user(event: Event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
 
-            requested_notes = s.scalars(select(Note).where(Note.subject_win == win))
+        note = s.scalar(select(Note).where(Note.subject_win == event.data['win']))
 
-            return format_notes(requested_notes)
-    except Exception as e:
-        print(f"Error getting notes for user: {e}")
-        return -1
+        for update in event.data["edit_attrs"]:
+            if update == "text":
+                if note is None:
+                    # TODO ADD ADMINISTRATORS NAME
+                    note = Note(subject_win=event.data['win'], creator_win=event.data['win'], text = event.data["edit_attrs"][update])
+                    s.add(note)
+                else:
+                    note.text = event.data["edit_attrs"][update]
+            if update == "attendent_view_perms":
+                note.attendant_view_perms = event.data["edit_attrs"][update]
+            if update == "attendent_edit_perms":
+                note.attendant_edit_perms = event.data["edit_attrs"][update]
+
+        s.commit()
+    
+# TODO add proper error handling
+def get_note_for_user(event: Event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+
+        notes = s.scalars(select(Note).where(Note.subject_win == event.data['win'])).all()
+        note = ""
+
+        for n in notes:
+            note += n.text
+
+        return note
 
