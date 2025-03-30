@@ -339,6 +339,8 @@ class AddAccount(QWidget):
         self.display_name = QLineEdit()
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
+        self.affiliation = QComboBox()
+        self.rso = QLineEdit()
 
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
@@ -357,8 +359,6 @@ class AddAccount(QWidget):
 
         self.permissions.setLayout(self.perm_layout)
 
-        self.affiliation = QLineEdit()
-        self.rso = QLineEdit()
 
         photo_button = QPushButton("Take Photo")
         save_button = QPushButton("Save")
@@ -402,8 +402,12 @@ class AddAccount(QWidget):
         self.surname.setPlaceholderText("Surname...")
         self.surname.setValidator(name_validator)
 
-        self.affiliation.setPlaceholderText("Affiliation...")
-        self.affiliation.setValidator(name_validator)
+        self.affiliation.addItem("Undergrad")
+        self.affiliation.addItem("Graduate")
+        self.affiliation.addItem("Researcher")
+        self.affiliation.addItem("Staff")
+        self.affiliation.addItem("Faculty")
+        self.affiliation.addItem("Other")
  
         self.rso.setPlaceholderText("Registered Student Org...")
         self.rso.setValidator(name_validator)
@@ -446,7 +450,7 @@ class AddAccount(QWidget):
         data['edit_attrs']['given_name'] = self.given_name.text()
         data['edit_attrs']['surname'] = self.surname.text()
         data['edit_attrs']['win'] = self.win_box.text()
-        data['edit_attrs']['affiliation'] = self.affiliation.text()
+        data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = self.role.currentText().lower()
         data['edit_attrs']['permissions'] = []
