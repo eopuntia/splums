@@ -264,13 +264,13 @@ class EditAccount(QWidget):
             self.rso.setText(acc_data['rso'])
 
         permissions = get_account_permissions(self.client, self.win)
-        print(permissions)
-        for item in self.permissions.findChildren(QCheckBox):
-            for perm in permissions:
-                print(f'{item.text()} on {perm}')
-                if item.text().lower().replace(" ", "_") == perm:
-                    print(f'need to check the state of {perm}')
-                    item.setChecked(True)
+        if permissions is not None:
+            for item in self.permissions.findChildren(QCheckBox):
+                for perm in permissions:
+                    print(f'{item.text()} on {perm}')
+                    if item.text().lower().replace(" ", "_") == perm:
+                        print(f'need to check the state of {perm}')
+                        item.setChecked(True)
 
         self.role.setCurrentText(acc_data['role'].capitalize())
 
@@ -505,6 +505,8 @@ class MainWindow(QMainWindow):
         self.initial_accounts_load()
         self.render_accounts_to_screen()
         self.show()
+
+        self.account_table.selectRow(-1)
 
     # sends the win of the account that you want to edit to the widget as well as the client
     # connection. from there it grabs and edits the data how it wants.
