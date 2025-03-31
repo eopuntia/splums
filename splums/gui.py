@@ -6,7 +6,7 @@ from client import *
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox, QStackedWidget
 from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from sqlalchemy.exc import SQLAlchemyError
@@ -588,12 +588,14 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Student Projects Lab User Management System")
         self.setMinimumSize(QSize(1280, 720))
 
-        self.main_widget = QWidget()
+        self.main_widget = QStackedWidget()
+        self.home_screen = QWidget()
         self.main_widget.setObjectName("Main")
 
-        layout_main = QVBoxLayout()
-        self.main_widget.setLayout(layout_main)
+        self.layout_main = QVBoxLayout()
+        self.main_widget.addWidget(self.home_screen)
         self.setCentralWidget(self.main_widget)
+        self.home_screen.setLayout(self.layout_main)
 
         # initialize as empty for now
         self.accounts = []
@@ -606,18 +608,20 @@ class MainWindow(QMainWindow):
 
         self.add_button = self.initialize_button("Add Account", "./splums/images/add.svg", self.add_account, button_dim, button_icon_dim)
         self.edit_button = self.initialize_button("Edit Account", "./splums/images/edit.svg", self.edit_account, button_dim, button_icon_dim)
+        self.search_button = self.initialize_button("Search", "./splums/images/search.svg", self.search, button_dim, button_icon_dim)
         self.signout_button = self.initialize_button("Sign Out", "./splums/images/signout.svg", self.sign_out, button_dim, button_icon_dim)
         self.next_page_button = self.initialize_button("Next Page", "./splums/images/next.svg", self.next_page, button_dim, button_icon_dim)
         self.prev_page_button = self.initialize_button("Previous Page", "./splums/images/prev.svg", self.prev_page, button_dim, button_icon_dim)
 
         layout_topsplit = QHBoxLayout()
-        layout_main.addLayout(layout_topsplit)
+        self.layout_main.addLayout(layout_topsplit)
 
         button_bar = QHBoxLayout()
         button_bar.setAlignment(Qt.AlignmentFlag.AlignLeft)
         button_bar.addWidget(self.add_button)
         button_bar.addWidget(self.edit_button)
         button_bar.addWidget(self.signout_button)
+        button_bar.addWidget(self.search_button)
         layout_topsplit.addLayout(button_bar)
 
         total_users_layout = QVBoxLayout()
@@ -668,8 +672,8 @@ class MainWindow(QMainWindow):
         self.account_table.setUpdatesEnabled(True)
 
         layout_accounts = QHBoxLayout()
-        layout_main.addLayout(layout_accounts)
-        layout_main.addLayout(select_page_bar)
+        self.layout_main.addLayout(layout_accounts)
+        self.layout_main.addLayout(select_page_bar)
 
         layout_accounts.addWidget(self.account_table)
 
@@ -678,6 +682,21 @@ class MainWindow(QMainWindow):
         self.show()
 
         self.account_table.selectRow(-1)
+        ### SECOND SEARCH LAYOUT
+        self.layout_search = QVBoxLayout()
+        self.search_widget = QWidget()
+        self.search_widget.setLayout(self.layout_search)
+        self.back_button = self.initialize_button("Back", "./splums/images/prev.svg", self.back_to_main, button_dim, button_icon_dim)
+        self.layout_search.addWidget(self.back_button)
+        self.main_widget.addWidget(self.search_widget)
+
+        self.main_widget.setCurrentIndex(0)
+
+    def search(self):
+        self.main_widget.setCurrentIndex(1)
+
+    def back_to_main(self):
+        self.main_widget.setCurrentIndex(0)
 
     def prev_page(self):
         if self.page_number > 1:
