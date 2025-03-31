@@ -131,9 +131,16 @@ class EventBroker:
                 result = account_events.check_if_win_exists(event, self.session)
                 print(f"result after event_broker call: {result}")
                 return result
+
             case EventTypes.GET_ALL_PERMS:
                 print(f"\033[93mGetting every permission from DB...\033[0m")
                 result = permission_events.get_all_perms(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
+            case EventTypes.GET_USERS_PAGINATED_FILTERED:
+                print(f"\033[93mGetting paginated and filtered users...\033[0m")
+                result = account_events.get_users_paginated_filtered(event, self.session)
                 print(f"result after event_broker call: {result}")
                 return result
 

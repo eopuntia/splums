@@ -1,5 +1,6 @@
 import socket
 import pickle
+import math
 
 from client import *
 import os
@@ -579,6 +580,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.client_connection = client_connection
 
+        self.items_per_page = 5
+        self.page_number = 1
+        self.max_page = 0
+        self.total_users_in_query = 0
+
         self.setWindowTitle("Student Projects Lab User Management System")
         self.setMinimumSize(QSize(1280, 720))
 
@@ -601,6 +607,8 @@ class MainWindow(QMainWindow):
         self.add_button = self.initialize_button("Add Account", "./splums/images/add.svg", self.add_account, button_dim, button_icon_dim)
         self.edit_button = self.initialize_button("Edit Account", "./splums/images/edit.svg", self.edit_account, button_dim, button_icon_dim)
         self.signout_button = self.initialize_button("Sign Out", "./splums/images/signout.svg", self.sign_out, button_dim, button_icon_dim)
+        self.next_page_button = self.initialize_button("Next Page", "./splums/images/next.svg", self.next_page, button_dim, button_icon_dim)
+        self.prev_page_button = self.initialize_button("Previous Page", "./splums/images/prev.svg", self.prev_page, button_dim, button_icon_dim)
 
         layout_topsplit = QHBoxLayout()
         layout_main.addLayout(layout_topsplit)
@@ -611,6 +619,39 @@ class MainWindow(QMainWindow):
         button_bar.addWidget(self.edit_button)
         button_bar.addWidget(self.signout_button)
         layout_topsplit.addLayout(button_bar)
+
+        total_users_layout = QVBoxLayout()
+        total_users_lab = QLabel()
+        total_users_lab.setText("Total Users")
+        self.total_users = QLabel()
+        self.total_users.setText(str(self.total_users_in_query))
+        total_users_layout.addWidget(self.total_users)
+        total_users_layout.addWidget(total_users_lab)
+
+        page_label_layout = QVBoxLayout()
+        self.page_label = QLabel()
+        page_label_lab = QLabel()
+        page_label_lab.setText("Current Page")
+        self.page_label.setText(str(self.page_number))
+        page_label_layout.addWidget(self.page_label)
+        page_label_layout.addWidget(page_label_lab)
+
+        max_page_label_layout = QVBoxLayout()
+        max_page_label_lab = QLabel()
+        max_page_label_lab.setText("Max Page")
+        self.max_page_label = QLabel()
+        self.max_page_label.setText(str(self.max_page))
+        max_page_label_layout.addWidget(self.max_page_label)
+        max_page_label_layout.addWidget(max_page_label_lab)
+
+        select_page_bar = QHBoxLayout()
+        select_page_bar.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        select_page_bar.addWidget(self.prev_page_button)
+        select_page_bar.addLayout(page_label_layout)
+        select_page_bar.addLayout(max_page_label_layout)
+        select_page_bar.addLayout(total_users_layout)
+        select_page_bar.addWidget(self.next_page_button)
+        
 
         topright_bar = QHBoxLayout()
         topright_bar.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -628,6 +669,7 @@ class MainWindow(QMainWindow):
 
         layout_accounts = QHBoxLayout()
         layout_main.addLayout(layout_accounts)
+        layout_main.addLayout(select_page_bar)
 
         layout_accounts.addWidget(self.account_table)
 
@@ -637,6 +679,23 @@ class MainWindow(QMainWindow):
 
         self.account_table.selectRow(-1)
 
+    def prev_page(self):
+        if self.page_number > 1:
+            self.page_number -= 1
+            self.page_label.setText(str(self.page_number))
+
+        self.accounts.clear()
+        self.initial_accounts_load()
+        self.render_accounts_to_screen()
+
+    def next_page(self):
+        if self.items_per_page * self.page_number < self.total_users_in_query:
+            self.page_number += 1
+            self.page_label.setText(str(self.page_number))
+
+        self.accounts.clear()
+        self.initial_accounts_load()
+        self.render_accounts_to_screen()
     # sends the win of the account that you want to edit to the widget as well as the client
     # connection. from there it grabs and edits the data how it wants.
     def edit_account(self):
@@ -721,9 +780,13 @@ class MainWindow(QMainWindow):
         return new_account_table
 
     def initial_accounts_load(self):
-        get_account_event = Event(event_type=EventTypes.GET_USERS_BY_ROLE, data = {'role': ''})
-        # for each account ordered by role, add to self.accounts based on each dict of data returned.
-        for c in self.client_connection.call_server(get_account_event):
+        event_data = {"page_number": self.page_number, "items_per_page": self.items_per_page}
+
+        res = get_users_paginated_filtered(self.client_connection, event_data)
+        self.total_users_in_query = res["total_users"]
+        self.total_users.setText(str(self.total_users_in_query))
+        self.max_page_label.setText(str(math.ceil(self.total_users_in_query / self.items_per_page)))
+        for c in res["users"]:
             print(c)
             self.accounts.append(Account(c))
 
@@ -796,6 +859,13 @@ def edit_note(client, edit_data):
     event = Event(EventTypes.EDIT_NOTE_FOR_USER, edit_data)
 
     res = client.call_server(event)
+
+def get_users_paginated_filtered(client, event_data):
+    event = Event(EventTypes.GET_USERS_PAGINATED_FILTERED, event_data)
+
+    res = client.call_server(event)
+
+    return res
 
 def check_if_win_exists(client, account_win):
     event_data = {}

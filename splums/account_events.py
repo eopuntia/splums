@@ -237,6 +237,20 @@ def get_users_by_role(event: Event, session):
         print(f"Error getting users by role: {e}")
         return -1
 
+def get_users_paginated_filtered(event, session):
+    with session.begin() as s:
+        # this is a little scuffed, but first do the entire query to see what the limit is
+        account_all = s.query(Account).all()
+        accounts = s.query(Account).offset((event.data["page_number"] -1) * event.data["items_per_page"]).limit(event.data["items_per_page"]).all()
+        for acc in accounts:
+            print(f"IN GETPAGE {acc.display_name}")
+            print(f"{len(accounts)}")
+
+        ret_data = {}
+        ret_data["users"] = format_users(accounts)
+        ret_data["total_users"] = len(account_all)
+        return ret_data
+
 def get_perms_for_user(event, session):
     with session.begin() as s:
         required_keys = ["win"]
