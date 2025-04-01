@@ -47,8 +47,8 @@ with Session() as session:
     # it is also possible to bulk add elements while declaring them at the same time.
     session.execute(
         insert(Role),
-        [   {"name": "Archived"},
-            {"name": "Blacklisted"},
+        [   {"name": "archived"},
+            {"name": "blacklisted"},
         ],
     )
     session.execute( 

@@ -1,5 +1,5 @@
 from events import Event
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from models.models import Account, Role, Account_Equipment, Equipment, Affiliation
 
 from events import Event, EventTypes
@@ -236,12 +236,65 @@ def get_users_by_role(event: Event, session):
     except Exception as e:
         print(f"Error getting users by role: {e}")
         return -1
+def get_swiped_in_users(session):
+    try:
+        with session() as s:
+
+            requested_users = s.scalars(select(Account).where(Account.swiped_in == True))
+
+            return format_users(requested_users)
+    except Exception as e:
+        print(f"Error getting signed-in users: {e}")
+        return -1
 
 def get_users_paginated_filtered(event, session):
     with session.begin() as s:
         # this is a little scuffed, but first do the entire query to see what the limit is
-        account_all = s.query(Account).all()
-        accounts = s.query(Account).offset((event.data["page_number"] -1) * event.data["items_per_page"]).limit(event.data["items_per_page"]).all()
+        query = s.query(Account)
+
+        if event.data["name"] != "ignore":
+            query = query.filter(
+                        or_(
+                Account.display_name.ilike(f"%{event.data['name']}%"),
+                Account.surname.ilike(f"%{event.data['name']}%"),
+                Account.given_name.ilike(f"%{event.data['name']}%")
+                )
+            )
+
+        if event.data["privilege"] != "ignore":
+            for item in event.data["privilege"]:
+                filtered_role = s.scalar(select(Role).where(Role.name == item))
+                if filtered_role is None:
+                    print("invalid roleAAAA")
+                    return -1
+
+                query = query.filter(Account.role != filtered_role)
+                print(f"IN FILTERED ROLE {filtered_role.name}")
+
+        if event.data["affiliation"] != "ignore":
+            for item in event.data["affiliation"]:
+                print("selecting affiliation to keep {item}")
+                filtered_affiliation = s.scalar(select(Affiliation).where(Affiliation.name == item))
+                if filtered_affiliation is None:
+                    print("invalid affiliation")
+                    return -1
+
+                query = query.filter(Account.affiliation != filtered_affiliation)
+                print(f"IN FILTERED affiliation {filtered_affiliation.name}")
+
+        if event.data["status"] != "ignore":
+            if event.data["status"] == "swiped_in":
+                query = query.filter(Account.swiped_in == True)
+            if event.data["status"] == "blacklisted":
+                blacklisted = s.scalar(select(Role).where(Role.name == "blacklisted"))
+                query = query.filter(Account.role == blacklisted)
+            if event.data["status"] == "archived":
+                archived = s.scalar(select(Role).where(Role.name == "archived"))
+                query = query.filter(Account.role == archived)
+
+        account_all = query.all()
+
+        accounts = query.offset((event.data["page_number"] -1) * event.data["items_per_page"]).limit(event.data["items_per_page"]).all()
         for acc in accounts:
             print(f"IN GETPAGE {acc.display_name}")
             print(f"{len(accounts)}")
@@ -314,13 +367,3 @@ def get_data_for_user(event, session):
 
         return acc_data.copy()
 
-def get_swiped_in_users(session):
-    try:
-        with session() as s:
-
-            requested_users = s.scalars(select(Account).where(Account.swiped_in == True))
-
-            return format_users(requested_users)
-    except Exception as e:
-        print(f"Error getting signed-in users: {e}")
-        return -1
