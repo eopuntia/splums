@@ -586,16 +586,18 @@ class QuickView(QWidget):
         self.setWindowTitle("Account information")
 
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+        
+        combined_layout = QHBoxLayout()
 
         layout = QFormLayout()
 
-        self.win_box = QLineEdit()
-        self.role = QComboBox()
-        self.display_name = QLineEdit()
-        self.given_name = QLineEdit()
-        self.surname = QLineEdit()
-        self.affiliation = QComboBox()
-        self.rso = QLineEdit()
+        self.win_box = QLabel()
+        self.role = QLabel()
+        self.display_name = QLabel()
+        self.given_name = QLabel()
+        self.surname = QLabel()
+        self.affiliation = QLabel()
+        self.rso = QLabel()
 
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
@@ -610,15 +612,11 @@ class QuickView(QWidget):
 
         self.permissions.setLayout(self.perm_layout)
 
-        notes_button = QPushButton("Notes")
-        photo_button = QPushButton("Take Photo")
-        save_button = QPushButton("Save")
         exit_button = QPushButton("Exit")
+        self.swipe_toggle_button = QPushButton("Swipe in")
 
-        photo_button.clicked.connect(self.show_photo)
-        notes_button.clicked.connect(self.show_notes)
-        save_button.clicked.connect(self.save_edit)
         exit_button.clicked.connect(self.close)
+        self.swipe_toggle_button.clicked.connect(self.swipe_toggle)
 
         layout.addRow("WIN:", self.win_box)
         layout.addRow("Role:", self.role)
@@ -629,52 +627,56 @@ class QuickView(QWidget):
         layout.addRow("Affiliation:", self.affiliation)
         layout.addRow("RSO:", self.rso)
 
-        layout.addWidget(photo_button)
-        layout.addWidget(notes_button)
-        layout.addWidget(save_button)
+        layout.addWidget(self.swipe_toggle_button)
         layout.addWidget(exit_button)
 
         self.setObjectName("Main")
-        self.setLayout(layout)
+        self.notes_locked_status = True
+        notes_layout = QVBoxLayout()
+        combined_layout.addLayout(layout)
+        self.notes = QPlainTextEdit()
+        self.notes.setReadOnly(True)
+        self.unlock_button = QPushButton("Unlock Notes")
+        self.save_notes_button = QPushButton("Save notes")
+        self.save_notes_button.clicked.connect(self.save_note)
+        self.notes.setPlainText(get_account_note(self.client, self.win))
+        notes_layout.addWidget(self.notes)
+        notes_layout.addWidget(self.unlock_button)
+        notes_layout.addWidget(self.save_notes_button)
+        combined_layout.addLayout(notes_layout)
+        self.setLayout(combined_layout)
+        self.unlock_button.clicked.connect(self.toggle_note_lock)
 
-        win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
-        name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
-
-        self.win_box.setPlaceholderText("WIN...")
-        self.win_box.setReadOnly(True)
-
-        self.win_box.setValidator(win_validator)
-            
-        # TODO IMPLEMENT ROLE FUNCTIONALITY
-        # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
-        self.role.addItem("User")
-        self.role.addItem("Administrator")
-        self.role.addItem("Attendant")
-
-        self.affiliation.addItem("Undergrad")
-        self.affiliation.addItem("Graduate")
-        self.affiliation.addItem("Researcher")
-        self.affiliation.addItem("Staff")
-        self.affiliation.addItem("Faculty")
-        self.affiliation.addItem("Other")
- 
-        self.display_name.setPlaceholderText("Display Name...")
-        self.display_name.setValidator(name_validator)
- 
-        self.given_name.setPlaceholderText("Given Name...")
-        self.given_name.setValidator(name_validator)
- 
-        self.surname.setPlaceholderText("Surname...")
-        self.surname.setValidator(name_validator)
-
-        self.affiliation.setPlaceholderText("Affiliation...")
-        self.affiliation.setValidator(name_validator)
- 
-        self.rso.setPlaceholderText("Registered Student Org...")
-        self.rso.setValidator(name_validator)
+        self.set_swipe_button_status()
 
         self.initial_load()
+
+    def set_swipe_button_status(self):
+        if check_if_swiped_in(self.client, self.win):
+            self.swipe_toggle_button.setText("Swipe Out")
+        else:
+            self.swipe_toggle_button.setText("Swipe In")
+
+
+    def swipe_toggle(self):
+        if check_if_swiped_in(self.client, self.win):
+            swipe_out_user(self.client, self.win)
+        else:
+            swipe_in_user(self.client, self.win)
             
+        self.save_update.emit()
+        self.set_swipe_button_status()
+
+    def toggle_note_lock(self):
+        if self.notes_locked_status == True:
+            self.notes_locked_status = False
+            self.notes.setReadOnly(False)
+            self.unlock_button.setText("Lock Notes")
+        else:
+            self.notes_locked_status = True
+            self.notes.setReadOnly(True)
+            self.unlock_button.setText("Unlock Notes")
+
     def initial_load(self):
         acc_data = get_account_data(self.client, self.win)
 
@@ -689,55 +691,27 @@ class QuickView(QWidget):
         permissions = get_account_permissions(self.client, self.win)
         if permissions is not None:
             for item in self.permissions.findChildren(QCheckBox):
+                item.setEnabled(False)
                 for perm in permissions:
                     print(f'{item.text()} on {perm}')
                     if item.text().lower().replace(" ", "_") == perm:
                         print(f'need to check the state of {perm}')
                         item.setChecked(True)
 
-        self.role.setCurrentText(acc_data['role'].capitalize())
-        self.affiliation.setCurrentText(acc_data['affiliation'].capitalize())
 
-    # TODO add proper error handling
-    def save_edit(self):
+        self.role.setText(acc_data['role'].capitalize())
+        self.affiliation.setText(acc_data['affiliation'].capitalize())
+
+    def save_note(self):
         data = {}
         data['win'] = self.win
         data['edit_attrs'] = {}
-        
-        data['edit_attrs']['display_name'] = self.display_name.text()
-        data['edit_attrs']['given_name'] = self.given_name.text()
-        data['edit_attrs']['surname'] = self.surname.text()
-        data['edit_attrs']['win'] = self.win_box.text()
-        data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
-        data['edit_attrs']['rso'] = self.rso.text()
-        data['edit_attrs']['role'] = self.role.currentText().lower()
-        data['edit_attrs']['permissions'] = []
-        data['edit_attrs']['no_permissions'] = []
+        data['edit_attrs']['text'] = self.notes.toPlainText()
 
-        for item in self.permissions.findChildren(QCheckBox):
-            if item.isChecked():
-                data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
-            else:
-                data['edit_attrs']['no_permissions'].append(item.text().lower().replace(" ", "_"))
+        edit_note(self.client, data)
 
-        edit_account(self.client, data)
         self.save_update.emit()
 
-    def show_notes(self):
-        self.w = Notes(self.client, self.win)
-        self.w.show()
-        self.w.save_update.connect(self.update_note)
-
-    def show_photo(self):
-        self.w = Picture(self.client, self.win)
-        self.w.show()
-        self.w.photo_update.connect(self.update_photo)
-
-    def update_photo(self):
-        self.photo_update.emit()
-
-    def update_note(self):
-        self.save_update.emit()
 class MainWindow(QMainWindow):
     def __init__(self, client_connection):
         super().__init__()
@@ -1424,6 +1398,22 @@ def get_account_note(client, account_win):
     note = res
 
     return note
+
+def check_if_swiped_in(client, account_win):
+    event = Event(event_type=EventTypes.CHECK_IF_SWIPED_IN, data = {'win': account_win})
+    res = client.call_server(event)
+    if res["swiped_in"] == True:
+        return True
+    else:
+        return False
+
+def swipe_out_user(client, account_win):
+    event = Event(event_type=EventTypes.SWIPE_OUT, data = {'win': account_win})
+    res = client.call_server(event)
+
+def swipe_in_user(client, account_win):
+    event = Event(event_type=EventTypes.SWIPE_IN, data = {'win': account_win})
+    res = client.call_server(event)
 
 def get_swiped_in_users(client):
     event = Event(event_type=EventTypes.GET_SWIPED_IN_USERS, data = {'': ''})

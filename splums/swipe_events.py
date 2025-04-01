@@ -2,6 +2,19 @@ from events import Event, EventTypes
 from sqlalchemy import select
 from models.models import Account
 
+def check_if_swiped_in(event, session, event_broker):
+    with session.begin() as s:
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        if account is None:
+            raise KeyError(f"invalid win: {event.data['win']}")
+
+        ret = {}
+        if account.swiped_in == 1:
+            ret["swiped_in"] = True
+        else:
+            ret["swiped_in"] = False
+
+        return ret
 def swipe_in(event, session, event_broker):
     with session.begin() as s:
         account = s.scalar(select(Account).where(Account.win == event.data["win"]))
