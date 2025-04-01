@@ -294,7 +294,10 @@ def get_users_paginated_filtered(event, session):
 
         account_all = query.all()
 
-        accounts = query.offset((event.data["page_number"] -1) * event.data["items_per_page"]).limit(event.data["items_per_page"]).all()
+        print(f'offset calculation at page: {event.data["page_number"]}, and items {event.data["items_per_page"]}')
+        accounts = query.order_by(Account.win).offset(
+                   (event.data["page_number"] -1) * event.data["items_per_page"]
+                ).limit(event.data["items_per_page"]).all()
         for acc in accounts:
             print(f"IN GETPAGE {acc.display_name}")
             print(f"{len(accounts)}")

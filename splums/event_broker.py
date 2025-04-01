@@ -10,6 +10,12 @@ class EventBroker:
 
     def process_event(self, event):
         match event.event_type:
+            case EventTypes.CHECK_IF_SWIPED_IN:
+                print(f"\033[93mChecking if user is swiped in...\0333[0m")
+                result = swipe_events.check_if_swiped_in(event, self.session, self)
+                print(f"result after event_broker call: {result}")
+                return result
+
             case EventTypes.SWIPE_IN: 
                 print(f"Swipe In")
                 swipe_events.swipe_in(event, self.session, self)
@@ -157,6 +163,7 @@ class EventBroker:
                 result = account_events.get_users_paginated_filtered(event, self.session)
                 print(f"result after event_broker call: {result}")
                 return result
+
 
             case _:
                 print(f"Error")
