@@ -161,7 +161,6 @@ class Picture(QWidget):
     def closeEvent(self, event):
         self.cam_worker.stop()
 
-
 class EditAccount(QWidget):
     photo_update = pyqtSignal()
     save_update = pyqtSignal()
@@ -575,6 +574,170 @@ class AddAccount(QWidget):
     def update(self):
         self.save_update.emit()
 
+class QuickView(QWidget):
+    save_update = pyqtSignal()
+    def __init__(self, win, client):
+        super().__init__()
+        self.client = client
+        self.win = win
+
+        print(f"quick view of win: {win}")
+
+        self.setWindowTitle("Account information")
+
+        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+
+        layout = QFormLayout()
+
+        self.win_box = QLineEdit()
+        self.role = QComboBox()
+        self.display_name = QLineEdit()
+        self.given_name = QLineEdit()
+        self.surname = QLineEdit()
+        self.affiliation = QComboBox()
+        self.rso = QLineEdit()
+
+        self.permissions = QGroupBox()
+        self.perm_layout = QVBoxLayout()
+
+        perm_list = get_permissions_from_db(self.client)
+        button_list = []
+        for item in perm_list:
+            button_list.append(QCheckBox(item))
+
+        for item in button_list:
+            self.perm_layout.addWidget(item)
+
+        self.permissions.setLayout(self.perm_layout)
+
+        notes_button = QPushButton("Notes")
+        photo_button = QPushButton("Take Photo")
+        save_button = QPushButton("Save")
+        exit_button = QPushButton("Exit")
+
+        photo_button.clicked.connect(self.show_photo)
+        notes_button.clicked.connect(self.show_notes)
+        save_button.clicked.connect(self.save_edit)
+        exit_button.clicked.connect(self.close)
+
+        layout.addRow("WIN:", self.win_box)
+        layout.addRow("Role:", self.role)
+        layout.addRow("Display Name:", self.display_name)
+        layout.addRow("Given Name:", self.given_name)
+        layout.addRow("Surname:", self.surname)
+        layout.addRow("Permissions:", self.permissions)
+        layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("RSO:", self.rso)
+
+        layout.addWidget(photo_button)
+        layout.addWidget(notes_button)
+        layout.addWidget(save_button)
+        layout.addWidget(exit_button)
+
+        self.setObjectName("Main")
+        self.setLayout(layout)
+
+        win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
+        name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+
+        self.win_box.setPlaceholderText("WIN...")
+        self.win_box.setReadOnly(True)
+
+        self.win_box.setValidator(win_validator)
+            
+        # TODO IMPLEMENT ROLE FUNCTIONALITY
+        # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
+        self.role.addItem("User")
+        self.role.addItem("Administrator")
+        self.role.addItem("Attendant")
+
+        self.affiliation.addItem("Undergrad")
+        self.affiliation.addItem("Graduate")
+        self.affiliation.addItem("Researcher")
+        self.affiliation.addItem("Staff")
+        self.affiliation.addItem("Faculty")
+        self.affiliation.addItem("Other")
+ 
+        self.display_name.setPlaceholderText("Display Name...")
+        self.display_name.setValidator(name_validator)
+ 
+        self.given_name.setPlaceholderText("Given Name...")
+        self.given_name.setValidator(name_validator)
+ 
+        self.surname.setPlaceholderText("Surname...")
+        self.surname.setValidator(name_validator)
+
+        self.affiliation.setPlaceholderText("Affiliation...")
+        self.affiliation.setValidator(name_validator)
+ 
+        self.rso.setPlaceholderText("Registered Student Org...")
+        self.rso.setValidator(name_validator)
+
+        self.initial_load()
+            
+    def initial_load(self):
+        acc_data = get_account_data(self.client, self.win)
+
+        self.win_box.setText(str(acc_data['win']))
+        self.display_name.setText(acc_data['display_name'])
+        self.given_name.setText(acc_data['given_name'])
+        self.surname.setText(acc_data['surname'])
+
+        if acc_data['rso'] is not None:
+            self.rso.setText(acc_data['rso'])
+
+        permissions = get_account_permissions(self.client, self.win)
+        if permissions is not None:
+            for item in self.permissions.findChildren(QCheckBox):
+                for perm in permissions:
+                    print(f'{item.text()} on {perm}')
+                    if item.text().lower().replace(" ", "_") == perm:
+                        print(f'need to check the state of {perm}')
+                        item.setChecked(True)
+
+        self.role.setCurrentText(acc_data['role'].capitalize())
+        self.affiliation.setCurrentText(acc_data['affiliation'].capitalize())
+
+    # TODO add proper error handling
+    def save_edit(self):
+        data = {}
+        data['win'] = self.win
+        data['edit_attrs'] = {}
+        
+        data['edit_attrs']['display_name'] = self.display_name.text()
+        data['edit_attrs']['given_name'] = self.given_name.text()
+        data['edit_attrs']['surname'] = self.surname.text()
+        data['edit_attrs']['win'] = self.win_box.text()
+        data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
+        data['edit_attrs']['rso'] = self.rso.text()
+        data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['permissions'] = []
+        data['edit_attrs']['no_permissions'] = []
+
+        for item in self.permissions.findChildren(QCheckBox):
+            if item.isChecked():
+                data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
+            else:
+                data['edit_attrs']['no_permissions'].append(item.text().lower().replace(" ", "_"))
+
+        edit_account(self.client, data)
+        self.save_update.emit()
+
+    def show_notes(self):
+        self.w = Notes(self.client, self.win)
+        self.w.show()
+        self.w.save_update.connect(self.update_note)
+
+    def show_photo(self):
+        self.w = Picture(self.client, self.win)
+        self.w.show()
+        self.w.photo_update.connect(self.update_photo)
+
+    def update_photo(self):
+        self.photo_update.emit()
+
+    def update_note(self):
+        self.save_update.emit()
 class MainWindow(QMainWindow):
     def __init__(self, client_connection):
         super().__init__()
@@ -834,7 +997,39 @@ class MainWindow(QMainWindow):
         self.status_search.currentIndexChanged.connect(self.search)
         self.search_name.textChanged.connect(self.search)
 
+        self.account_table.doubleClicked.connect(self.attendant_blurb_swiped)
+        self.account_table_search.doubleClicked.connect(self.attendant_blurb_search)
+
         self.main_widget.setCurrentIndex(0)
+
+    def attendant_blurb_swiped(self):
+        selected_row = self.account_table.currentRow()
+
+        if selected_row == -1:
+            err_msg = QMessageBox(self)
+            err_msg.setText('click to select the account you want to view')
+            err_msg.exec()
+            return
+
+        self.w = QuickView(self.accounts[selected_row].win, self.client_connection)
+        self.w.show()
+
+        self.w.save_update.connect(self.update_save)
+
+    def attendant_blurb_search(self):
+        selected_row = self.account_table_search.currentRow()
+
+        if selected_row == -1:
+            err_msg = QMessageBox(self)
+            err_msg.setText('click to select the account you want to view')
+            err_msg.exec()
+            return
+
+        self.w = QuickView(self.search_accounts[selected_row].win, self.client_connection)
+        self.w.show()
+
+        # connect signal to pressing the save button 
+        self.w.save_update.connect(self.update_save)
 
     def search(self):
         self.search_accounts.clear()
@@ -1026,8 +1221,9 @@ class MainWindow(QMainWindow):
         self.total_users_in_query_search = res["total_users"]
         self.total_users_search.setText(str(self.total_users_in_query_search))
         self.max_page_label_search.setText(str(math.ceil(self.total_users_in_query_search / self.items_per_page_search)))
+        print("AFTER GET USERS CALL")
         for c in res["users"]:
-            print(c)
+            print(c["display_name"])
             self.search_accounts.append(Account(c))
 
         # load notes for each account
