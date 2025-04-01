@@ -1,8 +1,6 @@
-from events import Event
-from sqlalchemy import select
-from models.models import Account, Role
-
 from events import Event, EventTypes
+from sqlalchemy import select,  or_
+from models.models import Account, Affiliation, Role, Department
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -129,7 +127,7 @@ def auto_archive_user(session):
 # PROMOTE/DEMOTE A USER
 #*******************************************************************************************
 # Takes win and role.name
-def change_user_type(event: Event, session): # Promote or demote a user as an administrator
+def change_user_role(event: Event, session): # Promote or demote a user as an administrator
     try:
         with session() as s:
             win = event.data.get('win', None)
@@ -164,6 +162,7 @@ EVENT BROKER USER DATABASE QUERIES
 #*******************************************************************************************
 # Takes queried users
 def format_users(unformatted_user):
+    print("Formatting users...")
     user_dicts = []
     for user in unformatted_user:
         user_dict = {
@@ -172,39 +171,17 @@ def format_users(unformatted_user):
             'given_name': user.given_name,
             'surname': user.surname,
             'photo_url': user.photo_url,
-            'role': user.role_id,
+            'role': user.role.name,
+            'affiliation':user.affiliation.name,
             'created_at': user.created_at,
             'last_updated_at': user.last_updated_at,
             'swiped_in': user.swiped_in,
+            'rso': user.rso,
             'last_access': user.last_access
         }
         user_dicts.append(user_dict)
+        print(user_dict)
     return user_dicts
-
-#*******************************************************************************************
-# GET USERS BY REQUESTED ROLE
-#*******************************************************************************************
-# Takes GET_USERS_BY_ROLE event
-def get_users_by_role(event: Event, session):
-    try:
-        with session() as s:
-          role = event.data.get('role', None)
-
-          # strip any leading and trailing spaces/tabs
-          if role:
-              role = role.strip()
-          else:
-              role = None
-
-          if not role:
-              requested_users = s.scalars(select(Account))
-          else:
-              requested_users = s.scalars(select(Account).join(Role).where(Role.name == role))
-
-          return format_users(requested_users)
-    except Exception as e:
-        print(f"Error getting users by role: {e}")
-        return -1
 
 #*******************************************************************************************
 # GET SWIPED IN USERS
@@ -220,3 +197,47 @@ def get_swiped_in_users(session):
     except Exception as e:
         print(f"Error getting signed-in users: {e}")
         return -1
+    
+#*******************************************************************************************
+# GET USERS BY SEARCH FIELDS
+#*******************************************************************************************
+# Called by GET_USERS_BY_SEARCH event
+def search_users(event, session):
+    with session() as s:
+        query = select(Account).join(Affiliation).join(Role).join(Department)
+
+        filters = []
+        name = event.data.get("name")
+        affiliation = event.data.get("affiliation")
+        role = event.data.get("role")
+        department = event.data.get("department")
+        rso = event.data.get("rso")
+
+        if name:
+            print("Adding name query...")
+            filters.append(or_(
+                Account.display_name.ilike(f"%{name}%"),
+                Account.given_name.ilike(f"%{name}%"),
+                Account.surname.ilike(f"%{name}%")
+            ))
+
+        if affiliation:
+            print("Adding affiliation query...")
+            filters.append(Affiliation.name.ilike(f"%{affiliation}%"))
+
+        if role:
+            print("Adding role query...")
+            filters.append(Role.name.ilike(f"%{role}%"))
+
+        if department:
+            print("Adding department query...")
+            filters.append(Department.name.ilike(f"%{department}%"))
+        if rso:
+            print("Adding rso query...")
+            filters.append(Account.rso.ilike(f"%{rso}%"))
+
+        if filters:
+            query = query.where(*filters)
+
+        results = s.scalars(query).all()
+        return format_users(results)

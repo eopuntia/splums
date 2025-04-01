@@ -1,6 +1,6 @@
 from sqlalchemy import Engine, create_engine, insert, select
 from sqlalchemy.orm import sessionmaker
-from models import Account, Role, Note, Account_Equipment, Equipment, Event, Event_Type, Base
+from models import Account, Role, Note, Account_Equipment, Equipment, Event, Event_Type, Base, Affiliation, Department
 
 # connect to the engine.
 engine = create_engine("mariadb+mariadbconnector://splums:example@127.0.0.1:3307/splums")
@@ -14,25 +14,46 @@ Session = sessionmaker(engine)
 with Session() as session:
     # it is very easy to define new records, just say the name of the class and fill in the fields.
     # these class objects are not actually added to the database yet.
-    administrator = Role(name="administrator")
-    attendant = Role(name="attendant")
-    user = Role(name="user")
+    administrator = Role(name="Administrator")
+    attendant = Role(name="Attendant")
+    user = Role(name="User")
+
+    undergrad = Affiliation(name="Undergrad", icon_url="./images/undergrad.png")
+    graduate = Affiliation(name="Graduate", icon_url="./images/graduate.png")
+    faculty = Affiliation(name="Faculty", icon_url="./images/faculty.png")
+    researcher = Affiliation(name="Researcher", icon_url="./images/researcher.png")
+    staff = Affiliation(name="Staff", icon_url="./images/staff.png")
+    other = Affiliation(name="Other", icon_url="./images/other.png")
+
+    chemical_paper = Department(name="Chemical and Paper Engineering")
+    civil_construction = Department(name="Civil and Construction Engineering")
+    computer_science = Department(name="Computer Science")
+    electrical_computer = Department(name=" Electrical and Computer Engineering")
+    eng_design_manufacturing_mgmt_syst = Department(name="Engineering Design, Manufacturing and Management Systems")
+    indust_entreprenural_mgmt = Department(name="Industrial and Entrepreneurial Engineering and Engineering Management")
+    mechanical_aero = Department(name="Mechanical and Aerospace Engineering")
+    other_dep = Department(name="Other")
 
     # the datetime fields get populated automatically. You can see specifying the role and status relations in account.
     # what this does behind the scenes is it will populate the ID's for you. Makes it very easy. 
-    renee = Account(win=212222, role=user, display_name="rez", 
-                     given_name="Renee", surname="Rickert", photo_url="sample/renee/url")
+    renee = Account(win=212222222, role=user, affiliation=graduate, department=computer_science, display_name="rez", 
+                     given_name="Renee", surname="Rickert", photo_url="./images/212222222.jpg",
+                     rso="Computer Club")
 
-    kahrl = Account(win=1234, role=administrator, display_name="zathras", 
-                     given_name="Allin", surname="Kahrl", photo_url="sample/kahrl/url")
+    kahrl = Account(win=123412341, role=administrator, affiliation=staff, department=eng_design_manufacturing_mgmt_syst, display_name="zathras", 
+                     given_name="Allin", surname="Kahrl", photo_url="./images/123412341.jpg")
 
-    estlin = Account(win=4321, role=attendant, display_name="estlin", 
-                     given_name="Estlin", surname="Mendez", photo_url="sample/estlin/url")
+    estlin = Account(win=432143214, role=attendant, affiliation=undergrad, department=electrical_computer, display_name="estlin", 
+                     given_name="Estlin", surname="Mendez", photo_url="./images/432143214.jpg")
 
     # actually load the objects to be committed (still not in the DB, will happen after commit call.
     # important to note is that since user, active, administrator, and attendant were related in these object definitions, 
     # those objects are also implicitly added.
     session.add_all([renee, kahrl, estlin])
+    session.add_all([chemical_paper, civil_construction, indust_entreprenural_mgmt, mechanical_aero, other_dep])
+    session.add_all([faculty, researcher, other])
+
+
 
     # it is also possible to bulk add elements while declaring them at the same time.
     session.execute(
@@ -44,10 +65,10 @@ with Session() as session:
     session.execute( 
         insert(Equipment),
         [
-            {"name": "Drill Press", "icon_url": "sample/url"},
-            {"name": "CNC Machine", "icon_url": "sample/url"},
-            {"name": "Laser Cutter", "icon_url": "sample/url"},
-            {"name": "Soldering Station", "icon_url": "sample/url"},
+            {"name": "drill_press", "icon_url": "./splums/images/drill_press.png"},
+            {"name": "cnc_machine", "icon_url": "./splums/images/cnc_machine.png"},
+            {"name": "laser_cutter", "icon_url": "./splums/images/laser_cutter.png"},
+            {"name": "soldering_station", "icon_url": "./splums/images/soldering_station.png"},
         ],
     )
     session.execute( 
@@ -55,14 +76,13 @@ with Session() as session:
         [
             {"name": "Authorized User Swipe"},
             {"name": "Archived User Swipe"},
-            {"name": "Archived User Swipe"},
             {"name": "Blacklisted User Swipe"},
             {"name": "Intrusion Detected"},
         ],
     )
     
     # example of adding account_equipment record, can also define objects in line.
-    renee_welding = Account_Equipment(account=renee, equipment=Equipment(name="Welding Station", icon_url="sample/url"), completed_training=False)
+    renee_welding = Account_Equipment(account=renee, equipment=Equipment(name="welding_station", icon_url="./splums/images/welding_station.png"), completed_training=False)
     session.add(renee_welding)
 
     # the ids for creator and subject will be populated automatically.

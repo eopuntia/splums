@@ -10,6 +10,25 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 class Base(DeclarativeBase):
     pass
 
+class Department(Base):
+    __tablename__ = 'department'
+
+    department_id: Mapped[int] = mapped_column(primary_key=True)
+
+    name: Mapped[str] = mapped_column(String(255))
+
+    accounts: Mapped[List["Account"]] = relationship(back_populates="department")
+
+class Affiliation(Base):
+    __tablename__ = 'affiliation'
+
+    affiliation_id: Mapped[int] = mapped_column(primary_key=True)
+
+    name: Mapped[str] = mapped_column(String(255))
+    icon_url: Mapped[str] = mapped_column(String(255))
+
+    accounts: Mapped[List["Account"]] = relationship(back_populates="affiliation")
+
 # Defines a table role in SQL, which corresponds to the Role class
 class Role(Base):
     # sets the table name
@@ -32,15 +51,20 @@ class Account(Base):
     __tablename__ = 'account'
 
     win: Mapped[int] = mapped_column(primary_key=True)
-    # Similar to indicating the primary key with amapped_column, information like ForeignKeys are implied by the mapped_column.
+    # Similar to indicating the primary key with a mapped_column, information like ForeignKeys are implied by the mapped_column.
     # Together with the Mapped[int], Sql alchemy has all the needed information.
     role_id: Mapped[int] = mapped_column(ForeignKey("role.role_id"))
+    affiliation_id: Mapped[int] = mapped_column(ForeignKey("affiliation.affiliation_id"))
+    department_id: Mapped[int] = mapped_column(ForeignKey("department.department_id"))
+
 
     display_name: Mapped[str] = mapped_column(String(255))
     given_name: Mapped[str] = mapped_column(String(255))
     surname: Mapped[str] = mapped_column(String(255))
     photo_url: Mapped[str] = mapped_column(String(255))
     swiped_in: Mapped[bool] = mapped_column(default=False)
+
+    rso: Mapped[Optional[str]] = mapped_column(String(255))
 
     # this syntax is slightly verbose and maybe there is a better way to do this, but it makes it so the timefield is automatically
     # populated to the current time whenever you add a record without needing to specify yourself.
@@ -65,6 +89,8 @@ class Account(Base):
     # Relationships where the account is the many in one-many. 
     # This is the relationship that corresponds to the accounts field in Role.
     role: Mapped["Role"] = relationship(back_populates="accounts")
+    affiliation: Mapped["Affiliation"] = relationship(back_populates="accounts")
+    department: Mapped["Department"] = relationship(back_populates="accounts")
 
 class Note(Base):
     __tablename__ = 'note'
@@ -97,6 +123,7 @@ class Equipment(Base):
     icon_url: Mapped[str] = mapped_column(String(255))
 
     accounts: Mapped[List["Account_Equipment"]] = relationship(back_populates="equipment")
+
 
 class Account_Equipment(Base):
     __tablename__ = 'account_equipment'

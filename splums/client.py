@@ -31,7 +31,7 @@ note_event_data = {
 }
 """
 
-
+event = Event(event_type=EventTypes.GET_USERS_BY_SEARCH, data={"name": "zathras", "affiliation": "staff", "role": "administrator"})
 # event1 = Event(event_type=EventTypes.CREATE_ACCOUNT, data=add_user_event_data)
 # event2 = Event(event_type=EventTypes.GET_USERS_BY_ROLE, data=role_event_data)
 # event3 = Event(event_type=EventTypes.GET_USERS_BY_AFFILIATION, data=event_data)
@@ -67,7 +67,7 @@ def call_server(event: Event):
 def close_connection():
     client.close()
 
-
+call_server(event)
 # call_server(event1)
 # call_server(event2)
 # call_server(event3)

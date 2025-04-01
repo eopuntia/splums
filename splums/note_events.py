@@ -89,10 +89,10 @@ def format_notes(unformatted_note):
     return note_dicts
 
 #*******************************************************************************************
-# GET NOTES FOR USER
+# GET NOTES FOR USER FOR ADMINS
 #*******************************************************************************************
 # Takes GET_NOTES_FOR_USER event
-def get_notes_for_user(event: Event, session):
+def get_notes_for_user_admin(event: Event, session):
     try:
         with session() as s:
             win = event.data.get('win', None)
@@ -104,3 +104,18 @@ def get_notes_for_user(event: Event, session):
         print(f"Error getting notes for user: {e}")
         return -1
 
+#*******************************************************************************************
+# GET NOTES FOR USER FOR ATTENDANTS
+#*******************************************************************************************
+# Takes GET_NOTES_FOR_USER event
+def get_notes_for_user_attendant(event: Event, session):
+    try:
+        with session() as s:
+            win = event.data.get('win', None)
+
+            requested_notes = s.scalars(select(Note).where(Note.subject_win == win and Note.attendant_view_perms == True))
+
+            return format_notes(requested_notes)
+    except Exception as e:
+        print(f"Error getting notes for user: {e}")
+        return -1
