@@ -660,7 +660,6 @@ class MainWindow(QMainWindow):
         select_page_bar.addLayout(total_users_layout)
         select_page_bar.addWidget(self.next_page_button)
         
-
         topright_bar = QHBoxLayout()
         topright_bar.setAlignment(Qt.AlignmentFlag.AlignRight)
         headcount_label_and_lcd = QVBoxLayout()
@@ -839,6 +838,9 @@ class MainWindow(QMainWindow):
 
     def search(self):
         self.search_accounts.clear()
+        # jump back to the first page
+        self.page_number_search = 1
+        self.page_label_search.setText(str(self.page_number_search))
         self.main_widget.setCurrentIndex(1)
         self.accounts_load_search()
         self.render_accounts_to_screen_search()
