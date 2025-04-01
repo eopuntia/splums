@@ -34,4 +34,5 @@ class EventTypes(Enum):
     GET_PERMS_FOR_USER = 23
     CHECK_IF_WIN_EXISTS = 24
     GET_ALL_PERMS = 25
+    GET_USERS_PAGINATED_FILTERED = 26
     

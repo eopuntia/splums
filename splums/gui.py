@@ -1,11 +1,12 @@
 import socket
 import pickle
+import math
 
 from client import *
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox, QStackedWidget
 from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from sqlalchemy.exc import SQLAlchemyError
@@ -579,15 +580,26 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.client_connection = client_connection
 
+        self.items_per_page = 5
+        self.page_number = 1
+        self.max_page = 0
+        self.total_users_in_query = 0
+        self.total_users_in_query_search = 0
+        self.page_number_search = 1
+        self.items_per_page_search = 5
+        self.max_page_search = 0
+
         self.setWindowTitle("Student Projects Lab User Management System")
         self.setMinimumSize(QSize(1280, 720))
 
-        self.main_widget = QWidget()
+        self.main_widget = QStackedWidget()
+        self.home_screen = QWidget()
         self.main_widget.setObjectName("Main")
 
-        layout_main = QVBoxLayout()
-        self.main_widget.setLayout(layout_main)
+        self.layout_main = QVBoxLayout()
+        self.main_widget.addWidget(self.home_screen)
         self.setCentralWidget(self.main_widget)
+        self.home_screen.setLayout(self.layout_main)
 
         # initialize as empty for now
         self.accounts = []
@@ -600,17 +612,54 @@ class MainWindow(QMainWindow):
 
         self.add_button = self.initialize_button("Add Account", "./splums/images/add.svg", self.add_account, button_dim, button_icon_dim)
         self.edit_button = self.initialize_button("Edit Account", "./splums/images/edit.svg", self.edit_account, button_dim, button_icon_dim)
+        self.search_button = self.initialize_button("Search", "./splums/images/search.svg", self.search, button_dim, button_icon_dim)
         self.signout_button = self.initialize_button("Sign Out", "./splums/images/signout.svg", self.sign_out, button_dim, button_icon_dim)
+        self.next_page_button = self.initialize_button("Next Page", "./splums/images/next.svg", self.next_page, button_dim, button_icon_dim)
+        self.prev_page_button = self.initialize_button("Previous Page", "./splums/images/prev.svg", self.prev_page, button_dim, button_icon_dim)
 
         layout_topsplit = QHBoxLayout()
-        layout_main.addLayout(layout_topsplit)
+        self.layout_main.addLayout(layout_topsplit)
 
         button_bar = QHBoxLayout()
         button_bar.setAlignment(Qt.AlignmentFlag.AlignLeft)
         button_bar.addWidget(self.add_button)
         button_bar.addWidget(self.edit_button)
         button_bar.addWidget(self.signout_button)
+        button_bar.addWidget(self.search_button)
         layout_topsplit.addLayout(button_bar)
+
+        total_users_layout = QVBoxLayout()
+        total_users_lab = QLabel()
+        total_users_lab.setText("Total Users")
+        self.total_users = QLabel()
+        self.total_users.setText(str(self.total_users_in_query))
+        total_users_layout.addWidget(self.total_users)
+        total_users_layout.addWidget(total_users_lab)
+
+        page_label_layout = QVBoxLayout()
+        self.page_label = QLabel()
+        page_label_lab = QLabel()
+        page_label_lab.setText("Current Page")
+        self.page_label.setText(str(self.page_number))
+        page_label_layout.addWidget(self.page_label)
+        page_label_layout.addWidget(page_label_lab)
+
+        max_page_label_layout = QVBoxLayout()
+        max_page_label_lab = QLabel()
+        max_page_label_lab.setText("Max Page")
+        self.max_page_label = QLabel()
+        self.max_page_label.setText(str(self.max_page))
+        max_page_label_layout.addWidget(self.max_page_label)
+        max_page_label_layout.addWidget(max_page_label_lab)
+
+        select_page_bar = QHBoxLayout()
+        select_page_bar.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        select_page_bar.addWidget(self.prev_page_button)
+        select_page_bar.addLayout(page_label_layout)
+        select_page_bar.addLayout(max_page_label_layout)
+        select_page_bar.addLayout(total_users_layout)
+        select_page_bar.addWidget(self.next_page_button)
+        
 
         topright_bar = QHBoxLayout()
         topright_bar.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -627,16 +676,211 @@ class MainWindow(QMainWindow):
         self.account_table.setUpdatesEnabled(True)
 
         layout_accounts = QHBoxLayout()
-        layout_main.addLayout(layout_accounts)
+        self.layout_main.addLayout(layout_accounts)
+        self.layout_main.addLayout(select_page_bar)
 
         layout_accounts.addWidget(self.account_table)
 
-        self.initial_accounts_load()
+        self.accounts_load_swiped()
         self.render_accounts_to_screen()
         self.show()
 
         self.account_table.selectRow(-1)
 
+        ### SECOND SEARCH LAYOUT
+        self.add_button_search = self.initialize_button("Add Account", "./splums/images/add.svg", self.   add_account, button_dim, button_icon_dim)
+        self.edit_button_search = self.initialize_button("Edit Account", "./splums/images/edit.svg", self.edit_account_search, button_dim, button_icon_dim)
+        self.signout_button_search = self.initialize_button("Sign Out", "./splums/images/signout.svg",    self.sign_out, button_dim, button_icon_dim)
+
+
+        self.back_button = self.initialize_button("Back", "./splums/images/prev.svg", self.back_to_main, button_dim, button_icon_dim)
+
+        self.next_page_button_search = self.initialize_button("Next Page", "./splums/images/next.svg",    self.next_page_search, button_dim, button_icon_dim)
+        self.prev_page_button_search = self.initialize_button("Previous Page", "./splums/images/prev.svg", self.prev_page_search, button_dim, button_icon_dim)
+
+        total_users_layout_search = QVBoxLayout()
+        total_users_lab_search = QLabel()
+        total_users_lab_search.setText("Total Users")
+        self.total_users_search = QLabel()
+        self.total_users_search.setText(str(self.total_users_in_query_search))
+        total_users_layout_search.addWidget(self.total_users_search)
+        total_users_layout_search.addWidget(total_users_lab_search)
+
+        page_label_layout_search = QVBoxLayout()
+        self.page_label_search = QLabel()
+        page_label_lab_search = QLabel()
+        page_label_lab_search.setText("Current Page")
+        self.page_label_search.setText(str(self.page_number_search))
+        page_label_layout_search.addWidget(self.page_label_search)
+        page_label_layout_search.addWidget(page_label_lab_search)
+
+        max_page_label_layout_search = QVBoxLayout()
+        max_page_label_lab_search = QLabel()
+        max_page_label_lab_search.setText("Max Page")
+        self.max_page_label_search = QLabel()
+        self.max_page_label_search.setText(str(self.max_page_search))
+        max_page_label_layout_search.addWidget(self.max_page_label_search)
+        max_page_label_layout_search.addWidget(max_page_label_lab_search)
+
+        select_page_bar_search = QHBoxLayout()
+        select_page_bar_search.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        select_page_bar_search.addWidget(self.prev_page_button_search)
+        select_page_bar_search.addLayout(page_label_layout_search)
+        select_page_bar_search.addLayout(max_page_label_layout_search)
+        select_page_bar_search.addLayout(total_users_layout_search)
+        select_page_bar_search.addWidget(self.next_page_button_search)
+
+        self.search_accounts = []
+
+        self.topright_bar_search = QHBoxLayout()
+        self.topright_bar_search.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        search_name_layout = QVBoxLayout()
+        self.search_name = QLineEdit()
+        self.search_name.setMaximumWidth(170)
+        search_name_layout.addWidget(self.search_name)
+        name_validator = QRegularExpressionValidator(QRegularExpression("[A-za-z]+"))
+        self.search_name.setPlaceholderText("Name...")
+        self.search_name.setValidator(name_validator)
+        
+        self.status_search = QComboBox()
+        self.status_search.setMaximumWidth(100)
+        self.status_search.addItem("All Accounts")
+        self.status_search.addItem("Swiped in")
+        self.status_search.addItem("Archived")
+        self.status_search.addItem("Blacklisted")
+
+        self.privilege_group = QGroupBox()
+        self.privilege_group.setMaximumWidth(130)
+        self.privilege_layout = QVBoxLayout()
+        self.privilege_layout.setSpacing(0)
+        privilege_type_list = []
+        privilege_types = [ "Unprivileged", "Attendant", "Administrator" ] 
+        for item in privilege_types:
+            privilege_type_list.append(QCheckBox(item))
+
+        for item in privilege_type_list:
+            self.privilege_layout.addWidget(item)
+
+        self.privilege_group.setLayout(self.privilege_layout)
+
+        self.affiliation_group = QGroupBox()
+        self.affiliation_group.setMaximumWidth(200)
+        self.affiliation_layout_1 = QVBoxLayout()
+        self.affiliation_layout_1.setSpacing(0)
+        self.affiliation_layout_2 = QVBoxLayout()
+        self.affiliation_layout_2.setSpacing(0)
+        affiliation_type_list_1 = []
+        affiliation_type_list_2 = []
+        affiliation_types_1 = [ "Undergrad", "Graduate", "Researcher" ] 
+        affiliation_types_2 = [ "Staff", "Faculty", "Other" ] 
+        for item in affiliation_types_1:
+            affiliation_type_list_1.append(QCheckBox(item))
+
+        for item in affiliation_types_2:
+            affiliation_type_list_2.append(QCheckBox(item))
+
+        for item in affiliation_type_list_1:
+            self.affiliation_layout_1.addWidget(item)
+
+        for item in affiliation_type_list_2:
+            self.affiliation_layout_2.addWidget(item)
+
+        self.combined_affiliation_layout = QHBoxLayout()
+        self.combined_affiliation_layout.addLayout(self.affiliation_layout_1)
+        self.combined_affiliation_layout.addLayout(self.affiliation_layout_2)
+
+        self.affiliation_group.setLayout(self.combined_affiliation_layout)
+
+        self.topright_bar_search.addLayout(search_name_layout)
+        self.topright_bar_search.addWidget(self.status_search)
+        self.topright_bar_search.addWidget(self.affiliation_group)
+        self.topright_bar_search.addWidget(self.privilege_group)
+
+        self.layout_search = QVBoxLayout()
+        layout_topsplit_search = QHBoxLayout()
+        self.layout_search.addLayout(layout_topsplit_search)
+
+        button_bar_search = QHBoxLayout()
+        button_bar_search.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        button_bar_search.addWidget(self.add_button_search)
+        button_bar_search.addWidget(self.edit_button_search)
+        button_bar_search.addWidget(self.signout_button_search)
+        button_bar_search.addWidget(self.back_button)
+        layout_topsplit_search.addLayout(button_bar_search)
+        layout_topsplit_search.addLayout(self.topright_bar_search)
+
+        self.search_widget = QWidget()
+        self.search_widget.setLayout(self.layout_search)
+
+        self.account_table_search = self.initialize_account_table()
+        self.account_table_search.setUpdatesEnabled(True)
+        self.account_table_search.selectRow(-1)
+
+        self.layout_accounts_search = QHBoxLayout()
+        self.layout_accounts_search.addWidget(self.account_table_search)
+        self.layout_search.addLayout(self.layout_accounts_search)
+        self.layout_search.addLayout(select_page_bar_search)
+
+        self.main_widget.addWidget(self.search_widget)
+
+        for item in self.privilege_group.findChildren(QCheckBox):
+            item.stateChanged.connect(self.search)
+            item.setChecked(True)
+
+        for item in self.affiliation_group.findChildren(QCheckBox):
+            item.stateChanged.connect(self.search)
+            item.setChecked(True)
+
+        self.status_search.currentIndexChanged.connect(self.search)
+        self.search_name.textChanged.connect(self.search)
+
+        self.main_widget.setCurrentIndex(0)
+
+    def search(self):
+        self.search_accounts.clear()
+        self.main_widget.setCurrentIndex(1)
+        self.accounts_load_search()
+        self.render_accounts_to_screen_search()
+
+    def back_to_main(self):
+        self.main_widget.setCurrentIndex(0)
+
+    def prev_page_search(self):
+        if self.page_number_search > 1:
+            self.page_number_search -= 1
+            self.page_label_search.setText(str(self.page_number_search))
+
+        self.search_accounts.clear()
+        self.accounts_load_search()
+        self.render_accounts_to_screen_search()
+
+    def prev_page(self):
+        if self.page_number > 1:
+            self.page_number -= 1
+            self.page_label.setText(str(self.page_number))
+
+        self.accounts.clear()
+        self.accounts_load_swiped()
+        self.render_accounts_to_screen()
+
+    def next_page_search(self):
+        if self.items_per_page_search * self.page_number_search < self.total_users_in_query_search:
+            self.page_number_search += 1
+            self.page_label_search.setText(str(self.page_number_search))
+
+        self.search_accounts.clear()
+        self.accounts_load_search()
+        self.render_accounts_to_screen_search()
+
+    def next_page(self):
+        if self.items_per_page * self.page_number < self.total_users_in_query:
+            self.page_number += 1
+            self.page_label.setText(str(self.page_number))
+
+        self.accounts.clear()
+        self.accounts_load_swiped()
+        self.render_accounts_to_screen()
     # sends the win of the account that you want to edit to the widget as well as the client
     # connection. from there it grabs and edits the data how it wants.
     def edit_account(self):
@@ -655,10 +899,30 @@ class MainWindow(QMainWindow):
         self.w.photo_update.connect(self.update_photos)
         self.w.save_update.connect(self.update_save)
 
+    def edit_account_search(self):
+        selected_row = self.account_table_search.currentRow()
+
+        if selected_row == -1:
+            err_msg = QMessageBox(self)
+            err_msg.setText('click to select the account you want to edit')
+            err_msg.exec()
+            return
+
+        self.w = EditAccount(self.search_accounts[selected_row].win, self.client_connection)
+        self.w.show()
+
+        # connect signal to pressing the save button 
+        self.w.photo_update.connect(self.update_photos)
+        self.w.save_update.connect(self.update_save)
+
     def update_save(self):
         self.accounts.clear()
-        self.initial_accounts_load()
+        self.accounts_load_swiped()
         self.render_accounts_to_screen()
+
+        self.search_accounts.clear()
+        self.accounts_load_search()
+        self.render_accounts_to_screen_search()
 
     def update_photos(self):
         row = 0
@@ -670,7 +934,13 @@ class MainWindow(QMainWindow):
             self.account_table.setCellWidget(row, 0, account_photo)
             row += 1
 
-        self.setWindowTitle("new title")
+        row = 0
+        for acc in self.search_accounts:
+            account_photo = QLabel()
+            account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
+
+            self.account_table_search.setCellWidget(row, 0, account_photo)
+            row += 1
 
     def add_account(self):
         self.w = AddAccount(self.client_connection)
@@ -720,10 +990,63 @@ class MainWindow(QMainWindow):
 
         return new_account_table
 
-    def initial_accounts_load(self):
-        get_account_event = Event(event_type=EventTypes.GET_USERS_BY_ROLE, data = {'role': ''})
-        # for each account ordered by role, add to self.accounts based on each dict of data returned.
-        for c in self.client_connection.call_server(get_account_event):
+    def accounts_load_search(self):
+        event_data = {"page_number": self.page_number_search, 
+                      "items_per_page": self.items_per_page_search,
+                      "swiped_users": False,
+                     }
+
+        event_data['privilege'] = []
+        for item in self.privilege_group.findChildren(QCheckBox):
+            if item.isChecked() is False:
+                # just done use User in code
+                if item.text() == "Unprivileged":
+                    event_data['privilege'].append("user")
+                else:
+                    event_data['privilege'].append(item.text().lower())
+
+        event_data['affiliation'] = []
+        for item in self.affiliation_group.findChildren(QCheckBox):
+            print(f"CHECKING affiliation {item.text()}")
+            if item.isChecked() is False:
+                # just done use User in code
+                event_data['affiliation'].append(item.text().lower())
+
+        event_data['status'] = self.status_search.currentText().lower().replace(" ", "_")
+        if event_data['status'] != "blacklisted":
+            event_data['privilege'].append("blacklisted")
+        if event_data['status'] != "archived":
+            event_data['privilege'].append("archived")
+        event_data['name'] = self.search_name.text()
+
+        res = get_users_paginated_filtered(self.client_connection, event_data)
+
+        self.total_users_in_query_search = res["total_users"]
+        self.total_users_search.setText(str(self.total_users_in_query_search))
+        self.max_page_label_search.setText(str(math.ceil(self.total_users_in_query_search / self.items_per_page_search)))
+        for c in res["users"]:
+            print(c)
+            self.search_accounts.append(Account(c))
+
+        # load notes for each account
+        for acc in self.search_accounts:
+            res = get_account_note(self.client_connection, acc.win)
+            print(f"res: {res}")
+            acc.note = res
+
+    def accounts_load_swiped(self):
+        event_data = {"page_number": self.page_number, "items_per_page": self.items_per_page}
+                      
+        event_data['privilege'] = "ignore"
+        event_data['status'] = "swiped_in"
+        event_data['affiliation'] = "ignore"
+        event_data['name'] = "ignore"
+
+        res = get_users_paginated_filtered(self.client_connection, event_data)
+        self.total_users_in_query = res["total_users"]
+        self.total_users.setText(str(self.total_users_in_query))
+        self.max_page_label.setText(str(math.ceil(self.total_users_in_query / self.items_per_page)))
+        for c in res["users"]:
             print(c)
             self.accounts.append(Account(c))
 
@@ -732,6 +1055,55 @@ class MainWindow(QMainWindow):
             res = get_account_note(self.client_connection, acc.win)
             print(f"res: {res}")
             acc.note = res
+
+    def render_accounts_to_screen_search(self):
+        self.account_table_search.setRowCount(len(self.search_accounts))
+
+        row = 0
+        # for each acc loaded into the gui
+        for acc in self.search_accounts:
+            # Account Image
+            account_photo = QLabel()
+            account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
+
+            self.account_table_search.setCellWidget(row, 0, None)
+            self.account_table_search.setCellWidget(row, 0, account_photo)
+
+            # Account Name
+            account_name_cell = QTableWidgetItem(acc.display_name)
+            account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.account_table_search.setItem(row, 1, account_name_cell)
+
+#            # permission is based on color of permission in acc_permission
+#            account_permissions_cell = QLabel("")
+#            # TODO ADD THIS LATER
+#            perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in acc.permissions)
+#            account_permissions_cell.setText(perm_string)
+#            account_permissions_cell.setStyleSheet("font-size: 18pt;")
+#            account_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+#            self.account_table.setCellWidget(row, 2, account_permissions_cell)
+
+            # horizontal row of buttons for each note this is the layout for the actual notewidget
+            note_text_cell = QTextEdit(acc.note)
+            note_text_cell.setReadOnly(True)
+            note_text_cell.setStyleSheet("font-size: 12pt;")
+            note_text_cell.setFixedHeight(100)
+            note_text_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            self.account_table_search.setCellWidget(row, 3, note_text_cell)
+
+            # Account ID
+            account_id_hidden = QTableWidgetItem(acc.win)
+            account_id_hidden.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.account_table_search.setItem(row, 4, account_id_hidden)
+            self.account_table_search.setColumnHidden(4, True)
+
+            row += 1
+
+        # Resize rows and first column to fit images
+        self.account_table_search.resizeRowsToContents()
+        self.account_table_search.resizeColumnToContents(0)
+        
 
     def render_accounts_to_screen(self):
         self.account_table.setRowCount(len(self.accounts))
@@ -797,6 +1169,13 @@ def edit_note(client, edit_data):
 
     res = client.call_server(event)
 
+def get_users_paginated_filtered(client, event_data):
+    event = Event(EventTypes.GET_USERS_PAGINATED_FILTERED, event_data)
+
+    res = client.call_server(event)
+
+    return res
+
 def check_if_win_exists(client, account_win):
     event_data = {}
     event_data['win'] = account_win
@@ -847,6 +1226,12 @@ def get_account_note(client, account_win):
     note = res
 
     return note
+
+def get_swiped_in_users(client):
+    event = Event(event_type=EventTypes.GET_SWIPED_IN_USERS, data = {'': ''})
+
+    res = client.call_server(event)
+    return res
 
 if __name__ == '__main__':
     client_connection = client_connection('127.0.0.1', 7373)
