@@ -161,7 +161,6 @@ class Picture(QWidget):
     def closeEvent(self, event):
         self.cam_worker.stop()
 
-
 class EditAccount(QWidget):
     photo_update = pyqtSignal()
     save_update = pyqtSignal()
@@ -575,6 +574,144 @@ class AddAccount(QWidget):
     def update(self):
         self.save_update.emit()
 
+class QuickView(QWidget):
+    save_update = pyqtSignal()
+    def __init__(self, win, client):
+        super().__init__()
+        self.client = client
+        self.win = win
+
+        print(f"quick view of win: {win}")
+
+        self.setWindowTitle("Account information")
+
+        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+        
+        combined_layout = QHBoxLayout()
+
+        layout = QFormLayout()
+
+        self.win_box = QLabel()
+        self.role = QLabel()
+        self.display_name = QLabel()
+        self.given_name = QLabel()
+        self.surname = QLabel()
+        self.affiliation = QLabel()
+        self.rso = QLabel()
+
+        self.permissions = QGroupBox()
+        self.perm_layout = QVBoxLayout()
+
+        perm_list = get_permissions_from_db(self.client)
+        button_list = []
+        for item in perm_list:
+            button_list.append(QCheckBox(item))
+
+        for item in button_list:
+            self.perm_layout.addWidget(item)
+
+        self.permissions.setLayout(self.perm_layout)
+
+        exit_button = QPushButton("Exit")
+        self.swipe_toggle_button = QPushButton("Swipe in")
+
+        exit_button.clicked.connect(self.close)
+        self.swipe_toggle_button.clicked.connect(self.swipe_toggle)
+
+        layout.addRow("WIN:", self.win_box)
+        layout.addRow("Role:", self.role)
+        layout.addRow("Display Name:", self.display_name)
+        layout.addRow("Given Name:", self.given_name)
+        layout.addRow("Surname:", self.surname)
+        layout.addRow("Permissions:", self.permissions)
+        layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("RSO:", self.rso)
+
+        layout.addWidget(self.swipe_toggle_button)
+        layout.addWidget(exit_button)
+
+        self.setObjectName("Main")
+        self.notes_locked_status = True
+        notes_layout = QVBoxLayout()
+        combined_layout.addLayout(layout)
+        self.notes = QPlainTextEdit()
+        self.notes.setReadOnly(True)
+        self.unlock_button = QPushButton("Unlock Notes")
+        self.save_notes_button = QPushButton("Save notes")
+        self.save_notes_button.clicked.connect(self.save_note)
+        self.notes.setPlainText(get_account_note(self.client, self.win))
+        notes_layout.addWidget(self.notes)
+        notes_layout.addWidget(self.unlock_button)
+        notes_layout.addWidget(self.save_notes_button)
+        combined_layout.addLayout(notes_layout)
+        self.setLayout(combined_layout)
+        self.unlock_button.clicked.connect(self.toggle_note_lock)
+
+        self.set_swipe_button_status()
+
+        self.initial_load()
+
+    def set_swipe_button_status(self):
+        if check_if_swiped_in(self.client, self.win):
+            self.swipe_toggle_button.setText("Swipe Out")
+        else:
+            self.swipe_toggle_button.setText("Swipe In")
+
+
+    def swipe_toggle(self):
+        if check_if_swiped_in(self.client, self.win):
+            swipe_out_user(self.client, self.win)
+        else:
+            swipe_in_user(self.client, self.win)
+            
+        self.save_update.emit()
+        self.set_swipe_button_status()
+
+    def toggle_note_lock(self):
+        if self.notes_locked_status == True:
+            self.notes_locked_status = False
+            self.notes.setReadOnly(False)
+            self.unlock_button.setText("Lock Notes")
+        else:
+            self.notes_locked_status = True
+            self.notes.setReadOnly(True)
+            self.unlock_button.setText("Unlock Notes")
+
+    def initial_load(self):
+        acc_data = get_account_data(self.client, self.win)
+
+        self.win_box.setText(str(acc_data['win']))
+        self.display_name.setText(acc_data['display_name'])
+        self.given_name.setText(acc_data['given_name'])
+        self.surname.setText(acc_data['surname'])
+
+        if acc_data['rso'] is not None:
+            self.rso.setText(acc_data['rso'])
+
+        permissions = get_account_permissions(self.client, self.win)
+        if permissions is not None:
+            for item in self.permissions.findChildren(QCheckBox):
+                item.setEnabled(False)
+                for perm in permissions:
+                    print(f'{item.text()} on {perm}')
+                    if item.text().lower().replace(" ", "_") == perm:
+                        print(f'need to check the state of {perm}')
+                        item.setChecked(True)
+
+
+        self.role.setText(acc_data['role'].capitalize())
+        self.affiliation.setText(acc_data['affiliation'].capitalize())
+
+    def save_note(self):
+        data = {}
+        data['win'] = self.win
+        data['edit_attrs'] = {}
+        data['edit_attrs']['text'] = self.notes.toPlainText()
+
+        edit_note(self.client, data)
+
+        self.save_update.emit()
+
 class MainWindow(QMainWindow):
     def __init__(self, client_connection):
         super().__init__()
@@ -660,7 +797,6 @@ class MainWindow(QMainWindow):
         select_page_bar.addLayout(total_users_layout)
         select_page_bar.addWidget(self.next_page_button)
         
-
         topright_bar = QHBoxLayout()
         topright_bar.setAlignment(Qt.AlignmentFlag.AlignRight)
         headcount_label_and_lcd = QVBoxLayout()
@@ -835,10 +971,45 @@ class MainWindow(QMainWindow):
         self.status_search.currentIndexChanged.connect(self.search)
         self.search_name.textChanged.connect(self.search)
 
+        self.account_table.doubleClicked.connect(self.attendant_blurb_swiped)
+        self.account_table_search.doubleClicked.connect(self.attendant_blurb_search)
+
         self.main_widget.setCurrentIndex(0)
+
+    def attendant_blurb_swiped(self):
+        selected_row = self.account_table.currentRow()
+
+        if selected_row == -1:
+            err_msg = QMessageBox(self)
+            err_msg.setText('click to select the account you want to view')
+            err_msg.exec()
+            return
+
+        self.w = QuickView(self.accounts[selected_row].win, self.client_connection)
+        self.w.show()
+
+        self.w.save_update.connect(self.update_save)
+
+    def attendant_blurb_search(self):
+        selected_row = self.account_table_search.currentRow()
+
+        if selected_row == -1:
+            err_msg = QMessageBox(self)
+            err_msg.setText('click to select the account you want to view')
+            err_msg.exec()
+            return
+
+        self.w = QuickView(self.search_accounts[selected_row].win, self.client_connection)
+        self.w.show()
+
+        # connect signal to pressing the save button 
+        self.w.save_update.connect(self.update_save)
 
     def search(self):
         self.search_accounts.clear()
+        # jump back to the first page
+        self.page_number_search = 1
+        self.page_label_search.setText(str(self.page_number_search))
         self.main_widget.setCurrentIndex(1)
         self.accounts_load_search()
         self.render_accounts_to_screen_search()
@@ -1024,8 +1195,9 @@ class MainWindow(QMainWindow):
         self.total_users_in_query_search = res["total_users"]
         self.total_users_search.setText(str(self.total_users_in_query_search))
         self.max_page_label_search.setText(str(math.ceil(self.total_users_in_query_search / self.items_per_page_search)))
+        print("AFTER GET USERS CALL")
         for c in res["users"]:
-            print(c)
+            print(c["display_name"])
             self.search_accounts.append(Account(c))
 
         # load notes for each account
@@ -1226,6 +1398,22 @@ def get_account_note(client, account_win):
     note = res
 
     return note
+
+def check_if_swiped_in(client, account_win):
+    event = Event(event_type=EventTypes.CHECK_IF_SWIPED_IN, data = {'win': account_win})
+    res = client.call_server(event)
+    if res["swiped_in"] == True:
+        return True
+    else:
+        return False
+
+def swipe_out_user(client, account_win):
+    event = Event(event_type=EventTypes.SWIPE_OUT, data = {'win': account_win})
+    res = client.call_server(event)
+
+def swipe_in_user(client, account_win):
+    event = Event(event_type=EventTypes.SWIPE_IN, data = {'win': account_win})
+    res = client.call_server(event)
 
 def get_swiped_in_users(client):
     event = Event(event_type=EventTypes.GET_SWIPED_IN_USERS, data = {'': ''})
