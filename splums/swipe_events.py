@@ -23,6 +23,7 @@ def swipe_in(event, session, event_broker):
         else:
             if(account.role.name != "blacklisted"):
                 account.swiped_in = 1
+                account.last_access = event.time_stamp
                 s.commit()
                 event_broker.process_event(Event(EventTypes.ACCEPTED_SWIPE_IN, event.data))
             else:

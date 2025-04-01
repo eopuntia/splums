@@ -1,5 +1,5 @@
 import datetime
-from enum import Enum
+from enum import IntEnum
 
 class Event:
     def __init__(self, event_type, data = None):
@@ -7,7 +7,7 @@ class Event:
         self.data = data
         self.time_stamp = datetime.datetime.now()
 
-class EventTypes(Enum):
+class EventTypes(IntEnum):
     SWIPE_IN = 0
     ACCEPTED_SWIPE_IN = 1
     DENIED_SWIPE_IN = 2

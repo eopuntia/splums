@@ -1,7 +1,7 @@
 from events import Event
 from events import EventTypes
 from sqlalchemy import select
-import note_events, account_events, swipe_events, event_log #permission_events
+import note_events, account_events, swipe_events, event_log, permission_events
 from models.models import Account, Note, Role
 
 class EventBroker:
