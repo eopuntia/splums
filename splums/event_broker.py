@@ -1,7 +1,7 @@
 from events import Event
 from events import EventTypes
 from sqlalchemy import select
-import note_events, account_events, swipe_events, permission_events
+import note_events, account_events, swipe_events, event_log #permission_events
 from models.models import Account, Note, Role
 
 class EventBroker:
@@ -17,6 +17,7 @@ class EventBroker:
             # TODO IMPLEMENT
             case EventTypes.ACCEPTED_SWIPE_IN:
                 print(f"Accepted Swipe In")
+                event_log.log(event, self.session)
                 # towerLightGreen()
                 # showAttendantScreen(event)
                 # showLabScreen(event)
@@ -25,6 +26,7 @@ class EventBroker:
             # TODO IMPLEMENT
             case EventTypes.DENIED_SWIPE_IN:
                 print(f"Denied Swipe In")
+                event_log.log(event, self.session)
                 # towerLightRed()
 
             case EventTypes.SWIPE_OUT: 
@@ -34,6 +36,7 @@ class EventBroker:
             # TODO IMPLEMENT
             case EventTypes.ACCEPTED_SWIPE_OUT: 
                 print(f"Accepted Swipe Out")
+                event_log.log(event, self.session)
                 # towerLightGreen()
                 # removeAttendantScreen(event)
                 # removeLabScreen(event)
@@ -42,40 +45,49 @@ class EventBroker:
             # TODO IMPLEMENT
             case EventTypes.DENIED_SWIPE_OUT: 
                 print(f"Denied Swipe Out")
+                event_log.log(event, self.session)
                 # towerLightRed()
 
             # TODO IMPLEMENT
             case EventTypes.EXPECTED_GATE_CROSSING: 
                 print(f"Expected Gate Crossing")
+                event_log.log(event, self.session)
 
             # TODO IMPLEMENT
             case EventTypes.UNEXPECTED_GATE_CROSSING: 
                 print(f"Unexpected Gate Crossing")
+                event_log.log(event, self.session)
                 # activateAlarm()
                 # towerLightRed()
 
             case EventTypes.CREATE_ACCOUNT: 
                 print(f"Create New Account")
+                event_log.log(event, self.session)
                 return account_events.create(event, self.session)
 
             case EventTypes.DELETE_ACCOUNT:
                 print(f"Delete Account")
+                event_log.log(event, self.session)
                 return account_events.delete(event, self.session)
 
             case EventTypes.EDIT_ACCOUNT: 
                 print(f"Edit Account")
+                event_log.log(event, self.session)
                 return account_events.edit(event, self.session)
 
             case EventTypes.CREATE_NOTE: 
                 print(f"Create Note")
+                event_log.log(event, self.session)
                 return note_events.create(event, self.session)
 
             case EventTypes.DELETE_NOTE: 
                 print(f"Delete Note")
+                event_log.log(event, self.session)
                 return note_events.delete(event, self.session)
 
             case EventTypes.EDIT_NOTE: 
                 print(f"Edit Note")
+                event_log.log(event, self.session)
                 return note_events.edit(event, self.session)
 
             # TODO IMPLEMENT
@@ -86,11 +98,13 @@ class EventBroker:
             # TODO IMPLEMENT
             case EventTypes.CLOSE_LAB: 
                 print(f"Close Lab")
+                event_log.log(event, self.session)
                 self.close_lab(event)
 
             # TODO IMPLEMENT
             case EventTypes.ARCHIVE_ACCOUNT: 
                 print(f"Archive User")
+                event_log.log(event, self.session)
                 # self.archive_account(event)
 
             case EventTypes.GET_USERS_BY_ROLE:

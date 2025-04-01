@@ -2,7 +2,7 @@ import datetime
 from enum import Enum
 
 class Event:
-    def __init__(self, event_type, data):
+    def __init__(self, event_type, data = None):
         self.event_type = event_type
         self.data = data
         self.time_stamp = datetime.datetime.now()

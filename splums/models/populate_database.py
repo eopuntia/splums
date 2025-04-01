@@ -63,11 +63,23 @@ with Session() as session:
     session.execute( 
         insert(Event_Type),
         [
-            {"name": "Authorized User Swipe"},
-            {"name": "Archived User Swipe"},
-            {"name": "Archived User Swipe"},
-            {"name": "Blacklisted User Swipe"},
-            {"name": "Intrusion Detected"},
+            {"name": "Swipe In"},
+            {"name": "Accepted Swipe In"},
+            {"name": "Denied Swipe In"},
+            {"name": "Swipe Out"},
+            {"name": "Accepted Swipe Out"},
+            {"name": "Denied Swipe Out"},
+            {"name": "Expected Gate Crossing"},
+            {"name": "Unexpected Gate Crossing"},
+            {"name": "Account Created"},
+            {"name": "Account Deleted"},
+            {"name": "Account Edited"},
+            {"name": "Note Created"},
+            {"name": "Note Edited"},
+            {"name": "Note Deleted"},
+            {"name": "Lab Opened"},
+            {"name": "Lab Closed"},
+            {"name": "Account Archived"},
         ],
     )
     
