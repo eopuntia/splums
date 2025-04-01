@@ -99,13 +99,12 @@ class EventBroker:
             case EventTypes.CLOSE_LAB: 
                 print(f"Close Lab")
                 event_log.log(event, self.session)
-                self.close_lab(event)
+                self.close_lab()
 
-            # TODO IMPLEMENT
             case EventTypes.ARCHIVE_ACCOUNT: 
                 print(f"Archive User")
                 event_log.log(event, self.session)
-                # self.archive_account(event)
+                return account_events.archive_user(event, self.session)
 
             case EventTypes.GET_USERS_BY_ROLE:
                 print(f"\033[93mGetting users...\033[0m")
@@ -160,3 +159,9 @@ class EventBroker:
 
             case _:
                 print(f"Error")
+
+
+    def close_lab(self):
+        swipe_events.auto_swipe_outs(self.session, self)
+        account_events.auto_archive_user(self.session)
+        account_events.auto_delete_user(self.session)

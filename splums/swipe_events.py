@@ -27,3 +27,9 @@ def swipe_out(event, session, event_broker):
                 event_broker.process_event(Event(EventTypes.ACCEPTED_SWIPE_OUT, event.data))
             else:
                 event_broker.process_event(Event(EventTypes.DENIED_SWIPE_OUT, {"name": account.display_name, "role": "blacklisted"}))
+
+def auto_swipe_outs(session, event_broker):
+    with session.begin() as s:
+        swipe_outs = s.scalars(select(Account).where(Account.swiped_in != 0)).all()
+        for user in swipe_outs:
+            event_broker.process_event(Event(EventTypes.SWIPE_OUT, {"win": user.win}))
