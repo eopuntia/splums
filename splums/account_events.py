@@ -236,6 +236,7 @@ def get_users_by_role(event: Event, session):
     except Exception as e:
         print(f"Error getting users by role: {e}")
         return -1
+
 def get_swiped_in_users(session):
     try:
         with session() as s:

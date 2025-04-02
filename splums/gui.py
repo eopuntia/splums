@@ -175,7 +175,25 @@ class EditAccount(QWidget):
 
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
 
+        self.stacked_widget = QStackedWidget()
+        self.stacked_layout = QVBoxLayout()
+        self.stacked_widget.setObjectName("Edit")
+
+        delete_layout = QVBoxLayout()
+
         layout = QFormLayout()
+        self.main_widget = QWidget()
+        self.main_widget.setLayout(layout)
+        self.delete_widget = QWidget()
+        self.delete_widget.setLayout(delete_layout)
+        self.notes_widget = QWidget()
+        
+        self.stacked_widget.addWidget(self.main_widget)
+        self.stacked_widget.addWidget(self.delete_widget)
+        self.stacked_widget.addWidget(self.notes_widget)
+        self.stacked_widget.setCurrentIndex(0)
+        self.stacked_layout.addWidget(self.stacked_widget)
+        self.setLayout(self.stacked_layout)
 
         self.win_box = QLineEdit()
         self.role = QComboBox()
@@ -183,6 +201,8 @@ class EditAccount(QWidget):
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
         self.affiliation = QComboBox()
+        self.delete_warning = QLabel()
+        self.delete_warning.setText("WARNING: THIS ACTION CANNOT BE REVERSED")
         self.rso = QLineEdit()
 
         self.permissions = QGroupBox()
@@ -199,13 +219,21 @@ class EditAccount(QWidget):
         self.permissions.setLayout(self.perm_layout)
 
         notes_button = QPushButton("Notes")
+        self.delete_button = QPushButton("Delete")
+        self.confirm_delete_button = QPushButton("CONFIRM DELETE")
+        self.swipe_button = QPushButton("Swipe out")
+        self.back_to_main_button = QPushButton("Back")
         photo_button = QPushButton("Take Photo")
         save_button = QPushButton("Save")
         exit_button = QPushButton("Exit")
 
         photo_button.clicked.connect(self.show_photo)
+        self.back_to_main_button.clicked.connect(self.back_to_main)
         notes_button.clicked.connect(self.show_notes)
         save_button.clicked.connect(self.save_edit)
+        self.delete_button.clicked.connect(self.delete_account)
+        self.confirm_delete_button.clicked.connect(self.confirm_delete)
+        self.swipe_button.clicked.connect(self.swipe_toggle)
         exit_button.clicked.connect(self.close)
 
         layout.addRow("WIN:", self.win_box)
@@ -217,13 +245,17 @@ class EditAccount(QWidget):
         layout.addRow("Affiliation:", self.affiliation)
         layout.addRow("RSO:", self.rso)
 
+        delete_layout.addWidget(self.delete_warning)
+        delete_layout.addWidget(self.confirm_delete_button)
+        delete_layout.addWidget(self.back_to_main_button)
         layout.addWidget(photo_button)
         layout.addWidget(notes_button)
         layout.addWidget(save_button)
+        layout.addWidget(self.delete_button)
+        layout.addWidget(self.swipe_button)
         layout.addWidget(exit_button)
 
         self.setObjectName("Main")
-        self.setLayout(layout)
 
         win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
@@ -238,6 +270,8 @@ class EditAccount(QWidget):
         self.role.addItem("User")
         self.role.addItem("Administrator")
         self.role.addItem("Attendant")
+        self.role.addItem("Archived")
+        self.role.addItem("Blacklisted")
 
         self.affiliation.addItem("Undergrad")
         self.affiliation.addItem("Graduate")
@@ -261,7 +295,54 @@ class EditAccount(QWidget):
         self.rso.setPlaceholderText("Registered Student Org...")
         self.rso.setValidator(name_validator)
 
+        self.swiped = False
+        self.set_swipe_button_status()
+        self.remove_unnecessary_buttons()
+
         self.initial_load()
+
+    def back_to_main(self):
+        self.stacked_widget.setCurrentIndex(0)
+
+    def confirm_delete(self):
+        delete_acc(self.client, self.win)
+        
+        self.save_update.emit()
+        self.close()
+
+    def remove_unnecessary_buttons(self):
+        data = get_account_data(self.client, self.win)
+        # should only be able to swipe in and out if active role
+        if data["role"] == "blacklisted" or data["role"] == "archived" or data["role"] == "pending":
+            self.swipe_button.hide()
+        else:
+            self.swipe_button.show()
+
+        if data["role"] == "blacklisted" or data["role"] == "archived":
+            self.delete_button.show()
+        else:
+            self.delete_button.hide()
+
+    def set_swipe_button_status(self):
+        if check_if_swiped_in(self.client, self.win):
+            self.swipe_button.setText("Swipe Out")
+            self.swiped = True
+        else:
+            self.swipe_button.setText("Swipe In")
+            self.swiped = False
+
+    def swipe_toggle(self):
+        if check_if_swiped_in(self.client, self.win):
+            swipe_out_user(self.client, self.win)
+        else:
+            swipe_in_user(self.client, self.win)
+
+        self.save_update.emit()
+        self.set_swipe_button_status()
+
+    def delete_account(self):
+        print("DELETE")
+        self.stacked_widget.setCurrentIndex(1)
             
     def initial_load(self):
         acc_data = get_account_data(self.client, self.win)
@@ -288,6 +369,20 @@ class EditAccount(QWidget):
 
     # TODO add proper error handling
     def save_edit(self):
+        if self.role.currentText().lower() == "archived" and self.swiped:
+            name = self.display_name.text()
+            err_msg = QMessageBox(self)
+            err_msg.show()
+            err_msg.setText(name + " must be swiped out before archiving")
+            return
+
+        if self.role.currentText().lower() == "blacklisted" and self.swiped:
+            name = self.display_name.text()
+            err_msg = QMessageBox(self)
+            err_msg.show()
+            err_msg.setText(name + " must be swiped out before blacklisting")
+            return
+
         data = {}
         data['win'] = self.win
         data['edit_attrs'] = {}
@@ -302,6 +397,7 @@ class EditAccount(QWidget):
         data['edit_attrs']['permissions'] = []
         data['edit_attrs']['no_permissions'] = []
 
+
         for item in self.permissions.findChildren(QCheckBox):
             if item.isChecked():
                 data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
@@ -309,6 +405,7 @@ class EditAccount(QWidget):
                 data['edit_attrs']['no_permissions'].append(item.text().lower().replace(" ", "_"))
 
         edit_account(self.client, data)
+        self.remove_unnecessary_buttons()
         self.save_update.emit()
 
     def show_notes(self):
@@ -1406,6 +1503,10 @@ def check_if_swiped_in(client, account_win):
         return True
     else:
         return False
+
+def delete_acc(client, account_win):
+    event = Event(event_type=EventTypes.DELETE_ACCOUNT, data = {'win': account_win})
+    res = client.call_server(event)
 
 def swipe_out_user(client, account_win):
     event = Event(event_type=EventTypes.SWIPE_OUT, data = {'win': account_win})

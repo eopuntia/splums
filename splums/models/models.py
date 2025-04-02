@@ -70,10 +70,10 @@ class Account(Base):
     # Relationships where the account is the one in one-many
     # another field of foreign_keys is added for notes_subject and notes_creator since they both reference account ids so you need
     # to let SQL alchemy know which one is which.
-    notes_subject: Mapped[List["Note"]] = relationship(back_populates="subject_account", foreign_keys="Note.subject_win")
-    notes_creator: Mapped[List["Note"]] = relationship(back_populates="creator_account", foreign_keys="Note.creator_win")
-    events: Mapped[List["Event"]] = relationship(back_populates="account")
-    equipments: Mapped[List["Account_Equipment"]] = relationship(back_populates="account")
+    notes_subject: Mapped[List["Note"]] = relationship(back_populates="subject_account", foreign_keys="Note.subject_win", cascade="all, delete-orphan")
+    notes_creator: Mapped[List["Note"]] = relationship(back_populates="creator_account", foreign_keys="Note.creator_win", cascade="all, delete-orphan")
+    events: Mapped[List["Event"]] = relationship(back_populates="account", cascade="all, delete-orphan")
+    equipments: Mapped[List["Account_Equipment"]] = relationship(back_populates="account", cascade="all, delete-orphan")
     
     # Relationships where the account is the many in one-many. 
     # This is the relationship that corresponds to the accounts field in Role.
