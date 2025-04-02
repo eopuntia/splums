@@ -214,6 +214,7 @@ class EditAccount(QWidget):
 
         self.win_box = QLineEdit()
         self.role = QComboBox()
+        self.department = QComboBox()
         self.display_name = QLineEdit()
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
@@ -262,11 +263,13 @@ class EditAccount(QWidget):
         layout.addRow("Surname:", self.surname)
         layout.addRow("Permissions:", self.permissions)
         layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("Department:", self.department)
         layout.addRow("RSO:", self.rso)
 
         delete_layout.addWidget(self.delete_warning)
         delete_layout.addWidget(self.confirm_delete_button)
         delete_layout.addWidget(self.back_to_main_button)
+
         layout.addWidget(photo_button)
         layout.addWidget(public_notes_button)
         layout.addWidget(private_notes_button)
@@ -292,6 +295,11 @@ class EditAccount(QWidget):
         self.role.addItem("Attendant")
         self.role.addItem("Archived")
         self.role.addItem("Blacklisted")
+
+        self.department.addItem("CS")
+        self.department.addItem("Aero")
+        self.department.addItem("Paper")
+        self.department.addItem("Other")
 
         self.affiliation.addItem("Undergrad")
         self.affiliation.addItem("Graduate")
@@ -370,6 +378,7 @@ class EditAccount(QWidget):
         self.win_box.setText(str(acc_data['win']))
         self.display_name.setText(acc_data['display_name'])
         self.given_name.setText(acc_data['given_name'])
+        self.department.setCurrentText(acc_data['department'].capitalize())
         self.surname.setText(acc_data['surname'])
 
         if acc_data['rso'] is not None:
@@ -414,6 +423,7 @@ class EditAccount(QWidget):
         data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['department'] = self.department.currentText().lower()
         data['edit_attrs']['permissions'] = []
         data['edit_attrs']['no_permissions'] = []
 
@@ -563,6 +573,7 @@ class AddAccount(QWidget):
 
         self.win_box = QLineEdit()
         self.role = QComboBox()
+        self.department = QComboBox()
         self.display_name = QLineEdit()
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
@@ -595,6 +606,7 @@ class AddAccount(QWidget):
         layout.addRow("Surname:", self.surname)
         layout.addRow("Permissions:", self.permissions)
         layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("Department", self.department)
         layout.addRow("RSO:", self.rso)
 
         layout.addWidget(create_button)
@@ -614,6 +626,11 @@ class AddAccount(QWidget):
         self.role.addItem("User")
         self.role.addItem("Administrator")
         self.role.addItem("Attendant")
+
+        self.department.addItem("CS")
+        self.department.addItem("Aero")
+        self.department.addItem("Paper")
+        self.department.addItem("Other")
  
         self.display_name.setPlaceholderText("Display Name...")
         self.display_name.setValidator(name_validator)
@@ -675,6 +692,7 @@ class AddAccount(QWidget):
         data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['department'] = self.department.currentText().lower()
         data['edit_attrs']['permissions'] = []
 
         for item in self.permissions.findChildren(QCheckBox):
@@ -715,6 +733,7 @@ class QuickView(QWidget):
 
         self.win_box = QLabel()
         self.role = QLabel()
+        self.department = QLabel()
         self.display_name = QLabel()
         self.given_name = QLabel()
         self.surname = QLabel()
@@ -747,6 +766,7 @@ class QuickView(QWidget):
         layout.addRow("Surname:", self.surname)
         layout.addRow("Permissions:", self.permissions)
         layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("Department:", self.department)
         layout.addRow("RSO:", self.rso)
 
         layout.addWidget(self.swipe_toggle_button)
@@ -831,6 +851,7 @@ class QuickView(QWidget):
 
 
         self.role.setText(acc_data['role'].capitalize())
+        self.department.setText(acc_data['department'].capitalize())
         self.affiliation.setText(acc_data['affiliation'].capitalize())
 
     def save_public_note(self):

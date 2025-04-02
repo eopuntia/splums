@@ -10,6 +10,16 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 class Base(DeclarativeBase):
     pass
 
+class Department(Base):
+    __tablename__ = 'department'
+
+    department_id: Mapped[int] = mapped_column(primary_key=True)
+
+    name: Mapped[str] = mapped_column(String(255))
+    icon_url: Mapped[str] = mapped_column(String(255))
+
+    accounts: Mapped[List["Account"]] = relationship(back_populates="department")
+
 class Affiliation(Base):
     __tablename__ = 'affiliation'
 
@@ -46,6 +56,7 @@ class Account(Base):
     # Together with the Mapped[int], Sql alchemy has all the needed information.
     role_id: Mapped[int] = mapped_column(ForeignKey("role.role_id"))
     affiliation_id: Mapped[int] = mapped_column(ForeignKey("affiliation.affiliation_id"))
+    department_id: Mapped[int] = mapped_column(ForeignKey("department.department_id"))
 
     display_name: Mapped[str] = mapped_column(String(255))
     given_name: Mapped[str] = mapped_column(String(255))
@@ -79,6 +90,7 @@ class Account(Base):
     # This is the relationship that corresponds to the accounts field in Role.
     role: Mapped["Role"] = relationship(back_populates="accounts")
     affiliation: Mapped["Affiliation"] = relationship(back_populates="accounts")
+    department: Mapped["Department"] = relationship(back_populates="accounts")
 
 class Equipment(Base):
     __tablename__ = 'equipment'
