@@ -1,5 +1,6 @@
 from events import Event, EventTypes
 from sqlalchemy import select
+from datetime import datetime
 from models.models import Account
 
 def check_if_swiped_in(event, session, event_broker):
@@ -23,6 +24,7 @@ def swipe_in(event, session, event_broker):
         else:
             if(account.role.name != "blacklisted"):
                 account.swiped_in = 1
+                account.last_access = datetime.now()
                 s.commit()
                 event_broker.process_event(Event(EventTypes.ACCEPTED_SWIPE_IN, event.data))
             else:

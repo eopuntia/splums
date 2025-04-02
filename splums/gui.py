@@ -37,9 +37,10 @@ class Account():
 
 class Notes(QWidget):
     save_update = pyqtSignal()
-    def __init__(self, client, win):
+    def __init__(self, client, win, status):
         super().__init__()
         self.client = client
+        self.status = status
         self.win = win
         main_layout = QGridLayout(self)
         self.setWindowTitle("Notes")
@@ -50,7 +51,6 @@ class Notes(QWidget):
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
         
         self.text_box = QPlainTextEdit()
-        self.text_box.setPlainText(get_account_note(self.client, self.win))
 
         save_button = QPushButton('Save')
         exit_button = QPushButton("Exit")
@@ -59,16 +59,34 @@ class Notes(QWidget):
         main_layout.addWidget(save_button)
         main_layout.addWidget(exit_button)
 
-        save_button.clicked.connect(self.save_note)
+        if self.status == "public":
+            save_button.clicked.connect(self.save_public_note)
+            self.text_box.setPlainText(get_public_account_note(self.client, self.win))
+        if self.status == "private":
+            save_button.clicked.connect(self.save_private_note)
+            self.text_box.setPlainText(get_private_account_note(self.client, self.win))
+
         exit_button.clicked.connect(self.close)
 
-    def save_note(self):
+    def save_private_note(self):
         data = {}
         data['win'] = self.win
-        data['edit_attrs'] = {}
-        data['edit_attrs']['text'] = self.text_box.toPlainText()
+        data['text'] = self.text_box.toPlainText()
+        data['type'] = 'private'
+        print(data)
 
-        edit_note(self.client, data)
+        edit_public_note(self.client, data)
+
+        self.save_update.emit()
+
+    def save_public_note(self):
+        data = {}
+        data['win'] = self.win
+        data['text'] = self.text_box.toPlainText()
+        data['type'] = 'public'
+        print(data)
+
+        edit_public_note(self.client, data)
 
         self.save_update.emit()
 
@@ -175,14 +193,35 @@ class EditAccount(QWidget):
 
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
 
+        self.stacked_widget = QStackedWidget()
+        self.stacked_layout = QVBoxLayout()
+        self.stacked_widget.setObjectName("Edit")
+
+        delete_layout = QVBoxLayout()
+
         layout = QFormLayout()
+        self.main_widget = QWidget()
+        self.main_widget.setLayout(layout)
+        self.delete_widget = QWidget()
+        self.delete_widget.setLayout(delete_layout)
+        self.notes_widget = QWidget()
+        
+        self.stacked_widget.addWidget(self.main_widget)
+        self.stacked_widget.addWidget(self.delete_widget)
+        self.stacked_widget.addWidget(self.notes_widget)
+        self.stacked_widget.setCurrentIndex(0)
+        self.stacked_layout.addWidget(self.stacked_widget)
+        self.setLayout(self.stacked_layout)
 
         self.win_box = QLineEdit()
         self.role = QComboBox()
+        self.department = QComboBox()
         self.display_name = QLineEdit()
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
         self.affiliation = QComboBox()
+        self.delete_warning = QLabel()
+        self.delete_warning.setText("WARNING: THIS ACTION CANNOT BE REVERSED")
         self.rso = QLineEdit()
 
         self.permissions = QGroupBox()
@@ -198,14 +237,24 @@ class EditAccount(QWidget):
 
         self.permissions.setLayout(self.perm_layout)
 
-        notes_button = QPushButton("Notes")
+        public_notes_button = QPushButton("Public Notes")
+        private_notes_button = QPushButton("Private Notes")
+        self.delete_button = QPushButton("Delete")
+        self.confirm_delete_button = QPushButton("CONFIRM DELETE")
+        self.swipe_button = QPushButton("Swipe out")
+        self.back_to_main_button = QPushButton("Back")
         photo_button = QPushButton("Take Photo")
         save_button = QPushButton("Save")
         exit_button = QPushButton("Exit")
 
         photo_button.clicked.connect(self.show_photo)
-        notes_button.clicked.connect(self.show_notes)
+        self.back_to_main_button.clicked.connect(self.back_to_main)
+        public_notes_button.clicked.connect(self.show_notes_public)
+        private_notes_button.clicked.connect(self.show_notes_private)
         save_button.clicked.connect(self.save_edit)
+        self.delete_button.clicked.connect(self.delete_account)
+        self.confirm_delete_button.clicked.connect(self.confirm_delete)
+        self.swipe_button.clicked.connect(self.swipe_toggle)
         exit_button.clicked.connect(self.close)
 
         layout.addRow("WIN:", self.win_box)
@@ -215,15 +264,22 @@ class EditAccount(QWidget):
         layout.addRow("Surname:", self.surname)
         layout.addRow("Permissions:", self.permissions)
         layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("Department:", self.department)
         layout.addRow("RSO:", self.rso)
 
+        delete_layout.addWidget(self.delete_warning)
+        delete_layout.addWidget(self.confirm_delete_button)
+        delete_layout.addWidget(self.back_to_main_button)
+
         layout.addWidget(photo_button)
-        layout.addWidget(notes_button)
+        layout.addWidget(public_notes_button)
+        layout.addWidget(private_notes_button)
         layout.addWidget(save_button)
+        layout.addWidget(self.delete_button)
+        layout.addWidget(self.swipe_button)
         layout.addWidget(exit_button)
 
         self.setObjectName("Main")
-        self.setLayout(layout)
 
         win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
@@ -238,6 +294,13 @@ class EditAccount(QWidget):
         self.role.addItem("User")
         self.role.addItem("Administrator")
         self.role.addItem("Attendant")
+        self.role.addItem("Archived")
+        self.role.addItem("Blacklisted")
+
+        self.department.addItem("CS")
+        self.department.addItem("Aero")
+        self.department.addItem("Paper")
+        self.department.addItem("Other")
 
         self.affiliation.addItem("Undergrad")
         self.affiliation.addItem("Graduate")
@@ -261,7 +324,54 @@ class EditAccount(QWidget):
         self.rso.setPlaceholderText("Registered Student Org...")
         self.rso.setValidator(name_validator)
 
+        self.swiped = False
+        self.set_swipe_button_status()
+        self.remove_unnecessary_buttons()
+
         self.initial_load()
+
+    def back_to_main(self):
+        self.stacked_widget.setCurrentIndex(0)
+
+    def confirm_delete(self):
+        delete_acc(self.client, self.win)
+        
+        self.save_update.emit()
+        self.close()
+
+    def remove_unnecessary_buttons(self):
+        data = get_account_data(self.client, self.win)
+        # should only be able to swipe in and out if active role
+        if data["role"] == "blacklisted" or data["role"] == "archived" or data["role"] == "pending":
+            self.swipe_button.hide()
+        else:
+            self.swipe_button.show()
+
+        if data["role"] == "blacklisted" or data["role"] == "archived":
+            self.delete_button.show()
+        else:
+            self.delete_button.hide()
+
+    def set_swipe_button_status(self):
+        if check_if_swiped_in(self.client, self.win):
+            self.swipe_button.setText("Swipe Out")
+            self.swiped = True
+        else:
+            self.swipe_button.setText("Swipe In")
+            self.swiped = False
+
+    def swipe_toggle(self):
+        if check_if_swiped_in(self.client, self.win):
+            swipe_out_user(self.client, self.win)
+        else:
+            swipe_in_user(self.client, self.win)
+
+        self.save_update.emit()
+        self.set_swipe_button_status()
+
+    def delete_account(self):
+        print("DELETE")
+        self.stacked_widget.setCurrentIndex(1)
             
     def initial_load(self):
         acc_data = get_account_data(self.client, self.win)
@@ -269,6 +379,7 @@ class EditAccount(QWidget):
         self.win_box.setText(str(acc_data['win']))
         self.display_name.setText(acc_data['display_name'])
         self.given_name.setText(acc_data['given_name'])
+        self.department.setCurrentText(acc_data['department'].capitalize())
         self.surname.setText(acc_data['surname'])
 
         if acc_data['rso'] is not None:
@@ -288,6 +399,20 @@ class EditAccount(QWidget):
 
     # TODO add proper error handling
     def save_edit(self):
+        if self.role.currentText().lower() == "archived" and self.swiped:
+            name = self.display_name.text()
+            err_msg = QMessageBox(self)
+            err_msg.show()
+            err_msg.setText(name + " must be swiped out before archiving")
+            return
+
+        if self.role.currentText().lower() == "blacklisted" and self.swiped:
+            name = self.display_name.text()
+            err_msg = QMessageBox(self)
+            err_msg.show()
+            err_msg.setText(name + " must be swiped out before blacklisting")
+            return
+
         data = {}
         data['win'] = self.win
         data['edit_attrs'] = {}
@@ -299,8 +424,10 @@ class EditAccount(QWidget):
         data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['department'] = self.department.currentText().lower()
         data['edit_attrs']['permissions'] = []
         data['edit_attrs']['no_permissions'] = []
+
 
         for item in self.permissions.findChildren(QCheckBox):
             if item.isChecked():
@@ -309,10 +436,16 @@ class EditAccount(QWidget):
                 data['edit_attrs']['no_permissions'].append(item.text().lower().replace(" ", "_"))
 
         edit_account(self.client, data)
+        self.remove_unnecessary_buttons()
         self.save_update.emit()
 
-    def show_notes(self):
-        self.w = Notes(self.client, self.win)
+    def show_notes_private(self):
+        self.w = Notes(self.client, self.win, "private")
+        self.w.show()
+        self.w.save_update.connect(self.update_note)
+
+    def show_notes_public(self):
+        self.w = Notes(self.client, self.win, "public")
         self.w.show()
         self.w.save_update.connect(self.update_note)
 
@@ -441,6 +574,7 @@ class AddAccount(QWidget):
 
         self.win_box = QLineEdit()
         self.role = QComboBox()
+        self.department = QComboBox()
         self.display_name = QLineEdit()
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
@@ -473,6 +607,7 @@ class AddAccount(QWidget):
         layout.addRow("Surname:", self.surname)
         layout.addRow("Permissions:", self.permissions)
         layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("Department", self.department)
         layout.addRow("RSO:", self.rso)
 
         layout.addWidget(create_button)
@@ -492,6 +627,11 @@ class AddAccount(QWidget):
         self.role.addItem("User")
         self.role.addItem("Administrator")
         self.role.addItem("Attendant")
+
+        self.department.addItem("CS")
+        self.department.addItem("Aero")
+        self.department.addItem("Paper")
+        self.department.addItem("Other")
  
         self.display_name.setPlaceholderText("Display Name...")
         self.display_name.setValidator(name_validator)
@@ -553,6 +693,7 @@ class AddAccount(QWidget):
         data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['department'] = self.department.currentText().lower()
         data['edit_attrs']['permissions'] = []
 
         for item in self.permissions.findChildren(QCheckBox):
@@ -593,6 +734,7 @@ class QuickView(QWidget):
 
         self.win_box = QLabel()
         self.role = QLabel()
+        self.department = QLabel()
         self.display_name = QLabel()
         self.given_name = QLabel()
         self.surname = QLabel()
@@ -625,6 +767,7 @@ class QuickView(QWidget):
         layout.addRow("Surname:", self.surname)
         layout.addRow("Permissions:", self.permissions)
         layout.addRow("Affiliation:", self.affiliation)
+        layout.addRow("Department:", self.department)
         layout.addRow("RSO:", self.rso)
 
         layout.addWidget(self.swipe_toggle_button)
@@ -637,19 +780,28 @@ class QuickView(QWidget):
         self.notes = QPlainTextEdit()
         self.notes.setReadOnly(True)
         self.unlock_button = QPushButton("Unlock Notes")
-        self.save_notes_button = QPushButton("Save notes")
-        self.save_notes_button.clicked.connect(self.save_note)
-        self.notes.setPlainText(get_account_note(self.client, self.win))
+        self.save_public_notes_button = QPushButton("Save notes")
+        self.save_public_notes_button.clicked.connect(self.save_public_note)
+        self.notes.setPlainText(get_public_account_note(self.client, self.win))
         notes_layout.addWidget(self.notes)
         notes_layout.addWidget(self.unlock_button)
-        notes_layout.addWidget(self.save_notes_button)
+        notes_layout.addWidget(self.save_public_notes_button)
         combined_layout.addLayout(notes_layout)
         self.setLayout(combined_layout)
         self.unlock_button.clicked.connect(self.toggle_note_lock)
 
         self.set_swipe_button_status()
+        self.remove_unnecessary_buttons()
 
         self.initial_load()
+
+    def remove_unnecessary_buttons(self):
+        data = get_account_data(self.client, self.win)
+        # should only be able to swipe in and out if active role
+        if data["role"] == "blacklisted" or data["role"] == "archived" or data["role"] ==          "pending":
+            self.swipe_toggle_button.hide()
+        else:
+            self.swipe_toggle_button.show()
 
     def set_swipe_button_status(self):
         if check_if_swiped_in(self.client, self.win):
@@ -700,15 +852,16 @@ class QuickView(QWidget):
 
 
         self.role.setText(acc_data['role'].capitalize())
+        self.department.setText(acc_data['department'].capitalize())
         self.affiliation.setText(acc_data['affiliation'].capitalize())
 
-    def save_note(self):
+    def save_public_note(self):
         data = {}
         data['win'] = self.win
-        data['edit_attrs'] = {}
-        data['edit_attrs']['text'] = self.notes.toPlainText()
+        data['type'] = "public"
+        data['text'] = self.notes.toPlainText()
 
-        edit_note(self.client, data)
+        edit_public_note(self.client, data)
 
         self.save_update.emit()
 
@@ -1191,6 +1344,8 @@ class MainWindow(QMainWindow):
         event_data['name'] = self.search_name.text()
 
         res = get_users_paginated_filtered(self.client_connection, event_data)
+        if res is None:
+            return
 
         self.total_users_in_query_search = res["total_users"]
         self.total_users_search.setText(str(self.total_users_in_query_search))
@@ -1202,7 +1357,7 @@ class MainWindow(QMainWindow):
 
         # load notes for each account
         for acc in self.search_accounts:
-            res = get_account_note(self.client_connection, acc.win)
+            res = get_public_account_note(self.client_connection, acc.win)
             print(f"res: {res}")
             acc.note = res
 
@@ -1224,7 +1379,7 @@ class MainWindow(QMainWindow):
 
         # load notes for each account
         for acc in self.accounts:
-            res = get_account_note(self.client_connection, acc.win)
+            res = get_public_account_note(self.client_connection, acc.win)
             print(f"res: {res}")
             acc.note = res
 
@@ -1336,7 +1491,7 @@ def new_account(client, edit_data):
 
     res = client.call_server(event)
 
-def edit_note(client, edit_data):
+def edit_public_note(client, edit_data):
     event = Event(EventTypes.EDIT_NOTE_FOR_USER, edit_data)
 
     res = client.call_server(event)
@@ -1387,9 +1542,20 @@ def get_account_permissions(client, account_win):
 
     return res
 
-def get_account_note(client, account_win):
+def get_private_account_note(client, account_win):
     note = ""
-    event = Event(event_type=EventTypes.GET_NOTE_FOR_USER, data = {'win': account_win})
+    event = Event(event_type=EventTypes.GET_NOTE_FOR_USER, data = {'win': account_win, 'type': 'private'})
+
+    res = client.call_server(event)
+    if res is None:
+        return note
+
+    note = res
+
+    return note
+def get_public_account_note(client, account_win):
+    note = ""
+    event = Event(event_type=EventTypes.GET_NOTE_FOR_USER, data = {'win': account_win, 'type': 'public'})
 
     res = client.call_server(event)
     if res is None:
@@ -1406,6 +1572,10 @@ def check_if_swiped_in(client, account_win):
         return True
     else:
         return False
+
+def delete_acc(client, account_win):
+    event = Event(event_type=EventTypes.DELETE_ACCOUNT, data = {'win': account_win})
+    res = client.call_server(event)
 
 def swipe_out_user(client, account_win):
     event = Event(event_type=EventTypes.SWIPE_OUT, data = {'win': account_win})

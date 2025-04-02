@@ -2,7 +2,7 @@ from events import Event
 from events import EventTypes
 from sqlalchemy import select
 import note_events, account_events, swipe_events, permission_events
-from models.models import Account, Note, Role
+from models.models import Account, Role
 
 class EventBroker:
     def __init__(self, session):

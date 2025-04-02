@@ -1,6 +1,6 @@
 from events import Event
 from sqlalchemy import select, or_
-from models.models import Account, Role, Account_Equipment, Equipment, Affiliation
+from models.models import Account, Role, Account_Equipment, Equipment, Affiliation, Department
 
 from events import Event, EventTypes
 
@@ -29,6 +29,11 @@ def create(event, session):
         if account_affiliation is None:
             raise KeyError(f"Invalid affiliation: {event.data['affiliation']}")
 
+        account_department = s.scalar(select(Department).where(Department.name == event.data["edit_attrs"]["department"]))
+        
+        if account_department is None:
+            raise KeyError(f"Invalid department: {event.data['affiliation']}")
+
 
         account = Account(win = event.data["win"], 
                           role=account_role, 
@@ -36,6 +41,7 @@ def create(event, session):
                           surname = event.data["edit_attrs"]["surname"], 
                           display_name = event.data["edit_attrs"]["display_name"], 
                           affiliation = account_affiliation,
+                          department = account_department,
                           rso = event.data["edit_attrs"]["rso"],
                           photo_url = event.data.get("photo_url", "./images/" + event.data["win"] + ".jpg"))
 
@@ -75,6 +81,12 @@ def edit(event, session):
                 if new_role is None:
                     raise KeyError(f"Invalid role: {event.data['edit_attrs'][update]}")
                 account.role = new_role
+            if update == "department":
+                new_department = s.scalar(select(Department).where(Department.name == event.data["edit_attrs"][update]))
+                if new_department is None:
+                    raise KeyError(f"Invalid department: {event.data['edit_attrs'][update]}")
+
+                account.department = new_department
             if update == "affiliation":
                 new_affiliation = s.scalar(select(Affiliation).where(Affiliation.name == event.data["edit_attrs"][update]))
                 if new_affiliation is None:
@@ -208,6 +220,7 @@ def format_users(unformatted_user):
             'role': user.role_id,
             'affiliation': user.affiliation_id,
             'rso': user.rso,
+            'department': user.department,
             'created_at': user.created_at,
             'last_updated_at': user.last_updated_at,
             'swiped_in': user.swiped_in,
@@ -236,11 +249,12 @@ def get_users_by_role(event: Event, session):
     except Exception as e:
         print(f"Error getting users by role: {e}")
         return -1
+
 def get_swiped_in_users(session):
     try:
         with session() as s:
 
-            requested_users = s.scalars(select(Account).where(Account.swiped_in == True))
+            requested_users = s.scalars(select(Account) .where(Account.swiped_in == True)).order_by(Account.last_access)
 
             return format_users(requested_users)
     except Exception as e:
@@ -295,7 +309,7 @@ def get_users_paginated_filtered(event, session):
         account_all = query.all()
 
         print(f'offset calculation at page: {event.data["page_number"]}, and items {event.data["items_per_page"]}')
-        accounts = query.order_by(Account.win).offset(
+        accounts = query.order_by(Account.last_access).offset(
                    (event.data["page_number"] -1) * event.data["items_per_page"]
                 ).limit(event.data["items_per_page"]).all()
         for acc in accounts:
@@ -356,15 +370,18 @@ def get_data_for_user(event, session):
         # since this is matched on key we need to keep track of it
         role = account.role.name
         affiliation = account.affiliation.name
+        department = account.department.name
 
         acc_data = account.__dict__
         acc_data.pop('_sa_instance_state')
         # remove the id
         acc_data.pop('role_id')
         acc_data.pop('affiliation_id')
+        acc_data.pop('department_id')
         # add the actual role
         acc_data['role'] = role
         acc_data['affiliation'] = affiliation
+        acc_data['department'] = department
 
         print(f"in get_data_for_user {acc_data}")
 
