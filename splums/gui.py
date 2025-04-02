@@ -37,9 +37,10 @@ class Account():
 
 class Notes(QWidget):
     save_update = pyqtSignal()
-    def __init__(self, client, win):
+    def __init__(self, client, win, status):
         super().__init__()
         self.client = client
+        self.status = status
         self.win = win
         main_layout = QGridLayout(self)
         self.setWindowTitle("Notes")
@@ -50,7 +51,7 @@ class Notes(QWidget):
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
         
         self.text_box = QPlainTextEdit()
-        self.text_box.setPlainText(get_account_note(self.client, self.win))
+        self.text_box.setPlainText(get_public_account_note(self.client, self.win))
 
         save_button = QPushButton('Save')
         exit_button = QPushButton("Exit")
@@ -59,16 +60,32 @@ class Notes(QWidget):
         main_layout.addWidget(save_button)
         main_layout.addWidget(exit_button)
 
-        save_button.clicked.connect(self.save_note)
+        if self.status == "public":
+            save_button.clicked.connect(self.save_public_note)
+        if self.status == "private":
+            save_button.clicked.connect(self.save_private_note)
+
         exit_button.clicked.connect(self.close)
 
-    def save_note(self):
+    def save_private_note(self):
         data = {}
         data['win'] = self.win
-        data['edit_attrs'] = {}
-        data['edit_attrs']['text'] = self.text_box.toPlainText()
+        data['text'] = self.text_box.toPlainText()
+        data['type'] = 'private'
+        print(data)
 
-        edit_note(self.client, data)
+        edit_public_note(self.client, data)
+
+        self.save_update.emit()
+
+    def save_public_note(self):
+        data = {}
+        data['win'] = self.win
+        data['text'] = self.text_box.toPlainText()
+        data['type'] = 'public'
+        print(data)
+
+        edit_public_note(self.client, data)
 
         self.save_update.emit()
 
@@ -218,7 +235,8 @@ class EditAccount(QWidget):
 
         self.permissions.setLayout(self.perm_layout)
 
-        notes_button = QPushButton("Notes")
+        public_notes_button = QPushButton("Public Notes")
+        private_notes_button = QPushButton("Private Notes")
         self.delete_button = QPushButton("Delete")
         self.confirm_delete_button = QPushButton("CONFIRM DELETE")
         self.swipe_button = QPushButton("Swipe out")
@@ -229,7 +247,8 @@ class EditAccount(QWidget):
 
         photo_button.clicked.connect(self.show_photo)
         self.back_to_main_button.clicked.connect(self.back_to_main)
-        notes_button.clicked.connect(self.show_notes)
+        public_notes_button.clicked.connect(self.show_notes_public)
+        private_notes_button.clicked.connect(self.show_notes_private)
         save_button.clicked.connect(self.save_edit)
         self.delete_button.clicked.connect(self.delete_account)
         self.confirm_delete_button.clicked.connect(self.confirm_delete)
@@ -249,7 +268,8 @@ class EditAccount(QWidget):
         delete_layout.addWidget(self.confirm_delete_button)
         delete_layout.addWidget(self.back_to_main_button)
         layout.addWidget(photo_button)
-        layout.addWidget(notes_button)
+        layout.addWidget(public_notes_button)
+        layout.addWidget(private_notes_button)
         layout.addWidget(save_button)
         layout.addWidget(self.delete_button)
         layout.addWidget(self.swipe_button)
@@ -408,8 +428,13 @@ class EditAccount(QWidget):
         self.remove_unnecessary_buttons()
         self.save_update.emit()
 
-    def show_notes(self):
-        self.w = Notes(self.client, self.win)
+    def show_notes_private(self):
+        self.w = Notes(self.client, self.win, "private")
+        self.w.show()
+        self.w.save_update.connect(self.update_note)
+
+    def show_notes_public(self):
+        self.w = Notes(self.client, self.win, "public")
         self.w.show()
         self.w.save_update.connect(self.update_note)
 
@@ -734,12 +759,12 @@ class QuickView(QWidget):
         self.notes = QPlainTextEdit()
         self.notes.setReadOnly(True)
         self.unlock_button = QPushButton("Unlock Notes")
-        self.save_notes_button = QPushButton("Save notes")
-        self.save_notes_button.clicked.connect(self.save_note)
-        self.notes.setPlainText(get_account_note(self.client, self.win))
+        self.save_public_notes_button = QPushButton("Save notes")
+        self.save_public_notes_button.clicked.connect(self.save_public_note)
+        self.notes.setPlainText(get_public_account_note(self.client, self.win))
         notes_layout.addWidget(self.notes)
         notes_layout.addWidget(self.unlock_button)
-        notes_layout.addWidget(self.save_notes_button)
+        notes_layout.addWidget(self.save_public_notes_button)
         combined_layout.addLayout(notes_layout)
         self.setLayout(combined_layout)
         self.unlock_button.clicked.connect(self.toggle_note_lock)
@@ -808,13 +833,13 @@ class QuickView(QWidget):
         self.role.setText(acc_data['role'].capitalize())
         self.affiliation.setText(acc_data['affiliation'].capitalize())
 
-    def save_note(self):
+    def save_public_note(self):
         data = {}
         data['win'] = self.win
-        data['edit_attrs'] = {}
-        data['edit_attrs']['text'] = self.notes.toPlainText()
+        data['type'] = "public"
+        data['text'] = self.notes.toPlainText()
 
-        edit_note(self.client, data)
+        edit_public_note(self.client, data)
 
         self.save_update.emit()
 
@@ -1310,7 +1335,7 @@ class MainWindow(QMainWindow):
 
         # load notes for each account
         for acc in self.search_accounts:
-            res = get_account_note(self.client_connection, acc.win)
+            res = get_public_account_note(self.client_connection, acc.win)
             print(f"res: {res}")
             acc.note = res
 
@@ -1332,7 +1357,7 @@ class MainWindow(QMainWindow):
 
         # load notes for each account
         for acc in self.accounts:
-            res = get_account_note(self.client_connection, acc.win)
+            res = get_public_account_note(self.client_connection, acc.win)
             print(f"res: {res}")
             acc.note = res
 
@@ -1444,7 +1469,7 @@ def new_account(client, edit_data):
 
     res = client.call_server(event)
 
-def edit_note(client, edit_data):
+def edit_public_note(client, edit_data):
     event = Event(EventTypes.EDIT_NOTE_FOR_USER, edit_data)
 
     res = client.call_server(event)
@@ -1495,9 +1520,9 @@ def get_account_permissions(client, account_win):
 
     return res
 
-def get_account_note(client, account_win):
+def get_public_account_note(client, account_win):
     note = ""
-    event = Event(event_type=EventTypes.GET_NOTE_FOR_USER, data = {'win': account_win})
+    event = Event(event_type=EventTypes.GET_NOTE_FOR_USER, data = {'win': account_win, 'type': 'public'})
 
     res = client.call_server(event)
     if res is None:
