@@ -745,8 +745,17 @@ class QuickView(QWidget):
         self.unlock_button.clicked.connect(self.toggle_note_lock)
 
         self.set_swipe_button_status()
+        self.remove_unnecessary_buttons()
 
         self.initial_load()
+
+    def remove_unnecessary_buttons(self):
+        data = get_account_data(self.client, self.win)
+        # should only be able to swipe in and out if active role
+        if data["role"] == "blacklisted" or data["role"] == "archived" or data["role"] ==          "pending":
+            self.swipe_toggle_button.hide()
+        else:
+            self.swipe_toggle_button.show()
 
     def set_swipe_button_status(self):
         if check_if_swiped_in(self.client, self.win):
@@ -1288,6 +1297,8 @@ class MainWindow(QMainWindow):
         event_data['name'] = self.search_name.text()
 
         res = get_users_paginated_filtered(self.client_connection, event_data)
+        if res is None:
+            return
 
         self.total_users_in_query_search = res["total_users"]
         self.total_users_search.setText(str(self.total_users_in_query_search))
