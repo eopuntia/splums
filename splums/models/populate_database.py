@@ -1,6 +1,6 @@
 from sqlalchemy import Engine, create_engine, insert, select
 from sqlalchemy.orm import sessionmaker
-from models import Account, Role, Note, Account_Equipment, Equipment, Event, Event_Type, Base, Affiliation
+from models import Account, Role, Account_Equipment, Equipment, Event, Event_Type, Base, Affiliation
 
 # connect to the engine.
 engine = create_engine("mariadb+mariadbconnector://splums:example@127.0.0.1:3307/splums")
@@ -75,9 +75,6 @@ with Session() as session:
     renee_welding = Account_Equipment(account=renee, equipment=Equipment(name="welding_station", icon_url="./splums/images/welding_station.png"), completed_training=False)
     session.add(renee_welding)
 
-    # the ids for creator and subject will be populated automatically.
-    note1 = Note(creator_account=kahrl, subject_account=renee, text="renee does not know how to tig weld but she can mig")
-    session.add(note1)
 
     # it is always necessary to commit, no changes are applied until commit is applied.
     session.commit()
@@ -87,6 +84,7 @@ with Session() as session:
     # made these fields in seperate session block after the commit to show pulling data from the db.
     unauthorized = session.scalar(select(Event_Type).where(Event_Type.name=="Authorized User Swipe"))
     renee = session.scalar(select(Account).where(Account.given_name=="Renee"))
+    renee.public_note = "renee can wig but not mig"
 
     # makes it very easy not having to worry about getting the actual ids.
     sample_event = Event(event_type=unauthorized, account=renee)

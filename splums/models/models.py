@@ -52,6 +52,8 @@ class Account(Base):
     surname: Mapped[str] = mapped_column(String(255))
     photo_url: Mapped[str] = mapped_column(String(255))
     swiped_in: Mapped[bool] = mapped_column(default=False)
+    private_note: Mapped[Optional[str]] = mapped_column(Text)
+    public_note: Mapped[Optional[str]] = mapped_column(Text)
 
     rso: Mapped[Optional[str]] = mapped_column(String(255))
 
@@ -70,8 +72,6 @@ class Account(Base):
     # Relationships where the account is the one in one-many
     # another field of foreign_keys is added for notes_subject and notes_creator since they both reference account ids so you need
     # to let SQL alchemy know which one is which.
-    notes_subject: Mapped[List["Note"]] = relationship(back_populates="subject_account", foreign_keys="Note.subject_win", cascade="all, delete-orphan")
-    notes_creator: Mapped[List["Note"]] = relationship(back_populates="creator_account", foreign_keys="Note.creator_win", cascade="all, delete-orphan")
     events: Mapped[List["Event"]] = relationship(back_populates="account", cascade="all, delete-orphan")
     equipments: Mapped[List["Account_Equipment"]] = relationship(back_populates="account", cascade="all, delete-orphan")
     
@@ -79,28 +79,6 @@ class Account(Base):
     # This is the relationship that corresponds to the accounts field in Role.
     role: Mapped["Role"] = relationship(back_populates="accounts")
     affiliation: Mapped["Affiliation"] = relationship(back_populates="accounts")
-
-class Note(Base):
-    __tablename__ = 'note'
-
-    note_id: Mapped[int] = mapped_column(primary_key=True)
-    subject_win: Mapped[int] = mapped_column(ForeignKey("account.win"))
-    creator_win: Mapped[int] = mapped_column(ForeignKey("account.win"))
-
-    text: Mapped[str] = mapped_column(Text)
-
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    last_updated_at: Mapped[datetime.datetime] = mapped_column( 
-        DateTime(timezone=True), server_default=func.now()
-    )
-    attendant_view_perms: Mapped[bool] = mapped_column(default=False)
-    attendant_edit_perms: Mapped[bool] = mapped_column(default=False)
-
-    # similarly to in the account table, it is necessary to let SQL alchemy know which keys specifically each one relates too.
-    subject_account: Mapped["Account"] = relationship(back_populates="notes_subject", foreign_keys=[subject_win])
-    creator_account: Mapped["Account"] = relationship(back_populates="notes_creator", foreign_keys=[creator_win])
 
 class Equipment(Base):
     __tablename__ = 'equipment'
