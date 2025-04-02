@@ -241,7 +241,7 @@ def get_swiped_in_users(session):
     try:
         with session() as s:
 
-            requested_users = s.scalars(select(Account).where(Account.swiped_in == True))
+            requested_users = s.scalars(select(Account) .where(Account.swiped_in == True)).order_by(Account.last_access)
 
             return format_users(requested_users)
     except Exception as e:
@@ -296,7 +296,7 @@ def get_users_paginated_filtered(event, session):
         account_all = query.all()
 
         print(f'offset calculation at page: {event.data["page_number"]}, and items {event.data["items_per_page"]}')
-        accounts = query.order_by(Account.win).offset(
+        accounts = query.order_by(Account.last_access).offset(
                    (event.data["page_number"] -1) * event.data["items_per_page"]
                 ).limit(event.data["items_per_page"]).all()
         for acc in accounts:
