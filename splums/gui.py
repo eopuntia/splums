@@ -51,7 +51,6 @@ class Notes(QWidget):
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
         
         self.text_box = QPlainTextEdit()
-        self.text_box.setPlainText(get_public_account_note(self.client, self.win))
 
         save_button = QPushButton('Save')
         exit_button = QPushButton("Exit")
@@ -62,8 +61,10 @@ class Notes(QWidget):
 
         if self.status == "public":
             save_button.clicked.connect(self.save_public_note)
+            self.text_box.setPlainText(get_public_account_note(self.client, self.win))
         if self.status == "private":
             save_button.clicked.connect(self.save_private_note)
+            self.text_box.setPlainText(get_private_account_note(self.client, self.win))
 
         exit_button.clicked.connect(self.close)
 
@@ -1541,6 +1542,17 @@ def get_account_permissions(client, account_win):
 
     return res
 
+def get_private_account_note(client, account_win):
+    note = ""
+    event = Event(event_type=EventTypes.GET_NOTE_FOR_USER, data = {'win': account_win, 'type': 'private'})
+
+    res = client.call_server(event)
+    if res is None:
+        return note
+
+    note = res
+
+    return note
 def get_public_account_note(client, account_win):
     note = ""
     event = Event(event_type=EventTypes.GET_NOTE_FOR_USER, data = {'win': account_win, 'type': 'public'})
