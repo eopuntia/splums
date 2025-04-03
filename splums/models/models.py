@@ -57,12 +57,13 @@ class Account(Base):
     affiliation_id: Mapped[int] = mapped_column(ForeignKey("affiliation.affiliation_id"))
     department_id: Mapped[int] = mapped_column(ForeignKey("department.department_id"))
 
-
     display_name: Mapped[str] = mapped_column(String(255))
     given_name: Mapped[str] = mapped_column(String(255))
     surname: Mapped[str] = mapped_column(String(255))
     photo_url: Mapped[str] = mapped_column(String(255))
     swiped_in: Mapped[bool] = mapped_column(default=False)
+    private_note: Mapped[Optional[str]] = mapped_column(Text)
+    public_note: Mapped[Optional[str]] = mapped_column(Text)
 
     rso: Mapped[Optional[str]] = mapped_column(String(255))
 
@@ -81,10 +82,8 @@ class Account(Base):
     # Relationships where the account is the one in one-many
     # another field of foreign_keys is added for notes_subject and notes_creator since they both reference account ids so you need
     # to let SQL alchemy know which one is which.
-    notes_subject: Mapped[List["Note"]] = relationship(back_populates="subject_account", foreign_keys="Note.subject_win")
-    notes_creator: Mapped[List["Note"]] = relationship(back_populates="creator_account", foreign_keys="Note.creator_win")
-    events: Mapped[List["Event"]] = relationship(back_populates="account")
-    equipments: Mapped[List["Account_Equipment"]] = relationship(back_populates="account")
+    events: Mapped[List["Event"]] = relationship(back_populates="account", cascade="all, delete-orphan")
+    equipments: Mapped[List["Account_Equipment"]] = relationship(back_populates="account", cascade="all, delete-orphan")
     
     # Relationships where the account is the many in one-many. 
     # This is the relationship that corresponds to the accounts field in Role.
@@ -114,6 +113,7 @@ class Note(Base):
     subject_account: Mapped["Account"] = relationship(back_populates="notes_subject", foreign_keys=[subject_win])
     creator_account: Mapped["Account"] = relationship(back_populates="notes_creator", foreign_keys=[creator_win])
 
+
 class Equipment(Base):
     __tablename__ = 'equipment'
 
@@ -123,7 +123,6 @@ class Equipment(Base):
     icon_url: Mapped[str] = mapped_column(String(255))
 
     accounts: Mapped[List["Account_Equipment"]] = relationship(back_populates="equipment")
-
 
 class Account_Equipment(Base):
     __tablename__ = 'account_equipment'

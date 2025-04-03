@@ -1,6 +1,6 @@
 from events import Event
 from sqlalchemy import select 
-from models.models import Account, Note
+from models.models import Account
 
 # TODO add proper error handling
 def create(event, session):
@@ -87,11 +87,6 @@ def format_notes(unformatted_note):
         }
         note_dicts.append(note_dict)
     return note_dicts
-
-#*******************************************************************************************
-# GET NOTES FOR USER FOR ADMINS
-#*******************************************************************************************
-# Takes GET_NOTES_FOR_USER event
 def get_notes_for_user_admin(event: Event, session):
     try:
         with session() as s:
@@ -103,6 +98,39 @@ def get_notes_for_user_admin(event: Event, session):
     except Exception as e:
         print(f"Error getting notes for user: {e}")
         return -1
+
+def edit_note_for_user(event: Event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+
+        if event.data['type'] == "public":
+            account.public_note = event.data['text']
+        if event.data['type'] == "private":
+            account.private_note = event.data['text']
+
+        s.commit()
+    
+# TODO add proper error handling
+def get_note_for_user(event: Event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        if account is None:
+           return "Invalid win"
+        if event.data["type"] == "public":
+            return account.public_note
+        if event.data["type"] == "private":
+            return account.private_note
+
 
 #*******************************************************************************************
 # GET NOTES FOR USER FOR ATTENDANTS

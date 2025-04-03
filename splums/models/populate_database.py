@@ -2,6 +2,7 @@ from sqlalchemy import Engine, create_engine, insert, select
 from sqlalchemy.orm import sessionmaker
 from models import Account, Role, Note, Account_Equipment, Equipment, Event, Event_Type, Base, Affiliation, Department
 
+
 # connect to the engine.
 engine = create_engine("mariadb+mariadbconnector://splums:example@127.0.0.1:3307/splums")
 # setup the metadata corresponding to the base.
@@ -34,6 +35,19 @@ with Session() as session:
     mechanical_aero = Department(name="Mechanical and Aerospace Engineering")
     other_dep = Department(name="Other")
 
+    undergrad = Affiliation(name="undergrad", icon_url="./images/undergrad.png")
+    graduate = Affiliation(name="graduate", icon_url="./images/graduate.png")
+    faculty = Affiliation(name="faculty", icon_url="./images/faculty.png")
+    researcher = Affiliation(name="researcher", icon_url="./images/researcher.png")
+    staff = Affiliation(name="staff", icon_url="./images/staff.png")
+    other = Affiliation(name="other", icon_url="./images/affiliation_other.png")
+
+    cs = Department(name="cs", icon_url="./images/cs.png")
+    paper = Department(name="paper", icon_url="./images/paper.png")
+    aero = Department(name="aero", icon_url="./images/aero.png")
+    other_dept = Department(name="other", icon_url="./images/dept_other.png")
+    
+
     # the datetime fields get populated automatically. You can see specifying the role and status relations in account.
     # what this does behind the scenes is it will populate the ID's for you. Makes it very easy. 
     renee = Account(win=212222222, role=user, affiliation=graduate, department=computer_science, display_name="rez", 
@@ -46,9 +60,11 @@ with Session() as session:
     estlin = Account(win=432143214, role=attendant, affiliation=undergrad, department=electrical_computer, display_name="estlin", 
                      given_name="Estlin", surname="Mendez", photo_url="./images/432143214.jpg")
 
+
     # actually load the objects to be committed (still not in the DB, will happen after commit call.
     # important to note is that since user, active, administrator, and attendant were related in these object definitions, 
     # those objects are also implicitly added.
+    session.add_all([faculty, researcher, other])
     session.add_all([renee, kahrl, estlin])
     session.add_all([chemical_paper, civil_construction, indust_entreprenural_mgmt, mechanical_aero, other_dep])
     session.add_all([faculty, researcher, other])
@@ -58,8 +74,8 @@ with Session() as session:
     # it is also possible to bulk add elements while declaring them at the same time.
     session.execute(
         insert(Role),
-        [   {"name": "Archived"},
-            {"name": "Blacklisted"},
+        [   {"name": "archived"},
+            {"name": "blacklisted"},
         ],
     )
     session.execute( 
@@ -85,9 +101,6 @@ with Session() as session:
     renee_welding = Account_Equipment(account=renee, equipment=Equipment(name="welding_station", icon_url="./splums/images/welding_station.png"), completed_training=False)
     session.add(renee_welding)
 
-    # the ids for creator and subject will be populated automatically.
-    note1 = Note(creator_account=kahrl, subject_account=renee, text="renee does not know how to tig weld but she can mig")
-    session.add(note1)
 
     # it is always necessary to commit, no changes are applied until commit is applied.
     session.commit()
@@ -97,6 +110,7 @@ with Session() as session:
     # made these fields in seperate session block after the commit to show pulling data from the db.
     unauthorized = session.scalar(select(Event_Type).where(Event_Type.name=="Authorized User Swipe"))
     renee = session.scalar(select(Account).where(Account.given_name=="Renee"))
+    renee.public_note = "renee can wig but not mig"
 
     # makes it very easy not having to worry about getting the actual ids.
     sample_event = Event(event_type=unauthorized, account=renee)

@@ -1,47 +1,69 @@
 import cv2
 import os
+from PyQt6.QtCore import QThread, pyqtSignal, Qt
+from PyQt6.QtGui import QImage
 
+#Threaded camworker, to run in parallel with main GUI program
+class CamWorker(QThread):
+    #Signal to update the image in GUI
+    image_update = pyqtSignal(QImage)
 
-def take_picture(name):
-    file_name = name.replace(" ", "_")
+    def __init__(self, win):
+        super(QThread, self).__init__()
+        #Name of student
+        self.file_name = win
 
-    # Get default video gamera
-    camera = cv2.VideoCapture(0)
+    #AUTOMATICALLY RUNS when you call the built in start() command on this thread
+    def run(self):
+        # Get default video gamera
+        camera = cv2.VideoCapture(0)
 
-    # Get the proper resolution
-    res_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    res_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.thread_active = True
 
-    capturing = True
-    pic_key = 0
+        #Used to determine whether or not to continiously update feed
+        self.pic_taken = False
 
-    while capturing:
-        ret, frame = camera.read()
+        while self.thread_active:
+            if self.pic_taken == False:
+                ret, self.frame = camera.read()
+            # Video if a picture has not yet been taken, and the webcam is currently returning frames
+            if not self.pic_taken and ret:
+                #Converting the frame to an image, and formatting it properly
+                # flip the image
+                image = cv2.flip(cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB), 1)
 
-        # Video if a snapshot hasnt been taken
-        if pic_key != ord('c'):
-            cv2.imshow('Camera', frame)
-            pic_key = cv2.waitKey(1)
-        else:
-            # check to add dir
-            if not os.path.exists("./images/"):
-                os.makedirs("./images/")
-            file_path = "./images/" + file_name + ".jpg"
-            cv2.imwrite(file_path, frame)
-            redo = cv2.waitKey(0)
-            print("captured")
-            if redo == ord('y'):
-                print("redone")
-                pic_key = 0
-            else:
-                print("pic taken, quiting")
-                break
-        # Break loop
-        # if pic_key == ord('q'):
-        #     print("quiting")
-        #     break
+                qt_formatted_image = QImage(image.data, image.shape[1], image.shape[0], QImage.Format.Format_RGB888)
 
-    # Release the capture and writer objects
-    camera.release()
-    cv2.destroyAllWindows()
-    return file_path
+                #This is where the image is scaled, this resolution is the resolution the images are saved in, might be slightly different, depending on aspect ratio.
+                pic = qt_formatted_image.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
+
+                #Emitting of the signal to update the video feed in GUI
+                self.image_update.emit(pic)
+
+        #turn off camera after the loop is over
+        camera.release()
+
+    def take_picture(self):
+        #stops video feed
+        self.pic_taken = True
+
+    def save_photo(self):
+        # check to add dir
+        if not os.path.exists("./images/"):
+            os.makedirs("./images/")
+        
+        #saves to [PATH THIS PROGRAM IS RAN]/images
+        file_path = "./images/" + self.file_name + ".jpg"
+        cv2.imwrite(file_path, self.frame)
+
+        self.pic_taken = False
+
+    def retake_picture(self):
+        #Resumes video feed
+        self.pic_taken = False
+
+    #What to do when closing
+    def stop(self):
+        #Stop thread and exit
+        self.thread_active = False
+        self.quit()

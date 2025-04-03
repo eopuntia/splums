@@ -1,8 +1,8 @@
 from events import Event
 from events import EventTypes
 from sqlalchemy import select
-import note_events, account_events, swipe_events
-from models.models import Account, Note, Role
+import note_events, account_events, swipe_events, permission_events
+from models.models import Account, Role
 
 class EventBroker:
     def __init__(self, session):
@@ -10,6 +10,12 @@ class EventBroker:
 
     def process_event(self, event):
         match event.event_type:
+            case EventTypes.CHECK_IF_SWIPED_IN:
+                print(f"\033[93mChecking if user is swiped in...\0333[0m")
+                result = swipe_events.check_if_swiped_in(event, self.session, self)
+                print(f"result after event_broker call: {result}")
+                return result
+
             case EventTypes.SWIPE_IN: 
                 print(f"Swipe In")
                 swipe_events.swipe_in(event, self.session, self)
@@ -116,7 +122,48 @@ class EventBroker:
             case EventTypes.GET_USERS_BY_SEARCH:
                 print(f"\033[93mGetting users...\033[0m")
                 result = account_events.search_users(event, self.session)
+=======
+            case EventTypes.GET_NOTE_FOR_USER:
+                print(f"\033[93mGetting note for user...\033[0m")
+                result = note_events.get_note_for_user(event, self.session)
                 return result
+
+            case EventTypes.GET_DATA_FOR_USER:
+                print(f"\033[93mGetting data for user...\033[0m")
+                result = account_events.get_data_for_user(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
+            case EventTypes.EDIT_NOTE_FOR_USER:
+                print(f"\033[93mEditing note for user...\033[0m")
+                result = note_events.edit_note_for_user(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
+            case EventTypes.GET_PERMS_FOR_USER:
+                print(f"\033[93mGetting Perms for user...\033[0m")
+                result = account_events.get_perms_for_user(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
+            case EventTypes.CHECK_IF_WIN_EXISTS:
+                print(f"\033[93mChecking if win is already in DB...\033[0m")
+                result = account_events.check_if_win_exists(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
+            case EventTypes.GET_ALL_PERMS:
+                print(f"\033[93mGetting every permission from DB...\033[0m")
+                result = permission_events.get_all_perms(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
+            case EventTypes.GET_USERS_PAGINATED_FILTERED:
+                print(f"\033[93mGetting paginated and filtered users...\033[0m")
+                result = account_events.get_users_paginated_filtered(event, self.session)
+                print(f"result after event_broker call: {result}")
+                return result
+
 
             case _:
                 print(f"Error")

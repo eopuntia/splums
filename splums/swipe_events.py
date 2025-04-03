@@ -1,7 +1,21 @@
 from events import Event, EventTypes
 from sqlalchemy import select
+from datetime import datetime
 from models.models import Account
 
+def check_if_swiped_in(event, session, event_broker):
+    with session.begin() as s:
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        if account is None:
+            raise KeyError(f"invalid win: {event.data['win']}")
+
+        ret = {}
+        if account.swiped_in == 1:
+            ret["swiped_in"] = True
+        else:
+            ret["swiped_in"] = False
+
+        return ret
 def swipe_in(event, session, event_broker):
     with session.begin() as s:
         account = s.scalar(select(Account).where(Account.win == event.data["win"]))
@@ -10,6 +24,7 @@ def swipe_in(event, session, event_broker):
         else:
             if(account.role.name != "blacklisted"):
                 account.swiped_in = 1
+                account.last_access = datetime.now()
                 s.commit()
                 event_broker.process_event(Event(EventTypes.ACCEPTED_SWIPE_IN, event.data))
             else:
