@@ -87,6 +87,17 @@ def format_notes(unformatted_note):
         }
         note_dicts.append(note_dict)
     return note_dicts
+def get_notes_for_user_admin(event: Event, session):
+    try:
+        with session() as s:
+            win = event.data.get('win', None)
+
+            requested_notes = s.scalars(select(Note).where(Note.subject_win == win))
+
+            return format_notes(requested_notes)
+    except Exception as e:
+        print(f"Error getting notes for user: {e}")
+        return -1
 
 def edit_note_for_user(event: Event, session):
     with session.begin() as s:
@@ -121,3 +132,18 @@ def get_note_for_user(event: Event, session):
             return account.private_note
 
 
+#*******************************************************************************************
+# GET NOTES FOR USER FOR ATTENDANTS
+#*******************************************************************************************
+# Takes GET_NOTES_FOR_USER event
+def get_notes_for_user_attendant(event: Event, session):
+    try:
+        with session() as s:
+            win = event.data.get('win', None)
+
+            requested_notes = s.scalars(select(Note).where(Note.subject_win == win and Note.attendant_view_perms == True))
+
+            return format_notes(requested_notes)
+    except Exception as e:
+        print(f"Error getting notes for user: {e}")
+        return -1

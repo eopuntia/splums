@@ -93,22 +93,36 @@ class EventBroker:
             case EventTypes.CLOSE_LAB: 
                 print(f"Close Lab")
                 self.close_lab(event)
+                account_events.auto_archive_user(self.session)
+                account_events.auto_delete_user(self.session)
 
-            # TODO IMPLEMENT
             case EventTypes.ARCHIVE_ACCOUNT: 
                 print(f"Archive User")
-                # self.archive_account(event)
+                account_events.archive_user(event, self.session)
 
-            case EventTypes.GET_USERS_BY_ROLE:
-                print(f"\033[93mGetting users...\033[0m")
-                result = account_events.get_users_by_role(event, self.session)
-                return result
-            
+            case EventTypes.CHANGE_USER_ROLE: 
+                print(f"Archive User")
+                account_events.change_user_role(event, self.session)
+
             case EventTypes.GET_SWIPED_IN_USERS:
                 print(f"\033[93mGetting swiped-in users...\033[0m")
                 result = account_events.get_swiped_in_users(self.session)
                 return result
             
+            case EventTypes.GET_NOTES_FOR_USER_ADMIN:
+                print(f"\033[93mGetting notes for user...\033[0m")
+                result = note_events.get_notes_for_user_admin(event, self.session)
+                return result
+            
+            case EventTypes.GET_NOTES_FOR_USER_ATTENDANT:
+                print(f"\033[93mGetting notes for user...\033[0m")
+                result = note_events.get_notes_for_user_attendant(event, self.session)
+                return result
+            
+            case EventTypes.GET_USERS_BY_SEARCH:
+                print(f"\033[93mGetting users...\033[0m")
+                result = account_events.search_users(event, self.session)
+=======
             case EventTypes.GET_NOTE_FOR_USER:
                 print(f"\033[93mGetting note for user...\033[0m")
                 result = note_events.get_note_for_user(event, self.session)

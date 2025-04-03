@@ -16,7 +16,6 @@ class Department(Base):
     department_id: Mapped[int] = mapped_column(primary_key=True)
 
     name: Mapped[str] = mapped_column(String(255))
-    icon_url: Mapped[str] = mapped_column(String(255))
 
     accounts: Mapped[List["Account"]] = relationship(back_populates="department")
 
@@ -92,6 +91,29 @@ class Account(Base):
     affiliation: Mapped["Affiliation"] = relationship(back_populates="accounts")
     department: Mapped["Department"] = relationship(back_populates="accounts")
 
+class Note(Base):
+    __tablename__ = 'note'
+
+    note_id: Mapped[int] = mapped_column(primary_key=True)
+    subject_win: Mapped[int] = mapped_column(ForeignKey("account.win"))
+    creator_win: Mapped[int] = mapped_column(ForeignKey("account.win"))
+
+    text: Mapped[str] = mapped_column(Text)
+
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_updated_at: Mapped[datetime.datetime] = mapped_column( 
+        DateTime(timezone=True), server_default=func.now()
+    )
+    attendant_view_perms: Mapped[bool] = mapped_column(default=False)
+    attendant_edit_perms: Mapped[bool] = mapped_column(default=False)
+
+    # similarly to in the account table, it is necessary to let SQL alchemy know which keys specifically each one relates too.
+    subject_account: Mapped["Account"] = relationship(back_populates="notes_subject", foreign_keys=[subject_win])
+    creator_account: Mapped["Account"] = relationship(back_populates="notes_creator", foreign_keys=[creator_win])
+
+
 class Equipment(Base):
     __tablename__ = 'equipment'
 
@@ -101,7 +123,6 @@ class Equipment(Base):
     icon_url: Mapped[str] = mapped_column(String(255))
 
     accounts: Mapped[List["Account_Equipment"]] = relationship(back_populates="equipment")
-
 
 class Account_Equipment(Base):
     __tablename__ = 'account_equipment'
