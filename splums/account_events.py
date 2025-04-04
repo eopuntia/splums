@@ -54,7 +54,7 @@ def create(event, session):
             if update == "permissions":
                 for equip in event.data["edit_attrs"]["permissions"]:
                     add_e = s.scalar(select(Equipment).where(Equipment.name == equip))
-                    acc_equip = Account_Equipment(account=account, equipment=add_e, completed_training=True)
+                    acc_equip = Account_Equipment(account=account, equipment=add_e)
                     account.equipments.append(acc_equip)
 
         s.commit()
@@ -114,7 +114,7 @@ def edit(event, session):
                         Account_Equipment.equipment == add_e
                     ))
                     if not existing_rel:
-                        acc_equip = Account_Equipment(account=account, equipment=add_e, completed_training=True)
+                        acc_equip = Account_Equipment(account=account, equipment=add_e)
                         account.equipments.append(acc_equip)
 
             if update == "surname":

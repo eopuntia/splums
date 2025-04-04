@@ -230,7 +230,7 @@ class EditAccount(QWidget):
         perm_list = get_permissions_from_db(self.client)
         button_list = []
         for item in perm_list:
-            button_list.append(QCheckBox(item))
+            button_list.append(QCheckBox(item.replace("_", " ")))
 
         for item in button_list:
             self.perm_layout.addWidget(item)
@@ -400,7 +400,7 @@ class EditAccount(QWidget):
             for item in self.permissions.findChildren(QCheckBox):
                 for perm in permissions:
                     print(f'{item.text()} on {perm}')
-                    if item.text().lower().replace(" ", "_") == perm:
+                    if item.text().replace(" ", "_") == perm:
                         print(f'need to check the state of {perm}')
                         item.setChecked(True)
 
@@ -441,9 +441,9 @@ class EditAccount(QWidget):
 
         for item in self.permissions.findChildren(QCheckBox):
             if item.isChecked():
-                data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
+                data['edit_attrs']['permissions'].append(item.text().replace(" ", "_"))
             else:
-                data['edit_attrs']['no_permissions'].append(item.text().lower().replace(" ", "_"))
+                data['edit_attrs']['no_permissions'].append(item.text().replace(" ", "_"))
 
         edit_account(self.client, data)
         self.remove_unnecessary_buttons()
@@ -598,7 +598,7 @@ class AddAccount(QWidget):
         perm_list = get_permissions_from_db(self.client)
         button_list = []
         for item in perm_list:
-            button_list.append(QCheckBox(item))
+            button_list.append(QCheckBox(item.replace("_", " ")))
 
         for item in button_list:
             self.perm_layout.addWidget(item)
@@ -713,7 +713,7 @@ class AddAccount(QWidget):
 
         for item in self.permissions.findChildren(QCheckBox):
             if item.isChecked():
-                data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
+                data['edit_attrs']['permissions'].append(item.text().replace(" ", "_"))
 
         new_account(self.client, data)
 
@@ -762,7 +762,7 @@ class QuickView(QWidget):
         perm_list = get_permissions_from_db(self.client)
         button_list = []
         for item in perm_list:
-            button_list.append(QCheckBox(item))
+            button_list.append(QCheckBox(item.replace("_", " ")))
 
         for item in button_list:
             self.perm_layout.addWidget(item)
@@ -861,7 +861,7 @@ class QuickView(QWidget):
                 item.setEnabled(False)
                 for perm in permissions:
                     print(f'{item.text()} on {perm}')
-                    if item.text().lower().replace(" ", "_") == perm:
+                    if item.text().replace(" ", "_") == perm:
                         print(f'need to check the state of {perm}')
                         item.setChecked(True)
 

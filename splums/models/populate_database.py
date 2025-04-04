@@ -77,10 +77,27 @@ with Session() as session:
     session.execute( 
         insert(Equipment),
         [
-            {"name": "drill_press", "icon_url": "./splums/images/drill_press.png"},
-            {"name": "cnc_machine", "icon_url": "./splums/images/cnc_machine.png"},
-            {"name": "laser_cutter", "icon_url": "./splums/images/laser_cutter.png"},
-            {"name": "soldering_station", "icon_url": "./splums/images/soldering_station.png"},
+            {"name": "SMAW_(arc)", "icon_url": "./splums/images/smaw_arc.png"},
+            {"name": "GTAW_(MIG)", "icon_url": "./splums/images/gtaw_mig.png"},
+            {"name": "GTAW_(TIG)", "icon_url": "./splums/images/gtaw_tig.png"},
+            {"name": "Gas_Welding", "icon_url": "./splums/images/gas_welding.png"},
+            {"name": "Offhand_Grinding_(Offset,_Belt,_and_Tool)", "icon_url": "./splums/images/offhand_grinding.png"},
+            {"name": "Finish_Grinding_(Surface_and_Cylindrical)", "icon_url": "./splums/images/finish_grinding.png"},
+            {"name": "Drill_Presses", "icon_url": "./splums/images/drill_presses.png"},
+            {"name": "Manual_Milling", "icon_url": "./splums/images/manual_milling.png"},
+            {"name": "Manual_Turning", "icon_url": "./splums/images/manual_turning.png"},
+            {"name": "CNC_Milling", "icon_url": "./splums/images/cnc_milling.png"},
+            {"name": "CNC_Turning", "icon_url": "./splums/images/cnc_turning.png"},
+            {"name": "Arbor_Press", "icon_url": "./splums/images/arbor_press.png"},
+            {"name": "Paint_Booth", "icon_url": "./splums/images/paint_booth.png"},
+            {"name": "Soldering", "icon_url": "./splums/images/soldering.png"},
+            {"name": "Table_Saw", "icon_url": "./splums/images/table_saw.png"},
+            {"name": "Bandsaws", "icon_url": "./splums/images/bandsaws.png"},
+            {"name": "Blast_Cabinet", "icon_url": "./splums/images/blast_cabinet"},
+            {"name": "Gas_Cylinder_Handling", "icon_url": "./splums/images/gas_cylinder_handling.png"},
+            {"name": "Flammable_Liquid_Handling", "icon_url": "./splums/images/flammable_liquid_handling.png"},
+            {"name": "Lithium_Battery_Handling", "icon_url": "./splums/images/lithium_battery_handling.png"},
+            {"name": "Respirators", "icon_url": "./splums/images/respirators.png"},
         ],
     )
     session.execute( 
@@ -94,8 +111,6 @@ with Session() as session:
     )
     
     # example of adding account_equipment record, can also define objects in line.
-    renee_welding = Account_Equipment(account=renee, equipment=Equipment(name="welding_station", icon_url="./splums/images/welding_station.png"), completed_training=False)
-    session.add(renee_welding)
 
 
     # it is always necessary to commit, no changes are applied until commit is applied.
