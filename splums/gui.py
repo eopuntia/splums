@@ -297,10 +297,15 @@ class EditAccount(QWidget):
         self.role.addItem("Archived")
         self.role.addItem("Blacklisted")
 
-        self.department.addItem("CS")
-        self.department.addItem("Aero")
-        self.department.addItem("Paper")
-        self.department.addItem("Other")
+        self.department.addItem("cs")
+        self.department.addItem("edmms")
+        self.department.addItem("cpe")
+        self.department.addItem("cce")
+        self.department.addItem("ieeem")
+        self.department.addItem("mae")
+        self.department.addItem("ceas")
+        self.department.addItem("pcpp")
+        self.department.addItem("other")
 
         self.affiliation.addItem("Undergrad")
         self.affiliation.addItem("Graduate")
@@ -375,11 +380,16 @@ class EditAccount(QWidget):
             
     def initial_load(self):
         acc_data = get_account_data(self.client, self.win)
+        print('initial load')
+        print('initial load')
+        print('initial load')
+        print('initial load')
+        print(acc_data)
 
         self.win_box.setText(str(acc_data['win']))
         self.display_name.setText(acc_data['display_name'])
         self.given_name.setText(acc_data['given_name'])
-        self.department.setCurrentText(acc_data['department'].capitalize())
+        self.department.setCurrentText(acc_data['department'])
         self.surname.setText(acc_data['surname'])
 
         if acc_data['rso'] is not None:
@@ -628,10 +638,15 @@ class AddAccount(QWidget):
         self.role.addItem("Administrator")
         self.role.addItem("Attendant")
 
-        self.department.addItem("CS")
-        self.department.addItem("Aero")
-        self.department.addItem("Paper")
-        self.department.addItem("Other")
+        self.department.addItem("cs")
+        self.department.addItem("edmms")
+        self.department.addItem("cpe")
+        self.department.addItem("cce")
+        self.department.addItem("ieeem")
+        self.department.addItem("mae")
+        self.department.addItem("ceas")
+        self.department.addItem("pcpp")
+        self.department.addItem("other")
  
         self.display_name.setPlaceholderText("Display Name...")
         self.display_name.setValidator(name_validator)
@@ -852,7 +867,7 @@ class QuickView(QWidget):
 
 
         self.role.setText(acc_data['role'].capitalize())
-        self.department.setText(acc_data['department'].capitalize())
+        self.department.setText(acc_data['department'])
         self.affiliation.setText(acc_data['affiliation'].capitalize())
 
     def save_public_note(self):
@@ -900,12 +915,12 @@ class MainWindow(QMainWindow):
         # digit width, dimensions, digit value
         self.headcount_display = self.initialize_lcd(2, [button_dim[0]-30, button_dim[1]-25], 0)
 
-        self.add_button = self.initialize_button("Add Account", "./splums/images/add.svg", self.add_account, button_dim, button_icon_dim)
-        self.edit_button = self.initialize_button("Edit Account", "./splums/images/edit.svg", self.edit_account, button_dim, button_icon_dim)
-        self.search_button = self.initialize_button("Search", "./splums/images/search.svg", self.search, button_dim, button_icon_dim)
-        self.signout_button = self.initialize_button("Sign Out", "./splums/images/signout.svg", self.sign_out, button_dim, button_icon_dim)
-        self.next_page_button = self.initialize_button("Next Page", "./splums/images/next.svg", self.next_page, button_dim, button_icon_dim)
-        self.prev_page_button = self.initialize_button("Previous Page", "./splums/images/prev.svg", self.prev_page, button_dim, button_icon_dim)
+        self.add_button = self.initialize_button("Add Account", "./splums/images/add.jpeg", self.add_account, button_dim, button_icon_dim)
+        self.edit_button = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.edit_account, button_dim, button_icon_dim)
+        self.search_button = self.initialize_button("Search", "./splums/images/search.jpeg", self.search, button_dim, button_icon_dim)
+        self.signout_button = self.initialize_button("Sign Out", "./splums/images/signout.jpeg", self.sign_out, button_dim, button_icon_dim)
+        self.next_page_button = self.initialize_button("Next Page", "./splums/images/forward.jpeg", self.next_page, button_dim, button_icon_dim)
+        self.prev_page_button = self.initialize_button("Previous Page", "./splums/images/back.jpeg", self.prev_page, button_dim, button_icon_dim)
 
         layout_topsplit = QHBoxLayout()
         self.layout_main.addLayout(layout_topsplit)
@@ -977,15 +992,15 @@ class MainWindow(QMainWindow):
         self.account_table.selectRow(-1)
 
         ### SECOND SEARCH LAYOUT
-        self.add_button_search = self.initialize_button("Add Account", "./splums/images/add.svg", self.   add_account, button_dim, button_icon_dim)
-        self.edit_button_search = self.initialize_button("Edit Account", "./splums/images/edit.svg", self.edit_account_search, button_dim, button_icon_dim)
-        self.signout_button_search = self.initialize_button("Sign Out", "./splums/images/signout.svg",    self.sign_out, button_dim, button_icon_dim)
+        self.add_button_search = self.initialize_button("Add Account", "./splums/images/add.jpeg", self.   add_account, button_dim, button_icon_dim)
+        self.edit_button_search = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.edit_account_search, button_dim, button_icon_dim)
+        self.signout_button_search = self.initialize_button("Sign Out", "./splums/images/signout.jpeg",    self.sign_out, button_dim, button_icon_dim)
 
 
-        self.back_button = self.initialize_button("Back", "./splums/images/prev.svg", self.back_to_main, button_dim, button_icon_dim)
+        self.back_button = self.initialize_button("Back", "./splums/images/back.jpeg", self.back_to_main, button_dim, button_icon_dim)
 
-        self.next_page_button_search = self.initialize_button("Next Page", "./splums/images/next.svg",    self.next_page_search, button_dim, button_icon_dim)
-        self.prev_page_button_search = self.initialize_button("Previous Page", "./splums/images/prev.svg", self.prev_page_search, button_dim, button_icon_dim)
+        self.next_page_button_search = self.initialize_button("Next Page", "./splums/images/forward.jpeg",    self.next_page_search, button_dim, button_icon_dim)
+        self.prev_page_button_search = self.initialize_button("Previous Page", "./splums/images/back.jpeg", self.prev_page_search, button_dim, button_icon_dim)
 
         total_users_layout_search = QVBoxLayout()
         total_users_lab_search = QLabel()

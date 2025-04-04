@@ -122,7 +122,6 @@ class EventBroker:
             case EventTypes.GET_USERS_BY_SEARCH:
                 print(f"\033[93mGetting users...\033[0m")
                 result = account_events.search_users(event, self.session)
-=======
             case EventTypes.GET_NOTE_FOR_USER:
                 print(f"\033[93mGetting note for user...\033[0m")
                 result = note_events.get_note_for_user(event, self.session)

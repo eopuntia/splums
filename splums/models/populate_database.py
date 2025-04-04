@@ -1,6 +1,6 @@
 from sqlalchemy import Engine, create_engine, insert, select
 from sqlalchemy.orm import sessionmaker
-from models import Account, Role, Note, Account_Equipment, Equipment, Event, Event_Type, Base, Affiliation, Department
+from models import Account, Role, Account_Equipment, Equipment, Event, Event_Type, Base, Affiliation, Department
 
 
 # connect to the engine.
@@ -26,14 +26,16 @@ with Session() as session:
     staff = Affiliation(name="Staff", icon_url="./images/staff.png")
     other = Affiliation(name="Other", icon_url="./images/other.png")
 
-    chemical_paper = Department(name="Chemical and Paper Engineering")
-    civil_construction = Department(name="Civil and Construction Engineering")
-    computer_science = Department(name="Computer Science")
-    electrical_computer = Department(name=" Electrical and Computer Engineering")
-    eng_design_manufacturing_mgmt_syst = Department(name="Engineering Design, Manufacturing and Management Systems")
-    indust_entreprenural_mgmt = Department(name="Industrial and Entrepreneurial Engineering and Engineering Management")
-    mechanical_aero = Department(name="Mechanical and Aerospace Engineering")
-    other_dep = Department(name="Other")
+    computer_science = Department(name="cs")
+    eng_design_manufacturing_mgmt_syst = Department(name="edmms")
+    electrical_computer = Department(name="ece")
+    chemical_paper = Department(name="cpe")
+    civil_construction = Department(name="cce")
+    indust_entreprenural_mgmt = Department(name="ieeem")
+    mechanical_aero = Department(name="mae")
+    ceas = Department(name="ceas")
+    pilot = Department(name="pcpp")
+    other_dep = Department(name="other")
 
     undergrad = Affiliation(name="undergrad", icon_url="./images/undergrad.png")
     graduate = Affiliation(name="graduate", icon_url="./images/graduate.png")
@@ -41,12 +43,6 @@ with Session() as session:
     researcher = Affiliation(name="researcher", icon_url="./images/researcher.png")
     staff = Affiliation(name="staff", icon_url="./images/staff.png")
     other = Affiliation(name="other", icon_url="./images/affiliation_other.png")
-
-    cs = Department(name="cs", icon_url="./images/cs.png")
-    paper = Department(name="paper", icon_url="./images/paper.png")
-    aero = Department(name="aero", icon_url="./images/aero.png")
-    other_dept = Department(name="other", icon_url="./images/dept_other.png")
-    
 
     # the datetime fields get populated automatically. You can see specifying the role and status relations in account.
     # what this does behind the scenes is it will populate the ID's for you. Makes it very easy. 
@@ -66,7 +62,7 @@ with Session() as session:
     # those objects are also implicitly added.
     session.add_all([faculty, researcher, other])
     session.add_all([renee, kahrl, estlin])
-    session.add_all([chemical_paper, civil_construction, indust_entreprenural_mgmt, mechanical_aero, other_dep])
+    session.add_all([chemical_paper, civil_construction, indust_entreprenural_mgmt, mechanical_aero, other_dep, pilot, ceas])
     session.add_all([faculty, researcher, other])
 
 

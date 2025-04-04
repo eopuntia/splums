@@ -62,10 +62,11 @@ class Account(Base):
     surname: Mapped[str] = mapped_column(String(255))
     photo_url: Mapped[str] = mapped_column(String(255))
     swiped_in: Mapped[bool] = mapped_column(default=False)
-    private_note: Mapped[Optional[str]] = mapped_column(Text)
-    public_note: Mapped[Optional[str]] = mapped_column(Text)
 
     rso: Mapped[Optional[str]] = mapped_column(String(255))
+
+    private_note: Mapped[Optional[str]] = mapped_column(Text)
+    public_note: Mapped[Optional[str]] = mapped_column(Text)
 
     # this syntax is slightly verbose and maybe there is a better way to do this, but it makes it so the timefield is automatically
     # populated to the current time whenever you add a record without needing to specify yourself.
@@ -90,29 +91,6 @@ class Account(Base):
     role: Mapped["Role"] = relationship(back_populates="accounts")
     affiliation: Mapped["Affiliation"] = relationship(back_populates="accounts")
     department: Mapped["Department"] = relationship(back_populates="accounts")
-
-class Note(Base):
-    __tablename__ = 'note'
-
-    note_id: Mapped[int] = mapped_column(primary_key=True)
-    subject_win: Mapped[int] = mapped_column(ForeignKey("account.win"))
-    creator_win: Mapped[int] = mapped_column(ForeignKey("account.win"))
-
-    text: Mapped[str] = mapped_column(Text)
-
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    last_updated_at: Mapped[datetime.datetime] = mapped_column( 
-        DateTime(timezone=True), server_default=func.now()
-    )
-    attendant_view_perms: Mapped[bool] = mapped_column(default=False)
-    attendant_edit_perms: Mapped[bool] = mapped_column(default=False)
-
-    # similarly to in the account table, it is necessary to let SQL alchemy know which keys specifically each one relates too.
-    subject_account: Mapped["Account"] = relationship(back_populates="notes_subject", foreign_keys=[subject_win])
-    creator_account: Mapped["Account"] = relationship(back_populates="notes_creator", foreign_keys=[creator_win])
-
 
 class Equipment(Base):
     __tablename__ = 'equipment'

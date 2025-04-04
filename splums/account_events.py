@@ -30,7 +30,7 @@ def create(event, session):
         account_department = s.scalar(select(Department).where(Department.name == event.data["edit_attrs"]["department"]))
         
         if account_department is None:
-            raise KeyError(f"Invalid department: {event.data['affiliation']}")
+            raise KeyError(f"Invalid department: {event.data['department']}")
 
 
         account = Account(win = event.data["win"], 
@@ -85,6 +85,7 @@ def edit(event, session):
                     raise KeyError(f"Invalid department: {event.data['edit_attrs'][update]}")
 
                 account.department = new_department
+
             if update == "affiliation":
                 new_affiliation = s.scalar(select(Affiliation).where(Affiliation.name == event.data["edit_attrs"][update]))
                 if new_affiliation is None:
