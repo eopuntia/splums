@@ -41,7 +41,7 @@ def create(event, session):
                           affiliation = account_affiliation,
                           department = account_department,
                           rso = event.data["edit_attrs"]["rso"],
-                          photo_url = event.data.get("photo_url", "./images/" + event.data["win"] + ".jpg"))
+                          photo_url = event.data.get("photo_url", "./images/" + "default_pic" + ".jpg"))
 
         s.add(account)
         s.commit()

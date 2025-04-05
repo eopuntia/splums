@@ -18,6 +18,7 @@ with Session() as session:
     administrator = Role(name="Administrator")
     attendant = Role(name="Attendant")
     user = Role(name="User")
+    pending = Role(name="Pending")
 
     undergrad = Affiliation(name="Undergrad", icon_url="./images/undergrad.png")
     graduate = Affiliation(name="Graduate", icon_url="./images/graduate.png")
@@ -60,10 +61,9 @@ with Session() as session:
     # actually load the objects to be committed (still not in the DB, will happen after commit call.
     # important to note is that since user, active, administrator, and attendant were related in these object definitions, 
     # those objects are also implicitly added.
-    session.add_all([faculty, researcher, other])
+    session.add_all([faculty, researcher, other, pending])
     session.add_all([renee, kahrl, estlin])
     session.add_all([chemical_paper, civil_construction, indust_entreprenural_mgmt, mechanical_aero, other_dep, pilot, ceas])
-    session.add_all([faculty, researcher, other])
 
 
 

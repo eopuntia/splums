@@ -520,106 +520,6 @@ class EditAccount(QWidget):
     def update_note(self):
         self.save_update.emit()
 
-class SecondCreation(QWidget):
-    save_update = pyqtSignal()
-    def __init__(self, client, win):
-        super().__init__()
-        self.client = client
-        self.win = str(win)
-
-        self.setWindowTitle("Take picture and create notes")
-
-        #Might want to find some way to ensure this is always large enough to fit webcam? at the moment assumes resolution of
-        #640, 480 specified in cam.py rescaling.
-        self.setMinimumSize(QSize(670, 600))
-
-        main_layout = QVBoxLayout()
-        bottom_row = QHBoxLayout()
-        buttons_block = QVBoxLayout()
-
-        self.setObjectName("Main")
-        self.setLayout(main_layout)
-
-        #The label which will contain the video feed. Initializes to loading text that is replaced when cam connection made.
-        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
-        #Init save confirmation space instead of hidden, makes it so picture doesn't move up and down.
-        self.save_message = QLabel(" ")
-
-        self.photo_button = QPushButton("Take Photo")
-        self.save_button = QPushButton("Save Photo")
-        self.retake_button = QPushButton("Retake")
-        self.notes_button = QPushButton("Notes")
-        self.exit_button = QPushButton("Exit")
-
-        self.retake_button.hide()
-        self.save_button.hide()
-
-        bottom_row.addWidget(self.save_message)
-        bottom_row.addLayout(buttons_block)
-
-        main_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
-        main_layout.addLayout(bottom_row)
-
-        buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.save_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.notes_button, alignment = Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.exit_button, alignment = Qt.AlignmentFlag.AlignRight)
-
-        self.photo_button.clicked.connect(self.take_picture)
-        self.retake_button.clicked.connect(self.retake_picture)
-        self.save_button.clicked.connect(self.save_photo)
-        self.notes_button.clicked.connect(self.spawn_notes)
-        self.exit_button.clicked.connect(self.close)
-
-        #Start the camera thread
-        self.cam_worker = cam.CamWorker(self.win)
-
-        #Connect the signal being emitted from the cam worker thread to the image_update function of this window
-        #Allows for the video feed of cam to be displayed in GUI
-        self.cam_worker.image_update.connect(self.image_update_slot)
-
-        #Start camera thread (this makes the thread's run function execute)
-        self.cam_worker.start()
-
-    def spawn_notes(self):
-        self.w = Notes(self.client, self.win, "public")
-        self.w.show()
-        self.w.save_update.connect(self.note_update)
-
-    def note_update(self):
-        self.save_update.emit()
-
-    def image_update_slot(self, image):
-        #Update the videofeed with the latest provided frame
-        self.feed_label.setPixmap(QPixmap.fromImage(image))
-
-    def take_picture(self):
-        self.cam_worker.take_picture()
-        #Hides photo button and asks if user wants to retake
-        self.photo_button.hide()
-        self.save_button.show()
-        self.retake_button.show()
-    
-    def save_photo(self):
-        self.save_message.setText("Photo saved!")
-        self.cam_worker.save_photo()
-        self.save_button.hide()
-        self.retake_button.hide()
-        self.photo_button.show()
-
-        self.save_update.emit()
-
-    def retake_picture(self):
-        self.cam_worker.retake_picture()
-        self.retake_button.hide()
-        self.save_button.hide()
-        self.photo_button.show()
-        self.save_message.setText(" ")
-
-    def closeEvent(self, event):
-        self.cam_worker.stop()
-
 class AddAccount(QWidget):
     save_update = pyqtSignal()
     def __init__(self, client):
@@ -627,8 +527,6 @@ class AddAccount(QWidget):
         self.client = client
 
         self.setWindowTitle("New Account")
-
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
 
         layout = QFormLayout()
 
@@ -642,30 +540,15 @@ class AddAccount(QWidget):
         self.rso = QLineEdit()
         self.exit_button = QPushButton("Exit")
 
-        self.permissions = QGroupBox()
-        self.perm_layout = QVBoxLayout()
-
-        perm_list = get_permissions_from_db(self.client)
-        button_list = []
-        for item in perm_list:
-            button_list.append(QCheckBox(item.replace("_", " ")))
-
-        for item in button_list:
-            self.perm_layout.addWidget(item)
-
-        self.permissions.setLayout(self.perm_layout)
-
         create_button = QPushButton("Create Account")
 
         create_button.clicked.connect(self.create_acc)
         self.exit_button.clicked.connect(self.close)
 
         layout.addRow("WIN:", self.win_box)
-        layout.addRow("Role:", self.role)
         layout.addRow("Display Name:", self.display_name)
         layout.addRow("Given Name:", self.given_name)
         layout.addRow("Surname:", self.surname)
-        layout.addRow("Permissions:", self.permissions)
         layout.addRow("Affiliation:", self.affiliation)
         layout.addRow("Department", self.department)
         layout.addRow("RSO:", self.rso)
@@ -682,12 +565,6 @@ class AddAccount(QWidget):
         self.win_box.setPlaceholderText("WIN...")
         self.win_box.setValidator(win_validator)
             
-        # TODO IMPLEMENT ROLE FUNCTIONALITY
-        # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
-        self.role.addItem("User")
-        self.role.addItem("Administrator")
-        self.role.addItem("Attendant")
-
         self.department.addItem("cs")
         self.department.addItem("edmms")
         self.department.addItem("cpe")
@@ -757,13 +634,9 @@ class AddAccount(QWidget):
         data['edit_attrs']['win'] = self.win_box.text()
         data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
         data['edit_attrs']['rso'] = self.rso.text()
-        data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['role'] = "pending"
         data['edit_attrs']['department'] = self.department.currentText().lower()
         data['edit_attrs']['permissions'] = []
-
-        for item in self.permissions.findChildren(QCheckBox):
-            if item.isChecked():
-                data['edit_attrs']['permissions'].append(item.text().replace(" ", "_"))
 
         new_account(self.client, data)
 
@@ -772,7 +645,7 @@ class AddAccount(QWidget):
         self.save_update.emit()
 
     def second_creation_screen(self):
-        self.w = SecondCreation(self.client, self.win_box.text())
+        self.w = EditAccount(self.win_box.text(), self.client)
         self.w.show()
         self.w.save_update.connect(self.update)
         self.close()
@@ -792,12 +665,9 @@ class QuickView(QWidget):
         self.setWindowTitle("Account Information")
         
         combined_layout = QHBoxLayout()
+        self.setLayout(combined_layout)
 
-        main_vert_layout = QVBoxLayout()
         main_form_layout = QFormLayout()
-
-        perm_label = QLabel()
-        perm_label.setText("Permissions")
 
         self.win_box = QLabel()
         self.role = QLabel()
@@ -817,6 +687,19 @@ class QuickView(QWidget):
         main_form_layout.addRow("Department:", self.department)
         main_form_layout.addRow("RSO:", self.rso)
 
+        exit_button = QPushButton("Exit")
+        self.swipe_toggle_button = QPushButton("Swipe in")
+
+        exit_button.clicked.connect(self.close)
+        self.swipe_toggle_button.clicked.connect(self.swipe_toggle)
+
+        main_label = QLabel()
+        main_label.setText("Attributes")
+
+        # Permissions stuff
+        perm_label = QLabel()
+        perm_label.setText("Permissions")
+
         perm_vert_layout = QVBoxLayout()
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
@@ -832,20 +715,13 @@ class QuickView(QWidget):
 
         self.permissions.setLayout(self.perm_layout)
 
-        exit_button = QPushButton("Exit")
-        self.swipe_toggle_button = QPushButton("Swipe in")
-
-        exit_button.clicked.connect(self.close)
-        self.swipe_toggle_button.clicked.connect(self.swipe_toggle)
-
         perm_vert_layout.addWidget(perm_label)
         perm_vert_layout.addWidget(self.permissions)
 
-
+        # Notes stuff
         self.notes = QPlainTextEdit()
         self.notes.setReadOnly(True)
         self.notes.setPlainText(get_public_account_note(self.client, self.win))
-        self.notes_locked_status = True
 
         self.unlock_button = QPushButton("Unlock Notes")
         self.unlock_button.clicked.connect(self.toggle_note_lock)
@@ -858,9 +734,8 @@ class QuickView(QWidget):
         notes_layout.addWidget(self.unlock_button)
         notes_layout.addWidget(self.save_public_notes_button)
 
-        main_label = QLabel()
-        main_label.setText("Attributes")
-
+        # Gluing it all together
+        main_vert_layout = QVBoxLayout()
         main_vert_layout.addWidget(main_label)
         main_vert_layout.addLayout(main_form_layout)
         main_vert_layout.addLayout(notes_layout)
@@ -870,7 +745,7 @@ class QuickView(QWidget):
         combined_layout.addLayout(main_vert_layout)
         combined_layout.addLayout(perm_vert_layout)
 
-        self.setLayout(combined_layout)
+        self.notes_locked_status = True
 
         self.set_swipe_button_status()
         self.remove_unnecessary_buttons()
@@ -890,7 +765,6 @@ class QuickView(QWidget):
             self.swipe_toggle_button.setText("Swipe Out")
         else:
             self.swipe_toggle_button.setText("Swipe In")
-
 
     def swipe_toggle(self):
         if check_if_swiped_in(self.client, self.win):
