@@ -533,7 +533,7 @@ class SecondCreation(QWidget):
         self.cam_worker.start()
 
     def spawn_notes(self):
-        self.w = Notes(self.client, self.win)
+        self.w = Notes(self.client, self.win, "public")
         self.w.show()
         self.w.save_update.connect(self.note_update)
 
