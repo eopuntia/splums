@@ -796,6 +796,9 @@ class QuickView(QWidget):
         main_vert_layout = QVBoxLayout()
         main_form_layout = QFormLayout()
 
+        perm_label = QLabel()
+        perm_label.setText("Permissions")
+
         self.win_box = QLabel()
         self.role = QLabel()
         self.department = QLabel()
@@ -805,12 +808,22 @@ class QuickView(QWidget):
         self.affiliation = QLabel()
         self.rso = QLabel()
 
+        main_form_layout.addRow("WIN:", self.win_box)
+        main_form_layout.addRow("Role:", self.role)
+        main_form_layout.addRow("Display Name:", self.display_name)
+        main_form_layout.addRow("Given Name:", self.given_name)
+        main_form_layout.addRow("Surname:", self.surname)
+        main_form_layout.addRow("Affiliation:", self.affiliation)
+        main_form_layout.addRow("Department:", self.department)
+        main_form_layout.addRow("RSO:", self.rso)
+
         perm_vert_layout = QVBoxLayout()
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
 
         perm_list = get_permissions_from_db(self.client)
         button_list = []
+
         for item in perm_list:
             button_list.append(QCheckBox(item.replace("_", " ")))
 
@@ -825,17 +838,6 @@ class QuickView(QWidget):
         exit_button.clicked.connect(self.close)
         self.swipe_toggle_button.clicked.connect(self.swipe_toggle)
 
-        main_form_layout.addRow("WIN:", self.win_box)
-        main_form_layout.addRow("Role:", self.role)
-        main_form_layout.addRow("Display Name:", self.display_name)
-        main_form_layout.addRow("Given Name:", self.given_name)
-        main_form_layout.addRow("Surname:", self.surname)
-        main_form_layout.addRow("Affiliation:", self.affiliation)
-        main_form_layout.addRow("Department:", self.department)
-        main_form_layout.addRow("RSO:", self.rso)
-
-        perm_label = QLabel()
-        perm_label.setText("Permissions")
         perm_vert_layout.addWidget(perm_label)
         perm_vert_layout.addWidget(self.permissions)
 
