@@ -787,15 +787,14 @@ class QuickView(QWidget):
         self.client = client
         self.win = win
 
-        print(f"quick view of win: {win}")
+        self.setObjectName("Main")
 
-        self.setWindowTitle("Account information")
-
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+        self.setWindowTitle("Account Information")
         
         combined_layout = QHBoxLayout()
 
-        layout = QFormLayout()
+        main_vert_layout = QVBoxLayout()
+        main_form_layout = QFormLayout()
 
         self.win_box = QLabel()
         self.role = QLabel()
@@ -806,6 +805,7 @@ class QuickView(QWidget):
         self.affiliation = QLabel()
         self.rso = QLabel()
 
+        perm_vert_layout = QVBoxLayout()
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
 
@@ -825,28 +825,25 @@ class QuickView(QWidget):
         exit_button.clicked.connect(self.close)
         self.swipe_toggle_button.clicked.connect(self.swipe_toggle)
 
-        layout.addRow("WIN:", self.win_box)
-        layout.addRow("Role:", self.role)
-        layout.addRow("Display Name:", self.display_name)
-        layout.addRow("Given Name:", self.given_name)
-        layout.addRow("Surname:", self.surname)
-        layout.addRow("Permissions:", self.permissions)
-        layout.addRow("Affiliation:", self.affiliation)
-        layout.addRow("Department:", self.department)
-        layout.addRow("RSO:", self.rso)
+        main_form_layout.addRow("WIN:", self.win_box)
+        main_form_layout.addRow("Role:", self.role)
+        main_form_layout.addRow("Display Name:", self.display_name)
+        main_form_layout.addRow("Given Name:", self.given_name)
+        main_form_layout.addRow("Surname:", self.surname)
+        main_form_layout.addRow("Affiliation:", self.affiliation)
+        main_form_layout.addRow("Department:", self.department)
+        main_form_layout.addRow("RSO:", self.rso)
 
-        layout.addWidget(self.swipe_toggle_button)
-        layout.addWidget(exit_button)
+        perm_label = QLabel()
+        perm_label.setText("Permissions")
+        perm_vert_layout.addWidget(perm_label)
+        perm_vert_layout.addWidget(self.permissions)
 
-        self.setObjectName("Main")
-
-        self.notes_locked_status = True
-        notes_layout = QVBoxLayout()
-        combined_layout.addLayout(layout)
 
         self.notes = QPlainTextEdit()
         self.notes.setReadOnly(True)
         self.notes.setPlainText(get_public_account_note(self.client, self.win))
+        self.notes_locked_status = True
 
         self.unlock_button = QPushButton("Unlock Notes")
         self.unlock_button.clicked.connect(self.toggle_note_lock)
@@ -854,14 +851,24 @@ class QuickView(QWidget):
         self.save_public_notes_button = QPushButton("Save notes")
         self.save_public_notes_button.clicked.connect(self.save_public_note)
 
+        notes_layout = QVBoxLayout()
         notes_layout.addWidget(self.notes)
         notes_layout.addWidget(self.unlock_button)
         notes_layout.addWidget(self.save_public_notes_button)
 
-        combined_layout.addLayout(notes_layout)
+        main_label = QLabel()
+        main_label.setText("Attributes")
+
+        main_vert_layout.addWidget(main_label)
+        main_vert_layout.addLayout(main_form_layout)
+        main_vert_layout.addLayout(notes_layout)
+        main_vert_layout.addWidget(self.swipe_toggle_button)
+        main_vert_layout.addWidget(exit_button)
+
+        combined_layout.addLayout(main_vert_layout)
+        combined_layout.addLayout(perm_vert_layout)
 
         self.setLayout(combined_layout)
-
 
         self.set_swipe_button_status()
         self.remove_unnecessary_buttons()
