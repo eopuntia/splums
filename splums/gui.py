@@ -361,7 +361,6 @@ class EditAccount(QWidget):
         self.save_notes_button_private.clicked.connect(self.save_note_private)
 
         # Stuff for Picture layout
-
         bottom_row = QHBoxLayout()
         buttons_block = QVBoxLayout()
         self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
@@ -370,6 +369,7 @@ class EditAccount(QWidget):
         self.photo_button = QPushButton("Take Photo")
         self.save_photo_button = QPushButton("Save Photo")
         self.retake_button = QPushButton("Retake")
+        self.back_from_photo_button = QPushButton("Back")
         
         self.retake_button.hide()
         self.save_photo_button.hide()
@@ -383,16 +383,15 @@ class EditAccount(QWidget):
         buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
         buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
         buttons_block.addWidget(self.save_photo_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(back_to_main_button, alignment = Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.back_from_photo_button, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.photo_button.clicked.connect(self.take_picture)
         self.retake_button.clicked.connect(self.retake_picture)
         self.save_photo_button.clicked.connect(self.save_photo)
+        self.back_from_photo_button.clicked.connect(self.back_from_photo)
 
         self.cam_worker = cam.CamWorker(self.win)
         self.cam_worker.image_update.connect(self.image_update_slot)
-
-        self.cam_worker.start()
 
         # add widgets to notes_layout
         notes_layout.addWidget(self.private_notes)
@@ -410,6 +409,7 @@ class EditAccount(QWidget):
 
     def show_photo(self):
         self.stacked_widget.setCurrentIndex(3)
+        self.cam_worker.start()
 
     def image_update_slot(self, image):
         #Update the videofeed with the latest provided frame
@@ -425,21 +425,24 @@ class EditAccount(QWidget):
     def save_photo(self):
         self.save_message.setText("Photo saved!")
         self.cam_worker.save_photo()
-        self.save_button.hide()
+        self.save_photo_button.hide()
         self.retake_button.hide()
         self.photo_button.show()
+
+        update_photo_path(self.client, self.win)
 
         self.save_update.emit()
 
     def retake_picture(self):
         self.cam_worker.retake_picture()
         self.retake_button.hide()
-        self.save_button.hide()
+        self.save_photo_button.hide()
         self.photo_button.show()
         self.save_message.setText(" ")
 
-    def closeEvent(self, event):
+    def back_from_photo(self, event):
         self.cam_worker.stop()
+        self.stacked_widget.setCurrentIndex(0)
 
     def back_to_main(self):
         self.stacked_widget.setCurrentIndex(0)
@@ -1597,6 +1600,12 @@ def check_if_swiped_in(client, account_win):
         return True
     else:
         return False
+
+def update_photo_path(client, account_win):
+    edit_attrs = {}
+    edit_attrs['photo_path'] = './images/' + str(account_win) + '.jpg'
+    event = Event(event_type=EventTypes.EDIT_ACCOUNT, data = {'win': account_win, 'edit_attrs': edit_attrs})
+    res = client.call_server(event)
 
 def delete_acc(client, account_win):
     event = Event(event_type=EventTypes.DELETE_ACCOUNT, data = {'win': account_win})

@@ -92,6 +92,9 @@ def edit(event, session):
                     raise KeyError(f"Invalid affiliation: {event.data['edit_attrs'][update]}")
 
                 account.affiliation = new_affiliation
+            if update == "photo_path":
+                account.photo_url = event.data['edit_attrs'][update]
+
 
             if update == "no_permissions":
                 for equip in event.data["edit_attrs"]["no_permissions"]:
