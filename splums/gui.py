@@ -207,12 +207,17 @@ class EditAccount(QWidget):
         notes_widget = QWidget()
         notes_layout = QVBoxLayout()
         notes_widget.setLayout(notes_layout)
+
+        photo_widget = QWidget()
+        photo_layout = QVBoxLayout()
+        photo_widget.setLayout(photo_layout)
         
         # The stacked layout of them all
         self.stacked_widget = QStackedWidget()
         self.stacked_widget.addWidget(main_widget)
         self.stacked_widget.addWidget(delete_widget)
         self.stacked_widget.addWidget(notes_widget)
+        self.stacked_widget.addWidget(photo_widget)
         self.stacked_widget.setCurrentIndex(0)
 
         stacked_layout = QVBoxLayout()
@@ -294,6 +299,7 @@ class EditAccount(QWidget):
         main_layout.addLayout(perm_vert_layout)
 
         # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
+        self.role.addItem("Pending")
         self.role.addItem("User")
         self.role.addItem("Administrator")
         self.role.addItem("Attendant")
@@ -353,7 +359,41 @@ class EditAccount(QWidget):
         self.save_notes_button_private = QPushButton("Save changes to note")
         self.save_notes_button_public.clicked.connect(self.save_note_public)
         self.save_notes_button_private.clicked.connect(self.save_note_private)
+
+        # Stuff for Picture layout
+
+        bottom_row = QHBoxLayout()
+        buttons_block = QVBoxLayout()
+        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
+        self.save_message = QLabel(" ")
+
+        self.photo_button = QPushButton("Take Photo")
+        self.save_photo_button = QPushButton("Save Photo")
+        self.retake_button = QPushButton("Retake")
         
+        self.retake_button.hide()
+        self.save_photo_button.hide()
+
+        bottom_row.addWidget(self.save_message)
+        bottom_row.addLayout(buttons_block)
+
+        photo_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
+        photo_layout.addLayout(bottom_row)
+
+        buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.save_photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(back_to_main_button, alignment = Qt.AlignmentFlag.AlignRight)
+
+        self.photo_button.clicked.connect(self.take_picture)
+        self.retake_button.clicked.connect(self.retake_picture)
+        self.save_photo_button.clicked.connect(self.save_photo)
+
+        self.cam_worker = cam.CamWorker(self.win)
+        self.cam_worker.image_update.connect(self.image_update_slot)
+
+        self.cam_worker.start()
+
         # add widgets to notes_layout
         notes_layout.addWidget(self.private_notes)
         notes_layout.addWidget(self.public_notes)
@@ -367,6 +407,39 @@ class EditAccount(QWidget):
         self.remove_unnecessary_buttons()
 
         self.initial_load()
+
+    def show_photo(self):
+        self.stacked_widget.setCurrentIndex(3)
+
+    def image_update_slot(self, image):
+        #Update the videofeed with the latest provided frame
+        self.feed_label.setPixmap(QPixmap.fromImage(image))
+
+    def take_picture(self):
+        self.cam_worker.take_picture()
+        #Hides photo button and asks if user wants to retake
+        self.photo_button.hide()
+        self.save_photo_button.show()
+        self.retake_button.show()
+
+    def save_photo(self):
+        self.save_message.setText("Photo saved!")
+        self.cam_worker.save_photo()
+        self.save_button.hide()
+        self.retake_button.hide()
+        self.photo_button.show()
+
+        self.save_update.emit()
+
+    def retake_picture(self):
+        self.cam_worker.retake_picture()
+        self.retake_button.hide()
+        self.save_button.hide()
+        self.photo_button.show()
+        self.save_message.setText(" ")
+
+    def closeEvent(self, event):
+        self.cam_worker.stop()
 
     def back_to_main(self):
         self.stacked_widget.setCurrentIndex(0)
@@ -509,10 +582,6 @@ class EditAccount(QWidget):
         self.public_notes.show()
         self.save_notes_button_public.show()
 
-    def show_photo(self):
-        self.w = Picture(self.client, self.win)
-        self.w.show()
-        self.w.photo_update.connect(self.update_photo)
 
     def update_photo(self):
         self.photo_update.emit()
