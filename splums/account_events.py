@@ -356,6 +356,12 @@ def get_users_paginated_filtered(event, session):
                 print(f"IN FILTERED affiliation {filtered_affiliation.name}")
 
         if event.data["status"] != "ignore":
+            if event.data["status"] == "active_accounts":
+                pending = s.scalar(select(Role).where(Role.name == "pending"))
+                query = query.filter(Account.role != pending)
+            if event.data["status"] == "pending":
+                pending = s.scalar(select(Role).where(Role.name == "pending"))
+                query = query.filter(Account.role == pending)
             if event.data["status"] == "swiped_in":
                 query = query.filter(Account.swiped_in == True)
             if event.data["status"] == "blacklisted":

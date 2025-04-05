@@ -35,150 +35,6 @@ class Account():
         # load when gui needs
         self.note = ""
 
-class Notes(QWidget):
-    save_update = pyqtSignal()
-    def __init__(self, client, win, status):
-        super().__init__()
-        self.client = client
-        self.status = status
-        self.win = win
-        main_layout = QGridLayout(self)
-        self.setWindowTitle("Notes")
-        self.setObjectName("Main")
-        self.setLayout(main_layout)
-
-        # Style Sheet for default styling options on widgets
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
-        
-        self.text_box = QPlainTextEdit()
-
-        save_button = QPushButton('Save')
-        exit_button = QPushButton("Exit")
-
-        main_layout.addWidget(self.text_box)
-        main_layout.addWidget(save_button)
-        main_layout.addWidget(exit_button)
-
-        if self.status == "public":
-            save_button.clicked.connect(self.save_public_note)
-            self.text_box.setPlainText(get_public_account_note(self.client, self.win))
-        if self.status == "private":
-            save_button.clicked.connect(self.save_private_note)
-            self.text_box.setPlainText(get_private_account_note(self.client, self.win))
-
-        exit_button.clicked.connect(self.close)
-
-    def save_private_note(self):
-        data = {}
-        data['win'] = self.win
-        data['text'] = self.text_box.toPlainText()
-        data['type'] = 'private'
-        print(data)
-
-        edit_note(self.client, data)
-
-        self.save_update.emit()
-
-    def save_public_note(self):
-        data = {}
-        data['win'] = self.win
-        data['text'] = self.text_box.toPlainText()
-        data['type'] = 'public'
-        print(data)
-
-        edit_note(self.client, data)
-
-        self.save_update.emit()
-
-class Picture(QWidget):
-    photo_update = pyqtSignal()
-    def __init__(self, client, win):
-        super().__init__()
-        self.client = client
-        self.win = str(win)
-
-        self.setWindowTitle("Take Picture")
-
-        #Might want to find some way to ensure this is always large enough to fit webcam? at the moment assumes resolution of
-        #640, 480 specified in cam.py rescaling.
-        self.setMinimumSize(QSize(670, 600))
-
-        main_layout = QVBoxLayout()
-        bottom_row = QHBoxLayout()
-        buttons_block = QVBoxLayout()
-
-        self.setObjectName("Main")
-        self.setLayout(main_layout)
-
-        #The label which will contain the video feed. Initializes to loading text that is replaced when cam connection made.
-        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
-        #Init save confirmation space instead of hidden, makes it so picture doesn't move up and down.
-        self.save_message = QLabel(" ")
-
-        self.photo_button = QPushButton("Take Photo")
-        self.save_button = QPushButton("Save Photo")
-        self.retake_button = QPushButton("Retake")
-        self.exit_button = QPushButton("Exit")
-
-        self.retake_button.hide()
-        self.save_button.hide()
-
-        bottom_row.addWidget(self.save_message)
-        bottom_row.addLayout(buttons_block)
-
-        main_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
-        main_layout.addLayout(bottom_row)
-
-        buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.save_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.exit_button, alignment = Qt.AlignmentFlag.AlignRight)
-
-        self.photo_button.clicked.connect(self.take_picture)
-        self.retake_button.clicked.connect(self.retake_picture)
-        self.save_button.clicked.connect(self.save_photo)
-        self.exit_button.clicked.connect(self.close)
-
-        #Start the camera thread
-        self.cam_worker = cam.CamWorker(self.win)
-
-        #Connect the signal being emitted from the cam worker thread to the image_update function of this window
-        #Allows for the video feed of cam to be displayed in GUI
-        self.cam_worker.image_update.connect(self.image_update_slot)
-
-        #Start camera thread (this makes the thread's run function execute)
-        self.cam_worker.start()
-
-    def image_update_slot(self, image):
-        #Update the videofeed with the latest provided frame
-        self.feed_label.setPixmap(QPixmap.fromImage(image))
-
-    def take_picture(self):
-        self.cam_worker.take_picture()
-        #Hides photo button and asks if user wants to retake
-        self.photo_button.hide()
-        self.save_button.show()
-        self.retake_button.show()
-    
-    def save_photo(self):
-        self.save_message.setText("Photo saved!")
-        self.cam_worker.save_photo()
-        self.save_button.hide()
-        self.retake_button.hide()
-        self.photo_button.show()
-
-        self.photo_update.emit()
-
-    def retake_picture(self):
-        self.cam_worker.retake_picture()
-        self.retake_button.hide()
-        self.save_button.hide()
-        self.photo_button.show()
-        self.save_message.setText(" ")
-
-    def closeEvent(self, event):
-        self.cam_worker.stop()
-
 class EditAccount(QWidget):
     photo_update = pyqtSignal()
     save_update = pyqtSignal()
@@ -299,12 +155,13 @@ class EditAccount(QWidget):
         main_layout.addLayout(perm_vert_layout)
 
         # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
-        self.role.addItem("Pending")
         self.role.addItem("User")
         self.role.addItem("Administrator")
         self.role.addItem("Attendant")
         self.role.addItem("Archived")
         self.role.addItem("Blacklisted")
+        self.role.setPlaceholderText('Pending')
+        self.role.setCurrentIndex(-1)
 
         self.department.addItem("cs")
         self.department.addItem("edmms")
@@ -1062,8 +919,9 @@ class MainWindow(QMainWindow):
         
         self.status_search = QComboBox()
         self.status_search.setMaximumWidth(100)
-        self.status_search.addItem("All Accounts")
-        self.status_search.addItem("Swiped in")
+        self.status_search.addItem("Active Accounts")
+        self.status_search.addItem(" ↳Swiped in")
+        self.status_search.addItem("Pending")
         self.status_search.addItem("Archived")
         self.status_search.addItem("Blacklisted")
 
@@ -1365,6 +1223,9 @@ class MainWindow(QMainWindow):
                 event_data['affiliation'].append(item.text().lower())
 
         event_data['status'] = self.status_search.currentText().lower().replace(" ", "_")
+        if event_data['status'] ==  '_↳swiped_in':
+            event_data['status'] = 'swiped_in'
+
         if event_data['status'] != "blacklisted":
             event_data['privilege'].append("blacklisted")
         if event_data['status'] != "archived":

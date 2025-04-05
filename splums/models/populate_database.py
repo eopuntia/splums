@@ -15,10 +15,10 @@ Session = sessionmaker(engine)
 with Session() as session:
     # it is very easy to define new records, just say the name of the class and fill in the fields.
     # these class objects are not actually added to the database yet.
-    administrator = Role(name="Administrator")
-    attendant = Role(name="Attendant")
-    user = Role(name="User")
-    pending = Role(name="Pending")
+    administrator = Role(name="administrator")
+    attendant = Role(name="attendant")
+    user = Role(name="user")
+    pending = Role(name="pending")
 
     undergrad = Affiliation(name="Undergrad", icon_url="./images/undergrad.png")
     graduate = Affiliation(name="Graduate", icon_url="./images/graduate.png")
