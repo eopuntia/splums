@@ -1596,8 +1596,12 @@ class MainWindow(QMainWindow):
             if res['admin'] == 'true':
                 self.attendant_admin_bool = True
                 self.active_admin_label.setText("ADMIN CONSOLE")
+                self.account_edit_button.hide()
+                self.edit_button.show()
             else:
                 self.attendant_admin_bool = False
+                self.edit_button.hide()
+                self.account_edit_button.show()
                 self.active_admin_label.setText("ATTENDANT CONSOLE")
 
             self.main_widget.setCurrentIndex(0)
