@@ -42,6 +42,7 @@ def create(event, session):
                           department = account_department,
                           public_note = '',
                           private_note = '',
+                          pin = event.data['edit_attrs']['pin'],
                           rso = event.data["edit_attrs"]["rso"],
                           photo_url = event.data.get("photo_url", "./images/" + "default_pic" + ".jpg"))
 
@@ -132,6 +133,8 @@ def edit(event, session):
                 account.photo_url = event.data["edit_attrs"][update]
             if update == "rso":
                 account.rso = event.data["edit_attrs"][update]
+            if update == 'pin':
+                account.pin = event.data['edit_attrs'][update]
 
         s.commit()
         return 1
@@ -424,7 +427,73 @@ def get_perms_for_user(event, session):
         return perm_data.copy()
 
 # TODO add proper error handling
-def check_if_win_exists(event, session):
+def attempt_attendant_signin(event, session):
+    with session.begin() as s:
+        required_keys = ["win", "pin"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+
+        account = s.scalar(
+            select(Account).where(
+                (Account.win == event.data["win"]) & 
+                (Account.pin == event.data["pin"])
+            )
+        )
+        if account.role.name == 'attendant':
+            query = s.query(Account)
+            # first sign out all attendants that are active rn
+            query = query.filter(Account.active_attendant == 1)
+            admin = s.scalar(select(Role).where(Role.name == "administrator"))
+            # ignore admins
+            query = query.filter(Account.role != admin)
+
+            # sign all of these people out
+            active_accounts = query.all()
+
+            for acc in active_accounts:
+                acc.active_attendant = 0
+
+
+        # then attempt to sign in new person
+        if account is None:
+            s.rollback()
+            return { "status" : "fail" }
+        if account.role.name != "administrator" and account.role.name != "attendant":
+            print(account.role.name + 'invalid perms')
+            s.rollback()
+            return { "status": "fail" }
+
+        account.active_attendant = 1
+        print(account.role.name)
+        ret_data = { "status": "success", "display_name": account.display_name, 'admin': 'false' }
+        if account.role.name == "administrator":
+            ret_data['admin'] = 'true'
+
+        s.commit()
+
+        return ret_data
+
+# TODO add proper error handling
+def attempt_attendant_signout(event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+
+
+        account = s.scalar(
+            select(Account).where(
+                (Account.win == event.data["win"]) 
+            )
+        )
+        account.active_attendant = 0
+
+        s.commit()
+
+# TODO add proper error handling
+def check_if_active_attendant(event, session):
     with session.begin() as s:
         required_keys = ["win"]
         for key in required_keys:
@@ -433,8 +502,27 @@ def check_if_win_exists(event, session):
                 
         account = s.scalar(select(Account).where(Account.win == event.data["win"]))
         if account is None:
-            return { "win" : False }
-        else: return { "win" : True } 
+            return { 'win': False }
+
+        if account.active_attendant == 1:
+            return { 'win': True } 
+        else: return { 'win': False }
+
+# TODO add proper error handling
+def check_if_win_exists(event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+                
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+
+        if account is None:
+            return {'win' : False}
+        else:
+            return {'win' :True }
+        
 
 # TODO add proper error handling
 def get_data_for_user(event, session):
