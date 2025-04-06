@@ -455,6 +455,10 @@ def attempt_attendant_signin(event, session):
         if account is None:
             s.rollback()
             return { "status" : "fail" }
+        if account.role.name != "administrator" and account.role.name != "attendant":
+            print(account.role.name + 'invalid perms')
+            s.rollback()
+            return { "status": "fail" }
 
         account.active_attendant = 1
         print(account.role.name)
