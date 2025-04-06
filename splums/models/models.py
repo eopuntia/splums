@@ -56,11 +56,13 @@ class Account(Base):
     role_id: Mapped[int] = mapped_column(ForeignKey("role.role_id"))
     affiliation_id: Mapped[int] = mapped_column(ForeignKey("affiliation.affiliation_id"))
     department_id: Mapped[int] = mapped_column(ForeignKey("department.department_id"))
+    pin: Mapped[int]
 
     display_name: Mapped[str] = mapped_column(String(255))
     given_name: Mapped[str] = mapped_column(String(255))
     surname: Mapped[str] = mapped_column(String(255))
     photo_url: Mapped[str] = mapped_column(String(255))
+    active_attendant: Mapped[bool] = mapped_column(default=False)
     swiped_in: Mapped[bool] = mapped_column(default=False)
 
     rso: Mapped[Optional[str]] = mapped_column(String(255))

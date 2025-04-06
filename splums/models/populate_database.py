@@ -49,13 +49,13 @@ with Session() as session:
     # what this does behind the scenes is it will populate the ID's for you. Makes it very easy. 
     renee = Account(win=212222222, role=user, affiliation=graduate, department=computer_science, display_name="rez", 
                      given_name="Renee", surname="Rickert", photo_url="./images/212222222.jpg",
-                     rso="Computer Club", public_note='', private_note='')
+                     rso="Computer Club", public_note='', pin=1111, private_note='')
 
-    kahrl = Account(win=123412341, role=administrator, affiliation=staff, department=eng_design_manufacturing_mgmt_syst, display_name="zathras", 
-                     given_name="Allin", surname="Kahrl", photo_url="./images/123412341.jpg", public_note='', private_note='')
+    kahrl = Account(win=123412341, role=administrator, affiliation=staff, department=eng_design_manufacturing_mgmt_syst, display_name="zathras", pin=1234,
+                     given_name="Allin", surname="Kahrl", photo_url="./images/default_pic.jpg", public_note='', private_note='')
 
-    estlin = Account(win=432143214, role=attendant, affiliation=undergrad, department=electrical_computer, display_name="estlin", public_note='', private_note='',
-                     given_name="Estlin", surname="Mendez", photo_url="./images/432143214.jpg")
+    estlin = Account(win=432143214, role=attendant, affiliation=undergrad, department=electrical_computer, display_name="estlin", public_note='', private_note='', pin=1111,
+                     given_name="Estlin", surname="Mendez", photo_url="./images/default_pic.jpg")
 
 
     # actually load the objects to be committed (still not in the DB, will happen after commit call.
