@@ -42,6 +42,7 @@ class EditAccount(QWidget):
         super().__init__()
         self.client = client
         self.win = win
+        self.role_raw = 'populate_later'
         self.setObjectName("Main")
 
         self.setWindowTitle("Edit Account")
@@ -162,6 +163,7 @@ class EditAccount(QWidget):
         self.role.addItem("Blacklisted")
         self.role.setPlaceholderText('Pending')
         self.role.setCurrentIndex(-1)
+        self.role.currentIndexChanged.connect(self.update_raw_role)
 
         self.department.addItem("cs")
         self.department.addItem("edmms")
@@ -264,6 +266,9 @@ class EditAccount(QWidget):
 
         self.initial_load()
 
+    def update_raw_role(self):
+        self.role_raw = 'updated'
+
     def show_photo(self):
         self.stacked_widget.setCurrentIndex(3)
         self.cam_worker.start()
@@ -364,10 +369,17 @@ class EditAccount(QWidget):
                         print(f'need to check the state of {perm}')
                         item.setChecked(True)
 
+        self.role_raw = acc_data['role']
         self.role.setCurrentText(acc_data['role'].capitalize())
         self.affiliation.setCurrentText(acc_data['affiliation'].capitalize())
 
     def save_edit(self):
+        if self.role_raw == 'pending':
+            err_msg = QMessageBox(self)
+            err_msg.show()
+            err_msg.setText("Role must be changed from pending before saving")
+            return
+
         if self.role.currentText().lower() == "archived" and self.swiped:
             name = self.display_name.text()
             err_msg = QMessageBox(self)
@@ -909,29 +921,47 @@ class MainWindow(QMainWindow):
         self.topright_bar_search = QHBoxLayout()
         self.topright_bar_search.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        search_name_layout = QVBoxLayout()
+        search_name_layout = QFormLayout()
+        self.search_text = QLineEdit()
+        self.search_text.setMaximumWidth(170)
+        self.search_text_private = QLineEdit()
+        self.search_text_private.setMaximumWidth(170)
+
         self.search_name = QLineEdit()
         self.search_name.setMaximumWidth(170)
-        search_name_layout.addWidget(self.search_name)
-        name_validator = QRegularExpressionValidator(QRegularExpression("[A-za-z]+"))
-        self.search_name.setPlaceholderText("Name...")
+        search_name_layout.addRow("Names/RSO:", self.search_name)
+        search_name_layout.addRow("Public notes:", self.search_text)
+        search_name_layout.addRow("Private notes:", self.search_text_private)
+        name_validator = QRegularExpressionValidator(QRegularExpression("[A-za-z0-9_]+"))
+
+        self.search_name.setPlaceholderText("...")
+        self.search_text.setPlaceholderText("...")
+        self.search_text_private.setPlaceholderText("...")
         self.search_name.setValidator(name_validator)
         
         self.status_search = QComboBox()
-        self.status_search.setMaximumWidth(100)
+        self.status_search.setMaximumWidth(150)
         self.status_search.addItem("Active Accounts")
         self.status_search.addItem(" ↳Swiped in")
         self.status_search.addItem("Pending")
         self.status_search.addItem("Archived")
         self.status_search.addItem("Blacklisted")
 
+        self.status_search.currentIndexChanged.connect(self.update_permbox_style)
+        
+        reset_button = QPushButton("Reset")
+        reset_button.clicked.connect(self.reset_filters)
+        vert_reset_and_filter = QVBoxLayout()
+        vert_reset_and_filter.addWidget(reset_button)
+        vert_reset_and_filter.addWidget(self.status_search)
+
         self.privilege_group = QGroupBox()
         self.privilege_group.setMaximumWidth(130)
         self.privilege_layout = QVBoxLayout()
         self.privilege_layout.setSpacing(0)
         privilege_type_list = []
-        privilege_types = [ "Unprivileged", "Attendant", "Administrator" ] 
-        for item in privilege_types:
+        self.privilege_types = [ "Unprivileged", "Attendant", "Administrator" ] 
+        for item in self.privilege_types:
             privilege_type_list.append(QCheckBox(item))
 
         for item in privilege_type_list:
@@ -968,7 +998,7 @@ class MainWindow(QMainWindow):
         self.affiliation_group.setLayout(self.combined_affiliation_layout)
 
         self.topright_bar_search.addLayout(search_name_layout)
-        self.topright_bar_search.addWidget(self.status_search)
+        self.topright_bar_search.addLayout(vert_reset_and_filter)
         self.topright_bar_search.addWidget(self.affiliation_group)
         self.topright_bar_search.addWidget(self.privilege_group)
 
@@ -1009,11 +1039,43 @@ class MainWindow(QMainWindow):
 
         self.status_search.currentIndexChanged.connect(self.search)
         self.search_name.textChanged.connect(self.search)
+        self.search_text.textChanged.connect(self.search)
+        self.search_text_private.textChanged.connect(self.search)
 
         self.account_table.doubleClicked.connect(self.attendant_blurb_swiped)
         self.account_table_search.doubleClicked.connect(self.attendant_blurb_search)
 
         self.main_widget.setCurrentIndex(0)
+
+    def update_permbox_style(self):
+        current_text = self.status_search.currentText()
+        gray_outs = ["Pending", "Archived", "Blacklisted"]
+
+        if current_text in gray_outs:
+            self.privilege_group.setStyleSheet("QGroupBox { background-color: #333333; }")
+            for box in self.privilege_group.findChildren(QCheckBox):
+                box.setText("N/A")
+                box.setChecked(False)
+                box.setEnabled(False)
+        else:
+            i = 0
+            self.privilege_group.setStyleSheet("QGroupBox { background-color: darkgray; }")
+            for box in self.privilege_group.findChildren(QCheckBox):
+                box.setText(self.privilege_types[i])
+                box.setChecked(True)
+                box.setEnabled(True)
+                i += 1
+
+    def reset_filters(self):
+        self.search_name.setText("")
+        self.search_text.setText("")
+        self.search_text_private.setText("")
+        self.status_search.setCurrentIndex(0)
+        for box in self.affiliation_group.findChildren(QCheckBox):
+            box.setChecked(True)
+
+        for box in self.privilege_group.findChildren(QCheckBox):
+            box.setChecked(True)
 
     def attendant_blurb_swiped(self):
         selected_row = self.account_table.currentRow()
@@ -1209,6 +1271,8 @@ class MainWindow(QMainWindow):
         event_data['privilege'] = []
         for item in self.privilege_group.findChildren(QCheckBox):
             if item.isChecked() is False:
+                if item.text() == "N/A": 
+                    continue
                 # just done use User in code
                 if item.text() == "Unprivileged":
                     event_data['privilege'].append("user")
@@ -1230,7 +1294,10 @@ class MainWindow(QMainWindow):
             event_data['privilege'].append("blacklisted")
         if event_data['status'] != "archived":
             event_data['privilege'].append("archived")
+
         event_data['name'] = self.search_name.text()
+        event_data['text'] = self.search_text.text()
+        event_data['text_private'] = self.search_text_private.text()
 
         res = get_users_paginated_filtered(self.client_connection, event_data)
         if res is None:
@@ -1257,6 +1324,8 @@ class MainWindow(QMainWindow):
         event_data['status'] = "swiped_in"
         event_data['affiliation'] = "ignore"
         event_data['name'] = "ignore"
+        event_data['text'] = "ignore"
+        event_data['text_private'] = "ignore"
 
         res = get_users_paginated_filtered(self.client_connection, event_data)
         self.total_users_in_query = res["total_users"]

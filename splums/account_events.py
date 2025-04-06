@@ -40,6 +40,8 @@ def create(event, session):
                           display_name = event.data["edit_attrs"]["display_name"], 
                           affiliation = account_affiliation,
                           department = account_department,
+                          public_note = '',
+                          private_note = '',
                           rso = event.data["edit_attrs"]["rso"],
                           photo_url = event.data.get("photo_url", "./images/" + "default_pic" + ".jpg"))
 
@@ -330,7 +332,21 @@ def get_users_paginated_filtered(event, session):
                         or_(
                 Account.display_name.ilike(f"%{event.data['name']}%"),
                 Account.surname.ilike(f"%{event.data['name']}%"),
-                Account.given_name.ilike(f"%{event.data['name']}%")
+                Account.given_name.ilike(f"%{event.data['name']}%"),
+                Account.rso.ilike(f"%{event.data['name']}%"),
+                )
+            )
+
+        if event.data["text"] != "ignore":
+            query = query.filter(
+                or_(
+                    Account.public_note.ilike(f"%{event.data['text']}%"),
+                )
+            )
+        if event.data["text_private"] != "ignore":
+            query = query.filter(
+                or_(
+                    Account.private_note.ilike(f"%{event.data['text_private']}%"),
                 )
             )
 
