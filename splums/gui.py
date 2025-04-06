@@ -7,8 +7,8 @@ import os
 import sys
 
 from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox, QStackedWidget, QSpacerItem, QFrame
-from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
-from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
+from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal, QTimer, QEvent
+from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator, QMouseEvent, QKeyEvent
 from sqlalchemy.exc import SQLAlchemyError
 from PyQt6.QtSql import QSqlDatabase, QSqlQuery, QSqlTableModel
 
@@ -1247,6 +1247,10 @@ class MainWindow(QMainWindow):
         self.attendant_display_name = ""
         self.attendant_admin_bool = False
 
+        self.timeout_timer = QTimer()
+        self.timeout_timer.setInterval(15 * 60 * 1000)
+        self.timeout_timer.timeout.connect(self.sign_out)
+
         self.items_per_page = 5
         self.page_number = 1
         self.max_page = 0
@@ -1612,10 +1616,18 @@ class MainWindow(QMainWindow):
             self.accounts.clear()
             self.accounts_load_swiped()
             self.render_accounts_to_screen()
+            self.timeout_timer.start()
             self.main_widget.setCurrentIndex(0)
+    
+    def event(self, event: QEvent):
+        if event.type() in [QEvent.Type.KeyPress, QEvent.Type.MouseMove]:
+            self.timeout_timer.start()
+
+        return super().event(event)
 
     def sign_out(self):
         event_data = {}
+        self.timeout_timer.stop()
         event_data['win'] = self.attendant_win
         res = attempt_attendant_logout(self.client_connection, event_data)
 
