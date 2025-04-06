@@ -40,8 +40,10 @@ def create(event, session):
                           display_name = event.data["edit_attrs"]["display_name"], 
                           affiliation = account_affiliation,
                           department = account_department,
+                          public_note = '',
+                          private_note = '',
                           rso = event.data["edit_attrs"]["rso"],
-                          photo_url = event.data.get("photo_url", "./images/" + event.data["win"] + ".jpg"))
+                          photo_url = event.data.get("photo_url", "./images/" + "default_pic" + ".jpg"))
 
         s.add(account)
         s.commit()
@@ -54,7 +56,7 @@ def create(event, session):
             if update == "permissions":
                 for equip in event.data["edit_attrs"]["permissions"]:
                     add_e = s.scalar(select(Equipment).where(Equipment.name == equip))
-                    acc_equip = Account_Equipment(account=account, equipment=add_e, completed_training=True)
+                    acc_equip = Account_Equipment(account=account, equipment=add_e)
                     account.equipments.append(acc_equip)
 
         s.commit()
@@ -92,6 +94,9 @@ def edit(event, session):
                     raise KeyError(f"Invalid affiliation: {event.data['edit_attrs'][update]}")
 
                 account.affiliation = new_affiliation
+            if update == "photo_path":
+                account.photo_url = event.data['edit_attrs'][update]
+
 
             if update == "no_permissions":
                 for equip in event.data["edit_attrs"]["no_permissions"]:
@@ -114,7 +119,7 @@ def edit(event, session):
                         Account_Equipment.equipment == add_e
                     ))
                     if not existing_rel:
-                        acc_equip = Account_Equipment(account=account, equipment=add_e, completed_training=True)
+                        acc_equip = Account_Equipment(account=account, equipment=add_e)
                         account.equipments.append(acc_equip)
 
             if update == "surname":
@@ -224,7 +229,7 @@ def format_users(unformatted_user):
             'photo_url': user.photo_url,
             'role': user.role.name,
             'affiliation':user.affiliation.name,
-            'department': user.department,
+            'department': user.department.name,
             'created_at': user.created_at,
             'last_updated_at': user.last_updated_at,
             'swiped_in': user.swiped_in,
@@ -327,7 +332,21 @@ def get_users_paginated_filtered(event, session):
                         or_(
                 Account.display_name.ilike(f"%{event.data['name']}%"),
                 Account.surname.ilike(f"%{event.data['name']}%"),
-                Account.given_name.ilike(f"%{event.data['name']}%")
+                Account.given_name.ilike(f"%{event.data['name']}%"),
+                Account.rso.ilike(f"%{event.data['name']}%"),
+                )
+            )
+
+        if event.data["text"] != "ignore":
+            query = query.filter(
+                or_(
+                    Account.public_note.ilike(f"%{event.data['text']}%"),
+                )
+            )
+        if event.data["text_private"] != "ignore":
+            query = query.filter(
+                or_(
+                    Account.private_note.ilike(f"%{event.data['text_private']}%"),
                 )
             )
 
@@ -353,6 +372,12 @@ def get_users_paginated_filtered(event, session):
                 print(f"IN FILTERED affiliation {filtered_affiliation.name}")
 
         if event.data["status"] != "ignore":
+            if event.data["status"] == "active_accounts":
+                pending = s.scalar(select(Role).where(Role.name == "pending"))
+                query = query.filter(Account.role != pending)
+            if event.data["status"] == "pending":
+                pending = s.scalar(select(Role).where(Role.name == "pending"))
+                query = query.filter(Account.role == pending)
             if event.data["status"] == "swiped_in":
                 query = query.filter(Account.swiped_in == True)
             if event.data["status"] == "blacklisted":

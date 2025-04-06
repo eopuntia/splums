@@ -6,7 +6,7 @@ from client import *
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox, QStackedWidget
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox, QStackedWidget, QSpacerItem, QFrame
 from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from sqlalchemy.exc import SQLAlchemyError
@@ -35,150 +35,6 @@ class Account():
         # load when gui needs
         self.note = ""
 
-class Notes(QWidget):
-    save_update = pyqtSignal()
-    def __init__(self, client, win, status):
-        super().__init__()
-        self.client = client
-        self.status = status
-        self.win = win
-        main_layout = QGridLayout(self)
-        self.setWindowTitle("Notes")
-        self.setObjectName("Main")
-        self.setLayout(main_layout)
-
-        # Style Sheet for default styling options on widgets
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
-        
-        self.text_box = QPlainTextEdit()
-
-        save_button = QPushButton('Save')
-        exit_button = QPushButton("Exit")
-
-        main_layout.addWidget(self.text_box)
-        main_layout.addWidget(save_button)
-        main_layout.addWidget(exit_button)
-
-        if self.status == "public":
-            save_button.clicked.connect(self.save_public_note)
-            self.text_box.setPlainText(get_public_account_note(self.client, self.win))
-        if self.status == "private":
-            save_button.clicked.connect(self.save_private_note)
-            self.text_box.setPlainText(get_private_account_note(self.client, self.win))
-
-        exit_button.clicked.connect(self.close)
-
-    def save_private_note(self):
-        data = {}
-        data['win'] = self.win
-        data['text'] = self.text_box.toPlainText()
-        data['type'] = 'private'
-        print(data)
-
-        edit_public_note(self.client, data)
-
-        self.save_update.emit()
-
-    def save_public_note(self):
-        data = {}
-        data['win'] = self.win
-        data['text'] = self.text_box.toPlainText()
-        data['type'] = 'public'
-        print(data)
-
-        edit_public_note(self.client, data)
-
-        self.save_update.emit()
-
-class Picture(QWidget):
-    photo_update = pyqtSignal()
-    def __init__(self, client, win):
-        super().__init__()
-        self.client = client
-        self.win = str(win)
-
-        self.setWindowTitle("Take Picture")
-
-        #Might want to find some way to ensure this is always large enough to fit webcam? at the moment assumes resolution of
-        #640, 480 specified in cam.py rescaling.
-        self.setMinimumSize(QSize(670, 600))
-
-        main_layout = QVBoxLayout()
-        bottom_row = QHBoxLayout()
-        buttons_block = QVBoxLayout()
-
-        self.setObjectName("Main")
-        self.setLayout(main_layout)
-
-        #The label which will contain the video feed. Initializes to loading text that is replaced when cam connection made.
-        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
-        #Init save confirmation space instead of hidden, makes it so picture doesn't move up and down.
-        self.save_message = QLabel(" ")
-
-        self.photo_button = QPushButton("Take Photo")
-        self.save_button = QPushButton("Save Photo")
-        self.retake_button = QPushButton("Retake")
-        self.exit_button = QPushButton("Exit")
-
-        self.retake_button.hide()
-        self.save_button.hide()
-
-        bottom_row.addWidget(self.save_message)
-        bottom_row.addLayout(buttons_block)
-
-        main_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
-        main_layout.addLayout(bottom_row)
-
-        buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.save_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.exit_button, alignment = Qt.AlignmentFlag.AlignRight)
-
-        self.photo_button.clicked.connect(self.take_picture)
-        self.retake_button.clicked.connect(self.retake_picture)
-        self.save_button.clicked.connect(self.save_photo)
-        self.exit_button.clicked.connect(self.close)
-
-        #Start the camera thread
-        self.cam_worker = cam.CamWorker(self.win)
-
-        #Connect the signal being emitted from the cam worker thread to the image_update function of this window
-        #Allows for the video feed of cam to be displayed in GUI
-        self.cam_worker.image_update.connect(self.image_update_slot)
-
-        #Start camera thread (this makes the thread's run function execute)
-        self.cam_worker.start()
-
-    def image_update_slot(self, image):
-        #Update the videofeed with the latest provided frame
-        self.feed_label.setPixmap(QPixmap.fromImage(image))
-
-    def take_picture(self):
-        self.cam_worker.take_picture()
-        #Hides photo button and asks if user wants to retake
-        self.photo_button.hide()
-        self.save_button.show()
-        self.retake_button.show()
-    
-    def save_photo(self):
-        self.save_message.setText("Photo saved!")
-        self.cam_worker.save_photo()
-        self.save_button.hide()
-        self.retake_button.hide()
-        self.photo_button.show()
-
-        self.photo_update.emit()
-
-    def retake_picture(self):
-        self.cam_worker.retake_picture()
-        self.retake_button.hide()
-        self.save_button.hide()
-        self.photo_button.show()
-        self.save_message.setText(" ")
-
-    def closeEvent(self, event):
-        self.cam_worker.stop()
-
 class EditAccount(QWidget):
     photo_update = pyqtSignal()
     save_update = pyqtSignal()
@@ -186,33 +42,49 @@ class EditAccount(QWidget):
         super().__init__()
         self.client = client
         self.win = win
-
-        print(f"editing the account of win: {win}")
+        self.role_raw = 'populate_later'
+        self.setObjectName("Main")
 
         self.setWindowTitle("Edit Account")
 
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+        # Main layout
+        main_layout = QHBoxLayout()
 
-        self.stacked_widget = QStackedWidget()
-        self.stacked_layout = QVBoxLayout()
-        self.stacked_widget.setObjectName("Edit")
-
-        delete_layout = QVBoxLayout()
-
-        layout = QFormLayout()
-        self.main_widget = QWidget()
-        self.main_widget.setLayout(layout)
-        self.delete_widget = QWidget()
-        self.delete_widget.setLayout(delete_layout)
-        self.notes_widget = QWidget()
+        main_widget = QWidget()
+        main_form_layout = QFormLayout()
+        main_form_layout_widget = QFrame()
+        perm_vert_layout = QVBoxLayout()
+        main_widget.setLayout(main_layout)
         
-        self.stacked_widget.addWidget(self.main_widget)
-        self.stacked_widget.addWidget(self.delete_widget)
-        self.stacked_widget.addWidget(self.notes_widget)
-        self.stacked_widget.setCurrentIndex(0)
-        self.stacked_layout.addWidget(self.stacked_widget)
-        self.setLayout(self.stacked_layout)
+        # Delete Layout
+        delete_widget = QWidget()
+        delete_layout = QVBoxLayout()
+        delete_widget.setLayout(delete_layout)
 
+        # Notes layout
+        notes_widget = QWidget()
+        notes_layout = QVBoxLayout()
+        notes_widget.setLayout(notes_layout)
+
+        photo_widget = QWidget()
+        photo_layout = QVBoxLayout()
+        photo_widget.setLayout(photo_layout)
+        
+        # The stacked layout of them all
+        self.stacked_widget = QStackedWidget()
+        self.stacked_widget.addWidget(main_widget)
+        self.stacked_widget.addWidget(delete_widget)
+        self.stacked_widget.addWidget(notes_widget)
+        self.stacked_widget.addWidget(photo_widget)
+        self.stacked_widget.setCurrentIndex(0)
+
+        stacked_layout = QVBoxLayout()
+        stacked_layout.addWidget(self.stacked_widget)
+
+        # make the primary layout the stacked one
+        self.setLayout(stacked_layout)
+
+        # STUFF FOR MAIN LAYOUT
         self.win_box = QLineEdit()
         self.role = QComboBox()
         self.department = QComboBox()
@@ -220,82 +92,91 @@ class EditAccount(QWidget):
         self.given_name = QLineEdit()
         self.surname = QLineEdit()
         self.affiliation = QComboBox()
-        self.delete_warning = QLabel()
-        self.delete_warning.setText("WARNING: THIS ACTION CANNOT BE REVERSED")
         self.rso = QLineEdit()
-
         self.permissions = QGroupBox()
-        self.perm_layout = QVBoxLayout()
+
+        perm_layout = QVBoxLayout()
+        perm_label = QLabel()
+        perm_label.setText("Permissions")
+        perm_label.setStyleSheet("QLabel { font-size:12pt}")
 
         perm_list = get_permissions_from_db(self.client)
         button_list = []
         for item in perm_list:
-            button_list.append(QCheckBox(item))
+            button_list.append(QCheckBox(item.replace("_", " ")))
 
         for item in button_list:
-            self.perm_layout.addWidget(item)
+            perm_layout.addWidget(item)
 
-        self.permissions.setLayout(self.perm_layout)
+        self.permissions.setLayout(perm_layout)
 
         public_notes_button = QPushButton("Public Notes")
         private_notes_button = QPushButton("Private Notes")
-        self.delete_button = QPushButton("Delete")
-        self.confirm_delete_button = QPushButton("CONFIRM DELETE")
-        self.swipe_button = QPushButton("Swipe out")
-        self.back_to_main_button = QPushButton("Back")
         photo_button = QPushButton("Take Photo")
         save_button = QPushButton("Save")
         exit_button = QPushButton("Exit")
+        exit_button.setStyleSheet("QPushButton {background-color: #888888;}")
 
+        # These need to be marked self because other methods hide/show them
+        self.delete_button = QPushButton("Delete")
+        self.delete_button.setStyleSheet("QPushButton {background-color: #bc0002; border: 2px solid #220000}")
+        save_button.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
+        self.swipe_button = QPushButton("Swipe out")
+        self.swipe_button.setStyleSheet("QPushButton {background-color: #35B5AC;}")
+
+        public_notes_button.clicked.connect(self.edit_notes_public)
+        private_notes_button.clicked.connect(self.edit_notes_private)
         photo_button.clicked.connect(self.show_photo)
-        self.back_to_main_button.clicked.connect(self.back_to_main)
-        public_notes_button.clicked.connect(self.show_notes_public)
-        private_notes_button.clicked.connect(self.show_notes_private)
         save_button.clicked.connect(self.save_edit)
-        self.delete_button.clicked.connect(self.delete_account)
-        self.confirm_delete_button.clicked.connect(self.confirm_delete)
-        self.swipe_button.clicked.connect(self.swipe_toggle)
         exit_button.clicked.connect(self.close)
 
-        layout.addRow("WIN:", self.win_box)
-        layout.addRow("Role:", self.role)
-        layout.addRow("Display Name:", self.display_name)
-        layout.addRow("Given Name:", self.given_name)
-        layout.addRow("Surname:", self.surname)
-        layout.addRow("Permissions:", self.permissions)
-        layout.addRow("Affiliation:", self.affiliation)
-        layout.addRow("Department:", self.department)
-        layout.addRow("RSO:", self.rso)
+        self.delete_button.clicked.connect(self.delete_account)
+        self.swipe_button.clicked.connect(self.swipe_toggle)
 
-        delete_layout.addWidget(self.delete_warning)
-        delete_layout.addWidget(self.confirm_delete_button)
-        delete_layout.addWidget(self.back_to_main_button)
+        main_label = QLabel()
+        main_label.setText("Attributes")
+        main_label.setStyleSheet("QLabel {font-size:12pt}")
+        main_form_layout_sub = QFormLayout()
+        main_form_layout_sub.addRow("WIN:", self.win_box)
+        main_form_layout_sub.addRow("Role:", self.role)
+        main_form_layout_sub.addRow("Display Name:", self.display_name)
+        main_form_layout_sub.addRow("Given Name:", self.given_name)
+        main_form_layout_sub.addRow("Surname:", self.surname)
+        main_form_layout_sub.addRow("Affiliation:", self.affiliation)
+        main_form_layout_sub.addRow("Department:", self.department)
+        main_form_layout_sub.addRow("RSO:", self.rso)
 
-        layout.addWidget(photo_button)
-        layout.addWidget(public_notes_button)
-        layout.addWidget(private_notes_button)
-        layout.addWidget(save_button)
-        layout.addWidget(self.delete_button)
-        layout.addWidget(self.swipe_button)
-        layout.addWidget(exit_button)
+        main_form_layout_widget.setLayout(main_form_layout_sub)
+        main_form_layout_widget.setStyleSheet("QFrame {border: 2px solid #434343;} QLabel {border: none}")
+        
 
-        self.setObjectName("Main")
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
-        name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+        main_form_layout.addWidget(main_label)
+        main_form_layout.addWidget(main_form_layout_widget)
+        main_form_layout.addWidget(photo_button)
+        main_form_layout.addWidget(public_notes_button)
+        main_form_layout.addWidget(private_notes_button)
+        main_form_layout.addItem(spacer)
+        main_form_layout.addWidget(self.swipe_button)
+        main_form_layout.addWidget(self.delete_button)
+        main_form_layout.addWidget(save_button)
+        main_form_layout.addWidget(exit_button)
 
-        self.win_box.setPlaceholderText("WIN...")
-        self.win_box.setReadOnly(True)
+        perm_vert_layout.addWidget(perm_label)
+        perm_vert_layout.addWidget(self.permissions)
+        main_layout.addLayout(main_form_layout)
+        main_layout.addLayout(perm_vert_layout)
 
-        self.win_box.setValidator(win_validator)
-            
-        # TODO IMPLEMENT ROLE FUNCTIONALITY
         # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
         self.role.addItem("User")
         self.role.addItem("Administrator")
         self.role.addItem("Attendant")
         self.role.addItem("Archived")
         self.role.addItem("Blacklisted")
+        self.role.setPlaceholderText('Pending')
+        self.role.setCurrentIndex(-1)
+        self.role.currentIndexChanged.connect(self.update_raw_role)
 
         self.department.addItem("cs")
         self.department.addItem("edmms")
@@ -314,26 +195,139 @@ class EditAccount(QWidget):
         self.affiliation.addItem("Faculty")
         self.affiliation.addItem("Other")
  
-        self.display_name.setPlaceholderText("Display Name...")
-        self.display_name.setValidator(name_validator)
- 
-        self.given_name.setPlaceholderText("Given Name...")
-        self.given_name.setValidator(name_validator)
- 
-        self.surname.setPlaceholderText("Surname...")
-        self.surname.setValidator(name_validator)
+        name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+        display_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_1-9]{20}"))
 
-        self.affiliation.setPlaceholderText("Affiliation...")
+        self.display_name.setValidator(display_validator)
+        self.given_name.setValidator(name_validator)
+        self.surname.setValidator(name_validator)
         self.affiliation.setValidator(name_validator)
- 
-        self.rso.setPlaceholderText("Registered Student Org...")
         self.rso.setValidator(name_validator)
 
+        self.rso.setPlaceholderText("Registered Student Org...")
+        self.win_box.setReadOnly(True)
+
+        # STUFF FOR DELETE LAYOUT
+        delete_warning = QLabel()
+        delete_warning.setText("WARNING: THIS ACTION CANNOT BE REVERSED")
+
+        exit_from_delete = QPushButton()
+        exit_from_delete.setText("Back")
+        exit_from_delete.setStyleSheet("QPushButton {background-color: #888888;}")
+
+        confirm_delete_button = QPushButton("CONFIRM DELETE")
+        confirm_delete_button.setStyleSheet("QPushButton {background-color: #bc0002; border: 2px solid #220000}")
+        confirm_delete_button.clicked.connect(self.confirm_delete)
+
+        back_to_main_button = QPushButton("Back")
+        back_to_main_button.setStyleSheet("QPushButton {background-color: #888888;}")
+        back_to_main_button.clicked.connect(self.back_to_main)
+
+        delete_layout.addWidget(delete_warning)
+        delete_layout.addWidget(confirm_delete_button)
+        delete_layout.addWidget(exit_from_delete)
+        exit_from_delete.clicked.connect(self.back_to_main)
+
+        # STUFF FOR Notes LAYOUT
+        self.private_notes = QPlainTextEdit()
+        self.public_notes = QPlainTextEdit()
+        self.private_notes.setPlainText(get_private_account_note(self.client, self.win))
+        self.public_notes.setPlainText(get_public_account_note(self.client, self.win))
+
+        self.save_notes_button_public = QPushButton("Save")
+        self.save_notes_button_private = QPushButton("Save")
+        self.save_notes_button_public.clicked.connect(self.save_note_public)
+        self.save_notes_button_private.clicked.connect(self.save_note_private)
+        self.save_notes_button_private.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
+        self.save_notes_button_public.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
+
+        # Stuff for Picture layout
+        bottom_row = QHBoxLayout()
+        buttons_block = QVBoxLayout()
+        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
+        self.save_message = QLabel(" ")
+
+        self.photo_button = QPushButton("Take Photo")
+        self.save_photo_button = QPushButton("Save Photo")
+        self.retake_button = QPushButton("Retake")
+        self.back_from_photo_button = QPushButton("Back")
+        self.back_from_photo_button.setStyleSheet("QPushButton {background-color: #888888;}")
+
+        self.retake_button.hide()
+        self.save_photo_button.hide()
+
+        bottom_row.addWidget(self.save_message)
+        bottom_row.addLayout(buttons_block)
+
+        photo_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
+        photo_layout.addLayout(bottom_row)
+
+        buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.save_photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.back_from_photo_button, alignment=Qt.AlignmentFlag.AlignRight)
+
+        self.photo_button.clicked.connect(self.take_picture)
+        self.retake_button.clicked.connect(self.retake_picture)
+        self.save_photo_button.clicked.connect(self.save_photo)
+        self.back_from_photo_button.clicked.connect(self.back_from_photo)
+
+        self.cam_worker = cam.CamWorker(self.win)
+        self.cam_worker.image_update.connect(self.image_update_slot)
+
+        # add widgets to notes_layout
+        notes_layout.addWidget(self.private_notes)
+        notes_layout.addWidget(self.public_notes)
+        notes_layout.addWidget(self.save_notes_button_public)
+        notes_layout.addWidget(self.save_notes_button_private)
+        notes_layout.addWidget(back_to_main_button)
+
+        # Final setup actions
         self.swiped = False
         self.set_swipe_button_status()
         self.remove_unnecessary_buttons()
 
         self.initial_load()
+
+    def update_raw_role(self):
+        self.role_raw = 'updated'
+
+    def show_photo(self):
+        self.stacked_widget.setCurrentIndex(3)
+        self.cam_worker.start()
+
+    def image_update_slot(self, image):
+        #Update the videofeed with the latest provided frame
+        self.feed_label.setPixmap(QPixmap.fromImage(image))
+
+    def take_picture(self):
+        self.cam_worker.take_picture()
+        #Hides photo button and asks if user wants to retake
+        self.photo_button.hide()
+        self.save_photo_button.show()
+        self.retake_button.show()
+
+    def save_photo(self):
+        self.save_message.setText("Photo saved!")
+        self.cam_worker.save_photo()
+        self.save_photo_button.hide()
+        self.retake_button.hide()
+        self.photo_button.show()
+
+        update_photo_path(self.client, self.win)
+
+        self.save_update.emit()
+
+    def retake_picture(self):
+        self.cam_worker.retake_picture()
+        self.retake_button.hide()
+        self.save_photo_button.hide()
+        self.photo_button.show()
+        self.save_message.setText(" ")
+
+    def back_from_photo(self, event):
+        self.cam_worker.stop()
+        self.stacked_widget.setCurrentIndex(0)
 
     def back_to_main(self):
         self.stacked_widget.setCurrentIndex(0)
@@ -360,9 +354,11 @@ class EditAccount(QWidget):
     def set_swipe_button_status(self):
         if check_if_swiped_in(self.client, self.win):
             self.swipe_button.setText("Swipe Out")
+            self.swipe_button.setStyleSheet("QPushButton {background-color: #35B5AC;}")
             self.swiped = True
         else:
             self.swipe_button.setText("Swipe In")
+            self.swipe_button.setStyleSheet("QPushButton {background-color: #89D5D2;}")
             self.swiped = False
 
     def swipe_toggle(self):
@@ -375,16 +371,10 @@ class EditAccount(QWidget):
         self.set_swipe_button_status()
 
     def delete_account(self):
-        print("DELETE")
         self.stacked_widget.setCurrentIndex(1)
             
     def initial_load(self):
         acc_data = get_account_data(self.client, self.win)
-        print('initial load')
-        print('initial load')
-        print('initial load')
-        print('initial load')
-        print(acc_data)
 
         self.win_box.setText(str(acc_data['win']))
         self.display_name.setText(acc_data['display_name'])
@@ -399,16 +389,20 @@ class EditAccount(QWidget):
         if permissions is not None:
             for item in self.permissions.findChildren(QCheckBox):
                 for perm in permissions:
-                    print(f'{item.text()} on {perm}')
-                    if item.text().lower().replace(" ", "_") == perm:
-                        print(f'need to check the state of {perm}')
+                    if item.text().replace(" ", "_") == perm:
                         item.setChecked(True)
 
+        self.role_raw = acc_data['role']
         self.role.setCurrentText(acc_data['role'].capitalize())
         self.affiliation.setCurrentText(acc_data['affiliation'].capitalize())
 
-    # TODO add proper error handling
     def save_edit(self):
+        if self.role_raw == 'pending':
+            err_msg = QMessageBox(self)
+            err_msg.show()
+            err_msg.setText("Role must be changed from pending before saving")
+            return
+
         if self.role.currentText().lower() == "archived" and self.swiped:
             name = self.display_name.text()
             err_msg = QMessageBox(self)
@@ -438,137 +432,57 @@ class EditAccount(QWidget):
         data['edit_attrs']['permissions'] = []
         data['edit_attrs']['no_permissions'] = []
 
-
         for item in self.permissions.findChildren(QCheckBox):
             if item.isChecked():
-                data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
+                data['edit_attrs']['permissions'].append(item.text().replace(" ", "_"))
             else:
-                data['edit_attrs']['no_permissions'].append(item.text().lower().replace(" ", "_"))
+                data['edit_attrs']['no_permissions'].append(item.text().replace(" ", "_"))
 
         edit_account(self.client, data)
         self.remove_unnecessary_buttons()
         self.save_update.emit()
 
-    def show_notes_private(self):
-        self.w = Notes(self.client, self.win, "private")
-        self.w.show()
-        self.w.save_update.connect(self.update_note)
+    def save_note_public(self):
+        data = {}
+        data['win'] = self.win
+        data['type'] = "public"
+        data['text'] = self.public_notes.toPlainText()
+        edit_note(self.client, data)
 
-    def show_notes_public(self):
-        self.w = Notes(self.client, self.win, "public")
-        self.w.show()
-        self.w.save_update.connect(self.update_note)
+        self.save_update.emit()
 
-    def show_photo(self):
-        self.w = Picture(self.client, self.win)
-        self.w.show()
-        self.w.photo_update.connect(self.update_photo)
+    def save_note_private(self):
+        data = {}
+        data['win'] = self.win
+        data['type'] = "private"
+        data['text'] = self.private_notes.toPlainText()
+
+        edit_note(self.client, data)
+
+        self.save_update.emit()
+
+    def edit_notes_private(self):
+        self.stacked_widget.setCurrentIndex(2)
+        self.public_notes.hide()
+        self.save_notes_button_public.hide()
+
+        self.private_notes.show()
+        self.save_notes_button_private.show()
+
+    def edit_notes_public(self):
+        self.stacked_widget.setCurrentIndex(2)
+        self.private_notes.hide()
+        self.save_notes_button_private.hide()
+
+        self.public_notes.show()
+        self.save_notes_button_public.show()
+
 
     def update_photo(self):
         self.photo_update.emit()
 
     def update_note(self):
         self.save_update.emit()
-
-class SecondCreation(QWidget):
-    save_update = pyqtSignal()
-    def __init__(self, client, win):
-        super().__init__()
-        self.client = client
-        self.win = str(win)
-
-        self.setWindowTitle("Take picture and create notes")
-
-        #Might want to find some way to ensure this is always large enough to fit webcam? at the moment assumes resolution of
-        #640, 480 specified in cam.py rescaling.
-        self.setMinimumSize(QSize(670, 600))
-
-        main_layout = QVBoxLayout()
-        bottom_row = QHBoxLayout()
-        buttons_block = QVBoxLayout()
-
-        self.setObjectName("Main")
-        self.setLayout(main_layout)
-
-        #The label which will contain the video feed. Initializes to loading text that is replaced when cam connection made.
-        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
-        #Init save confirmation space instead of hidden, makes it so picture doesn't move up and down.
-        self.save_message = QLabel(" ")
-
-        self.photo_button = QPushButton("Take Photo")
-        self.save_button = QPushButton("Save Photo")
-        self.retake_button = QPushButton("Retake")
-        self.notes_button = QPushButton("Notes")
-        self.exit_button = QPushButton("Exit")
-
-        self.retake_button.hide()
-        self.save_button.hide()
-
-        bottom_row.addWidget(self.save_message)
-        bottom_row.addLayout(buttons_block)
-
-        main_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
-        main_layout.addLayout(bottom_row)
-
-        buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.save_button, alignment= Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.notes_button, alignment = Qt.AlignmentFlag.AlignRight)
-        buttons_block.addWidget(self.exit_button, alignment = Qt.AlignmentFlag.AlignRight)
-
-        self.photo_button.clicked.connect(self.take_picture)
-        self.retake_button.clicked.connect(self.retake_picture)
-        self.save_button.clicked.connect(self.save_photo)
-        self.notes_button.clicked.connect(self.spawn_notes)
-        self.exit_button.clicked.connect(self.close)
-
-        #Start the camera thread
-        self.cam_worker = cam.CamWorker(self.win)
-
-        #Connect the signal being emitted from the cam worker thread to the image_update function of this window
-        #Allows for the video feed of cam to be displayed in GUI
-        self.cam_worker.image_update.connect(self.image_update_slot)
-
-        #Start camera thread (this makes the thread's run function execute)
-        self.cam_worker.start()
-
-    def spawn_notes(self):
-        self.w = Notes(self.client, self.win)
-        self.w.show()
-        self.w.save_update.connect(self.note_update)
-
-    def note_update(self):
-        self.save_update.emit()
-
-    def image_update_slot(self, image):
-        #Update the videofeed with the latest provided frame
-        self.feed_label.setPixmap(QPixmap.fromImage(image))
-
-    def take_picture(self):
-        self.cam_worker.take_picture()
-        #Hides photo button and asks if user wants to retake
-        self.photo_button.hide()
-        self.save_button.show()
-        self.retake_button.show()
-    
-    def save_photo(self):
-        self.save_message.setText("Photo saved!")
-        self.cam_worker.save_photo()
-        self.save_button.hide()
-        self.retake_button.hide()
-        self.photo_button.show()
-
-        self.save_update.emit()
-
-    def retake_picture(self):
-        self.cam_worker.retake_picture()
-        self.retake_button.hide()
-        self.save_button.hide()
-        self.photo_button.show()
-        self.save_message.setText(" ")
-
-    def closeEvent(self, event):
-        self.cam_worker.stop()
 
 class AddAccount(QWidget):
     save_update = pyqtSignal()
@@ -577,8 +491,6 @@ class AddAccount(QWidget):
         self.client = client
 
         self.setWindowTitle("New Account")
-
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
 
         layout = QFormLayout()
 
@@ -591,31 +503,18 @@ class AddAccount(QWidget):
         self.affiliation = QComboBox()
         self.rso = QLineEdit()
         self.exit_button = QPushButton("Exit")
-
-        self.permissions = QGroupBox()
-        self.perm_layout = QVBoxLayout()
-
-        perm_list = get_permissions_from_db(self.client)
-        button_list = []
-        for item in perm_list:
-            button_list.append(QCheckBox(item))
-
-        for item in button_list:
-            self.perm_layout.addWidget(item)
-
-        self.permissions.setLayout(self.perm_layout)
+        self.exit_button.setStyleSheet("QPushButton {background-color: #888888;}")
 
         create_button = QPushButton("Create Account")
+        create_button.setStyleSheet("QPushButton {background-color: #08C408;border: 2px solid #005500}")
 
         create_button.clicked.connect(self.create_acc)
         self.exit_button.clicked.connect(self.close)
 
         layout.addRow("WIN:", self.win_box)
-        layout.addRow("Role:", self.role)
         layout.addRow("Display Name:", self.display_name)
         layout.addRow("Given Name:", self.given_name)
         layout.addRow("Surname:", self.surname)
-        layout.addRow("Permissions:", self.permissions)
         layout.addRow("Affiliation:", self.affiliation)
         layout.addRow("Department", self.department)
         layout.addRow("RSO:", self.rso)
@@ -632,12 +531,6 @@ class AddAccount(QWidget):
         self.win_box.setPlaceholderText("WIN...")
         self.win_box.setValidator(win_validator)
             
-        # TODO IMPLEMENT ROLE FUNCTIONALITY
-        # TODO there needs to be some checking here to see who the attendant is. an attendant should not be able to make anyone an Administrator / Attendant
-        self.role.addItem("User")
-        self.role.addItem("Administrator")
-        self.role.addItem("Attendant")
-
         self.department.addItem("cs")
         self.department.addItem("edmms")
         self.department.addItem("cpe")
@@ -707,13 +600,9 @@ class AddAccount(QWidget):
         data['edit_attrs']['win'] = self.win_box.text()
         data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
         data['edit_attrs']['rso'] = self.rso.text()
-        data['edit_attrs']['role'] = self.role.currentText().lower()
+        data['edit_attrs']['role'] = "pending"
         data['edit_attrs']['department'] = self.department.currentText().lower()
         data['edit_attrs']['permissions'] = []
-
-        for item in self.permissions.findChildren(QCheckBox):
-            if item.isChecked():
-                data['edit_attrs']['permissions'].append(item.text().lower().replace(" ", "_"))
 
         new_account(self.client, data)
 
@@ -722,7 +611,7 @@ class AddAccount(QWidget):
         self.save_update.emit()
 
     def second_creation_screen(self):
-        self.w = SecondCreation(self.client, self.win_box.text())
+        self.w = EditAccount(self.win_box.text(), self.client)
         self.w.show()
         self.w.save_update.connect(self.update)
         self.close()
@@ -737,15 +626,15 @@ class QuickView(QWidget):
         self.client = client
         self.win = win
 
-        print(f"quick view of win: {win}")
+        self.setObjectName("Main")
 
-        self.setWindowTitle("Account information")
-
-        self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
+        self.setWindowTitle("Account Information")
         
         combined_layout = QHBoxLayout()
+        self.setLayout(combined_layout)
 
-        layout = QFormLayout()
+        main_form_layout = QFormLayout()
+        main_form_layout_widget = QFrame()
 
         self.win_box = QLabel()
         self.role = QLabel()
@@ -756,54 +645,83 @@ class QuickView(QWidget):
         self.affiliation = QLabel()
         self.rso = QLabel()
 
+        main_form_layout_sub = QFormLayout()
+        main_form_layout_sub.addRow("WIN:", self.win_box)
+        main_form_layout_sub.addRow("Role:", self.role)
+        main_form_layout_sub.addRow("Display Name:", self.display_name)
+        main_form_layout_sub.addRow("Given Name:", self.given_name)
+        main_form_layout_sub.addRow("Surname:", self.surname)
+        main_form_layout_sub.addRow("Affiliation:", self.affiliation)
+        main_form_layout_sub.addRow("Department:", self.department)
+        main_form_layout_sub.addRow("RSO:", self.rso)
+
+        main_form_layout_widget.setLayout(main_form_layout_sub)
+        main_form_layout_widget.setStyleSheet("QFrame {border: 2px solid #434343;} QLabel {border: none}")
+
+        exit_button = QPushButton("Exit")
+        exit_button.setStyleSheet("QPushButton {background-color: #888888;}")
+        self.swipe_toggle_button = QPushButton("Swipe in")
+
+        exit_button.clicked.connect(self.close)
+        self.swipe_toggle_button.clicked.connect(self.swipe_toggle)
+
+        main_label = QLabel()
+        main_label.setText("Attributes")
+        main_label.setStyleSheet("QLabel {font-size:12pt}")
+
+        # Permissions stuff
+        perm_label = QLabel()
+        perm_label.setText("Permissions")
+        perm_label.setStyleSheet("QLabel {font-size:12pt}")
+
+        perm_vert_layout = QVBoxLayout()
         self.permissions = QGroupBox()
         self.perm_layout = QVBoxLayout()
 
         perm_list = get_permissions_from_db(self.client)
         button_list = []
+
         for item in perm_list:
-            button_list.append(QCheckBox(item))
+            button_list.append(QCheckBox(item.replace("_", " ")))
 
         for item in button_list:
             self.perm_layout.addWidget(item)
 
         self.permissions.setLayout(self.perm_layout)
 
-        exit_button = QPushButton("Exit")
-        self.swipe_toggle_button = QPushButton("Swipe in")
+        perm_vert_layout.addWidget(perm_label)
+        perm_vert_layout.addWidget(self.permissions)
 
-        exit_button.clicked.connect(self.close)
-        self.swipe_toggle_button.clicked.connect(self.swipe_toggle)
-
-        layout.addRow("WIN:", self.win_box)
-        layout.addRow("Role:", self.role)
-        layout.addRow("Display Name:", self.display_name)
-        layout.addRow("Given Name:", self.given_name)
-        layout.addRow("Surname:", self.surname)
-        layout.addRow("Permissions:", self.permissions)
-        layout.addRow("Affiliation:", self.affiliation)
-        layout.addRow("Department:", self.department)
-        layout.addRow("RSO:", self.rso)
-
-        layout.addWidget(self.swipe_toggle_button)
-        layout.addWidget(exit_button)
-
-        self.setObjectName("Main")
-        self.notes_locked_status = True
-        notes_layout = QVBoxLayout()
-        combined_layout.addLayout(layout)
+        # Notes stuff
         self.notes = QPlainTextEdit()
         self.notes.setReadOnly(True)
-        self.unlock_button = QPushButton("Unlock Notes")
-        self.save_public_notes_button = QPushButton("Save notes")
-        self.save_public_notes_button.clicked.connect(self.save_public_note)
         self.notes.setPlainText(get_public_account_note(self.client, self.win))
-        notes_layout.addWidget(self.notes)
-        notes_layout.addWidget(self.unlock_button)
-        notes_layout.addWidget(self.save_public_notes_button)
-        combined_layout.addLayout(notes_layout)
-        self.setLayout(combined_layout)
+
+        self.unlock_button = QPushButton("Unlock Notes")
+        self.unlock_button.setStyleSheet("QPushButton {background-color: #89D5D2;}")
         self.unlock_button.clicked.connect(self.toggle_note_lock)
+
+        self.save_public_notes_button = QPushButton("Save notes")
+        self.save_public_notes_button.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
+        self.save_public_notes_button.clicked.connect(self.save_public_note)
+
+        notes_layout = QVBoxLayout()
+        notes_layout.addWidget(self.notes)
+        notes_layout.addWidget(self.save_public_notes_button)
+        notes_layout.addWidget(self.unlock_button)
+
+        # Gluing it all together
+        main_vert_layout = QVBoxLayout()
+        main_vert_layout.addWidget(main_label)
+        main_vert_layout.addWidget(main_form_layout_widget)
+        main_vert_layout.addLayout(notes_layout)
+        main_vert_layout.addWidget(self.swipe_toggle_button)
+        main_vert_layout.addWidget(exit_button)
+
+        combined_layout.addLayout(main_vert_layout)
+        combined_layout.addLayout(perm_vert_layout)
+
+        self.notes_locked_status = True
 
         self.set_swipe_button_status()
         self.remove_unnecessary_buttons()
@@ -821,9 +739,10 @@ class QuickView(QWidget):
     def set_swipe_button_status(self):
         if check_if_swiped_in(self.client, self.win):
             self.swipe_toggle_button.setText("Swipe Out")
+            self.swipe_toggle_button.setStyleSheet("QPushButton {background-color: #35B5AC;}")
         else:
             self.swipe_toggle_button.setText("Swipe In")
-
+            self.swipe_toggle_button.setStyleSheet("QPushButton {background-color: #89D5D2;}")
 
     def swipe_toggle(self):
         if check_if_swiped_in(self.client, self.win):
@@ -839,10 +758,12 @@ class QuickView(QWidget):
             self.notes_locked_status = False
             self.notes.setReadOnly(False)
             self.unlock_button.setText("Lock Notes")
+            self.unlock_button.setStyleSheet("QPushButton {background-color: #35B5AC;}")
         else:
             self.notes_locked_status = True
             self.notes.setReadOnly(True)
             self.unlock_button.setText("Unlock Notes")
+            self.unlock_button.setStyleSheet("QPushButton {background-color: #89D5D2;}")
 
     def initial_load(self):
         acc_data = get_account_data(self.client, self.win)
@@ -861,7 +782,7 @@ class QuickView(QWidget):
                 item.setEnabled(False)
                 for perm in permissions:
                     print(f'{item.text()} on {perm}')
-                    if item.text().lower().replace(" ", "_") == perm:
+                    if item.text().replace(" ", "_") == perm:
                         print(f'need to check the state of {perm}')
                         item.setChecked(True)
 
@@ -876,7 +797,7 @@ class QuickView(QWidget):
         data['type'] = "public"
         data['text'] = self.notes.toPlainText()
 
-        edit_public_note(self.client, data)
+        edit_note(self.client, data)
 
         self.save_update.emit()
 
@@ -1039,34 +960,59 @@ class MainWindow(QMainWindow):
         self.topright_bar_search = QHBoxLayout()
         self.topright_bar_search.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        search_name_layout = QVBoxLayout()
+        search_name_layout = QFormLayout()
+        self.search_text = QLineEdit()
+        self.search_text.setMaximumWidth(170)
+        self.search_text_private = QLineEdit()
+        self.search_text_private.setMaximumWidth(170)
+
         self.search_name = QLineEdit()
         self.search_name.setMaximumWidth(170)
-        search_name_layout.addWidget(self.search_name)
-        name_validator = QRegularExpressionValidator(QRegularExpression("[A-za-z]+"))
-        self.search_name.setPlaceholderText("Name...")
+        search_name_layout.addRow("Names/RSO:", self.search_name)
+        search_name_layout.addRow("Public notes:", self.search_text)
+        search_name_layout.addRow("Private notes:", self.search_text_private)
+        search_name_container = QFrame()
+        search_name_container.setStyleSheet("QFrame { border: 2px solid #434343; } QLabel{ border: none;}")
+        search_name_container.setMaximumWidth(250)
+        name_validator = QRegularExpressionValidator(QRegularExpression("[A-za-z0-9_]+"))
+
+        self.search_name.setPlaceholderText("...")
+        self.search_text.setPlaceholderText("...")
+        self.search_text_private.setPlaceholderText("...")
         self.search_name.setValidator(name_validator)
         
         self.status_search = QComboBox()
-        self.status_search.setMaximumWidth(100)
-        self.status_search.addItem("All Accounts")
-        self.status_search.addItem("Swiped in")
+        self.status_search.setMaximumWidth(150)
+        self.status_search.addItem("Active Accounts")
+        self.status_search.addItem(" ↳Swiped in")
+        self.status_search.addItem("Pending")
         self.status_search.addItem("Archived")
         self.status_search.addItem("Blacklisted")
+
+        self.status_search.currentIndexChanged.connect(self.update_permbox_style)
+        
+        reset_button = QPushButton("Reset")
+        reset_button.clicked.connect(self.reset_filters)
+        reset_button.setStyleSheet("QPushButton {background-color: #FF4500;border: 2px solid #550000}")
+
+        vert_reset_and_filter = QVBoxLayout()
+        vert_reset_and_filter.addWidget(reset_button)
+        vert_reset_and_filter.addWidget(self.status_search)
 
         self.privilege_group = QGroupBox()
         self.privilege_group.setMaximumWidth(130)
         self.privilege_layout = QVBoxLayout()
         self.privilege_layout.setSpacing(0)
         privilege_type_list = []
-        privilege_types = [ "Unprivileged", "Attendant", "Administrator" ] 
-        for item in privilege_types:
+        self.privilege_types = [ "Unprivileged", "Attendant", "Administrator" ] 
+        for item in self.privilege_types:
             privilege_type_list.append(QCheckBox(item))
 
         for item in privilege_type_list:
             self.privilege_layout.addWidget(item)
 
         self.privilege_group.setLayout(self.privilege_layout)
+        self.privilege_group.setStyleSheet("QGroupBox { border: 2px solid #434343; }")
 
         self.affiliation_group = QGroupBox()
         self.affiliation_group.setMaximumWidth(200)
@@ -1095,9 +1041,11 @@ class MainWindow(QMainWindow):
         self.combined_affiliation_layout.addLayout(self.affiliation_layout_2)
 
         self.affiliation_group.setLayout(self.combined_affiliation_layout)
+        self.affiliation_group.setStyleSheet("QGroupBox { border: 2px solid #434343; }")
 
-        self.topright_bar_search.addLayout(search_name_layout)
-        self.topright_bar_search.addWidget(self.status_search)
+        search_name_container.setLayout(search_name_layout)
+        self.topright_bar_search.addLayout(vert_reset_and_filter)
+        self.topright_bar_search.addWidget(search_name_container)
         self.topright_bar_search.addWidget(self.affiliation_group)
         self.topright_bar_search.addWidget(self.privilege_group)
 
@@ -1138,11 +1086,47 @@ class MainWindow(QMainWindow):
 
         self.status_search.currentIndexChanged.connect(self.search)
         self.search_name.textChanged.connect(self.search)
+        self.search_text.textChanged.connect(self.search)
+        self.search_text_private.textChanged.connect(self.search)
 
         self.account_table.doubleClicked.connect(self.attendant_blurb_swiped)
         self.account_table_search.doubleClicked.connect(self.attendant_blurb_search)
 
         self.main_widget.setCurrentIndex(0)
+
+    def make_icon(self, path):
+        new_label = QLabel()
+        pixmap = QPixmap(path)
+        new_label.setPixmap(pixmap)
+        return new_label
+        
+    def update_permbox_style(self):
+        current_text = self.status_search.currentText()
+        gray_outs = ["Pending", "Archived", "Blacklisted"]
+
+        if current_text in gray_outs:
+            for box in self.privilege_group.findChildren(QCheckBox):
+                box.setText("N/A")
+                box.setChecked(False)
+                box.setEnabled(False)
+        else:
+            i = 0
+            for box in self.privilege_group.findChildren(QCheckBox):
+                box.setText(self.privilege_types[i])
+                box.setChecked(True)
+                box.setEnabled(True)
+                i += 1
+
+    def reset_filters(self):
+        self.search_name.setText("")
+        self.search_text.setText("")
+        self.search_text_private.setText("")
+        self.status_search.setCurrentIndex(0)
+        for box in self.affiliation_group.findChildren(QCheckBox):
+            box.setChecked(True)
+
+        for box in self.privilege_group.findChildren(QCheckBox):
+            box.setChecked(True)
 
     def attendant_blurb_swiped(self):
         selected_row = self.account_table.currentRow()
@@ -1320,83 +1304,15 @@ class MainWindow(QMainWindow):
         new_account_table.setColumnCount(5)
 
         new_account_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        new_account_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        new_account_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         new_account_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        new_account_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
 
-        column_labels = ["Photo", "Account", "Permissions", "Notes", "Head Count"]
+        column_labels = ["Photo", "Status", "Account", "Permissions", "Notes"]
         new_account_table.setHorizontalHeaderLabels(column_labels)
+        new_account_table.setColumnWidth(1, 55)
+        new_account_table.setColumnWidth(2, 350)
 
         return new_account_table
-
-    def accounts_load_search(self):
-        event_data = {"page_number": self.page_number_search, 
-                      "items_per_page": self.items_per_page_search,
-                      "swiped_users": False,
-                     }
-
-        event_data['privilege'] = []
-        for item in self.privilege_group.findChildren(QCheckBox):
-            if item.isChecked() is False:
-                # just done use User in code
-                if item.text() == "Unprivileged":
-                    event_data['privilege'].append("user")
-                else:
-                    event_data['privilege'].append(item.text().lower())
-
-        event_data['affiliation'] = []
-        for item in self.affiliation_group.findChildren(QCheckBox):
-            print(f"CHECKING affiliation {item.text()}")
-            if item.isChecked() is False:
-                # just done use User in code
-                event_data['affiliation'].append(item.text().lower())
-
-        event_data['status'] = self.status_search.currentText().lower().replace(" ", "_")
-        if event_data['status'] != "blacklisted":
-            event_data['privilege'].append("blacklisted")
-        if event_data['status'] != "archived":
-            event_data['privilege'].append("archived")
-        event_data['name'] = self.search_name.text()
-
-        res = get_users_paginated_filtered(self.client_connection, event_data)
-        if res is None:
-            return
-
-        self.total_users_in_query_search = res["total_users"]
-        self.total_users_search.setText(str(self.total_users_in_query_search))
-        self.max_page_label_search.setText(str(math.ceil(self.total_users_in_query_search / self.items_per_page_search)))
-        print("AFTER GET USERS CALL")
-        for c in res["users"]:
-            print(c["display_name"])
-            self.search_accounts.append(Account(c))
-
-        # load notes for each account
-        for acc in self.search_accounts:
-            res = get_public_account_note(self.client_connection, acc.win)
-            print(f"res: {res}")
-            acc.note = res
-
-    def accounts_load_swiped(self):
-        event_data = {"page_number": self.page_number, "items_per_page": self.items_per_page}
-                      
-        event_data['privilege'] = "ignore"
-        event_data['status'] = "swiped_in"
-        event_data['affiliation'] = "ignore"
-        event_data['name'] = "ignore"
-
-        res = get_users_paginated_filtered(self.client_connection, event_data)
-        self.total_users_in_query = res["total_users"]
-        self.total_users.setText(str(self.total_users_in_query))
-        self.max_page_label.setText(str(math.ceil(self.total_users_in_query / self.items_per_page)))
-        for c in res["users"]:
-            print(c)
-            self.accounts.append(Account(c))
-
-        # load notes for each account
-        for acc in self.accounts:
-            res = get_public_account_note(self.client_connection, acc.win)
-            print(f"res: {res}")
-            acc.note = res
 
     def render_accounts_to_screen_search(self):
         self.account_table_search.setRowCount(len(self.search_accounts))
@@ -1414,31 +1330,64 @@ class MainWindow(QMainWindow):
             # Account Name
             account_name_cell = QTableWidgetItem(acc.display_name)
             account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.account_table_search.setItem(row, 1, account_name_cell)
+            self.account_table_search.setItem(row, 2, account_name_cell)
 
-#            # permission is based on color of permission in acc_permission
-#            account_permissions_cell = QLabel("")
-#            # TODO ADD THIS LATER
-#            perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in acc.permissions)
-#            account_permissions_cell.setText(perm_string)
-#            account_permissions_cell.setStyleSheet("font-size: 18pt;")
-#            account_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-#            self.account_table.setCellWidget(row, 2, account_permissions_cell)
+            icon_widget = QWidget()
+            icon_list = QVBoxLayout()
 
-            # horizontal row of buttons for each note this is the layout for the actual notewidget
+            icon_list.addWidget(self.make_icon('./splums/images/icons/' + acc.affiliation + '.jpg'))
+
+            icon_list.addWidget(self.make_icon('./splums/images/icons/' + acc.role + '.jpg'))
+
+
+            # add the swiped status
+            if acc.swiped_in:
+                icon_list.addWidget(self.make_icon('./splums/images/icons/swiped_in.jpg'))
+            else:
+                icon_list.addWidget(self.make_icon('./splums/images/icons/swiped_out.jpg'))
+
+            icon_list.setContentsMargins(12, 2, 12, 2)
+            icon_list.setSpacing(0)
+            icon_widget.setLayout(icon_list)
+
+            self.account_table_search.setCellWidget(row, 1, icon_widget)
+            
+            perms = get_account_permissions(self.client_connection, acc.win)
+
+            perms = sorted(perms)
+
+            if perms is not None:
+                for i in range(len(perms)):
+                    perms[i] = perms[i].replace('(', '')
+                    perms[i] = perms[i].replace(')', '')
+                    perms[i] = perms[i].replace(',', '')
+
+                icon_grid = QGridLayout()
+                perm_widget = QWidget()
+                i = 0
+                for icon_row in range(3):
+                    for col in range(7):
+                        if i > len(perms) - 1:
+                            break
+                        icon = self.make_icon('./splums/images/icons/perms/' + perms[i] + '.jpg')
+                        icon_grid.addWidget(icon, icon_row, col)
+                        i += 1
+
+                icon_grid.setHorizontalSpacing(20)
+                icon_grid.setContentsMargins(20,2,20,2)
+                icon_grid.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                perm_widget.setLayout(icon_grid)
+
+                self.account_table_search.setCellWidget(row, 3, perm_widget)
+
+            
             note_text_cell = QTextEdit(acc.note)
             note_text_cell.setReadOnly(True)
             note_text_cell.setStyleSheet("font-size: 12pt;")
             note_text_cell.setFixedHeight(100)
             note_text_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            self.account_table_search.setCellWidget(row, 3, note_text_cell)
-
-            # Account ID
-            account_id_hidden = QTableWidgetItem(acc.win)
-            account_id_hidden.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.account_table_search.setItem(row, 4, account_id_hidden)
-            self.account_table_search.setColumnHidden(4, True)
+            self.account_table_search.setCellWidget(row, 4, note_text_cell)
 
             row += 1
 
@@ -1464,16 +1413,50 @@ class MainWindow(QMainWindow):
             # Account Name
             account_name_cell = QTableWidgetItem(acc.display_name)
             account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.account_table.setItem(row, 1, account_name_cell)
+            self.account_table.setItem(row, 2, account_name_cell)
 
-#            # permission is based on color of permission in acc_permission
-#            account_permissions_cell = QLabel("")
-#            # TODO ADD THIS LATER
-#            perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in acc.permissions)
-#            account_permissions_cell.setText(perm_string)
-#            account_permissions_cell.setStyleSheet("font-size: 18pt;")
-#            account_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-#            self.account_table.setCellWidget(row, 2, account_permissions_cell)
+            icon_widget = QWidget()
+            icon_list = QVBoxLayout()
+            icon_list.addWidget(self.make_icon('./splums/images/icons/graduate.jpg'))
+            icon_list.addWidget(self.make_icon('./splums/images/icons/user.jpg'))
+            if acc.swiped_in:
+                icon_list.addWidget(self.make_icon('./splums/images/icons/swiped_in.jpg'))
+            else:
+                icon_list.addWidget(self.make_icon('./splums/images/icons/swiped_out.jpg'))
+
+            icon_list.setContentsMargins(12, 2, 12, 2)
+            icon_list.setSpacing(0)
+            icon_widget.setLayout(icon_list)
+            self.account_table.setCellWidget(row, 1, icon_widget)
+
+
+            perms = get_account_permissions(self.client_connection, acc.win)
+
+            perms = sorted(perms)
+
+            if perms is not None:
+                for i in range(len(perms)):
+                    perms[i] = perms[i].replace('(', '')
+                    perms[i] = perms[i].replace(')', '')
+                    perms[i] = perms[i].replace(',', '')
+
+                icon_grid = QGridLayout()
+                perm_widget = QWidget()
+                i = 0
+                for icon_row in range(3):
+                    for col in range(7):
+                        if i > len(perms) - 1:
+                            break
+                        icon = self.make_icon('./splums/images/icons/perms/' + perms[i] + '.jpg')
+                        icon_grid.addWidget(icon, icon_row, col)
+                        i += 1
+
+                icon_grid.setHorizontalSpacing(20)
+                icon_grid.setContentsMargins(20,2,20,2)
+                icon_grid.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                perm_widget.setLayout(icon_grid)
+
+                self.account_table.setCellWidget(row, 3, perm_widget)
 
             # horizontal row of buttons for each note this is the layout for the actual notewidget
             note_text_cell = QTextEdit(acc.note)
@@ -1482,19 +1465,93 @@ class MainWindow(QMainWindow):
             note_text_cell.setFixedHeight(100)
             note_text_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            self.account_table.setCellWidget(row, 3, note_text_cell)
-
-            # Account ID
-            account_id_hidden = QTableWidgetItem(acc.win)
-            account_id_hidden.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.account_table.setItem(row, 4, account_id_hidden)
-            self.account_table.setColumnHidden(4, True)
+            self.account_table.setCellWidget(row, 4, note_text_cell)
 
             row += 1
 
         # Resize rows and first column to fit images
         self.account_table.resizeRowsToContents()
         self.account_table.resizeColumnToContents(0)
+
+    def accounts_load_search(self):
+        event_data = {"page_number": self.page_number_search, 
+                      "items_per_page": self.items_per_page_search,
+                      "swiped_users": False,
+                     }
+
+        event_data['privilege'] = []
+        for item in self.privilege_group.findChildren(QCheckBox):
+            if item.isChecked() is False:
+                if item.text() == "N/A": 
+                    continue
+                # just done use User in code
+                if item.text() == "Unprivileged":
+                    event_data['privilege'].append("user")
+                else:
+                    event_data['privilege'].append(item.text().lower())
+
+        event_data['affiliation'] = []
+        for item in self.affiliation_group.findChildren(QCheckBox):
+            print(f"CHECKING affiliation {item.text()}")
+            if item.isChecked() is False:
+                # just done use User in code
+                event_data['affiliation'].append(item.text().lower())
+
+        event_data['status'] = self.status_search.currentText().lower().replace(" ", "_")
+        if event_data['status'] ==  '_↳swiped_in':
+            event_data['status'] = 'swiped_in'
+
+        if event_data['status'] != "blacklisted":
+            event_data['privilege'].append("blacklisted")
+        if event_data['status'] != "archived":
+            event_data['privilege'].append("archived")
+
+        event_data['name'] = self.search_name.text()
+        event_data['text'] = self.search_text.text()
+        event_data['text_private'] = self.search_text_private.text()
+
+        res = get_users_paginated_filtered(self.client_connection, event_data)
+        if res is None:
+            return
+
+        self.total_users_in_query_search = res["total_users"]
+        self.total_users_search.setText(str(self.total_users_in_query_search))
+        self.max_page_label_search.setText(str(math.ceil(self.total_users_in_query_search / self.items_per_page_search)))
+        print("AFTER GET USERS CALL")
+        for c in res["users"]:
+            print(c)
+            self.search_accounts.append(Account(c))
+
+        # load notes for each account
+        for acc in self.search_accounts:
+            res = get_public_account_note(self.client_connection, acc.win)
+            print(f"res: {res}")
+            acc.note = res
+
+    def accounts_load_swiped(self):
+        event_data = {"page_number": self.page_number, "items_per_page": self.items_per_page}
+                      
+        event_data['privilege'] = "ignore"
+        event_data['status'] = "swiped_in"
+        event_data['affiliation'] = "ignore"
+        event_data['name'] = "ignore"
+        event_data['text'] = "ignore"
+        event_data['text_private'] = "ignore"
+
+        res = get_users_paginated_filtered(self.client_connection, event_data)
+        self.total_users_in_query = res["total_users"]
+        self.total_users.setText(str(self.total_users_in_query))
+        self.max_page_label.setText(str(math.ceil(self.total_users_in_query / self.items_per_page)))
+        for c in res["users"]:
+            print(c)
+            self.accounts.append(Account(c))
+
+        # load notes for each account
+        for acc in self.accounts:
+            res = get_public_account_note(self.client_connection, acc.win)
+            print(f"res: {res}")
+            acc.note = res
+
 
 def edit_account(client, edit_data):
     event = Event(EventTypes.EDIT_ACCOUNT, edit_data)
@@ -1506,7 +1563,7 @@ def new_account(client, edit_data):
 
     res = client.call_server(event)
 
-def edit_public_note(client, edit_data):
+def edit_note(client, edit_data):
     event = Event(EventTypes.EDIT_NOTE_FOR_USER, edit_data)
 
     res = client.call_server(event)
@@ -1587,6 +1644,12 @@ def check_if_swiped_in(client, account_win):
         return True
     else:
         return False
+
+def update_photo_path(client, account_win):
+    edit_attrs = {}
+    edit_attrs['photo_path'] = './images/' + str(account_win) + '.jpg'
+    event = Event(event_type=EventTypes.EDIT_ACCOUNT, data = {'win': account_win, 'edit_attrs': edit_attrs})
+    res = client.call_server(event)
 
 def delete_acc(client, account_win):
     event = Event(event_type=EventTypes.DELETE_ACCOUNT, data = {'win': account_win})

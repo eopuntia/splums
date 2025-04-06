@@ -53,7 +53,7 @@ class CamWorker(QThread):
             os.makedirs("./images/")
         
         #saves to [PATH THIS PROGRAM IS RAN]/images
-        file_path = "./images/" + self.file_name + ".jpg"
+        file_path = "./images/" + str(self.file_name) + ".jpg"
         cv2.imwrite(file_path, self.frame)
 
         self.pic_taken = False

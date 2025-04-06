@@ -110,9 +110,6 @@ class Account_Equipment(Base):
     equipment_id: Mapped[int] = mapped_column(ForeignKey("equipment.equipment_id"))
     win: Mapped[int] = mapped_column(ForeignKey("account.win"))
 
-    # this is an example of a very simple declaration that doesnt even need a mapped_column to add extra information. This is posible in some cases.
-    completed_training: Mapped[bool]
-
     equipment: Mapped["Equipment"] = relationship(back_populates="accounts")
     account: Mapped["Account"] = relationship(back_populates="equipments")
 

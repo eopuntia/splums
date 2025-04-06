@@ -14,7 +14,13 @@ QWidget#Main, QInputDialog {
 
 /* Button Color */
 QToolButton {
+    border: 2px solid #434343;
     background-color: #f6f6f6;
+}
+QPushButton {
+    border: 2px solid #434343;
+    font-size:15pt;
+    background-color: #CCCCCC;
 }
 
 /* Headcount Header */
@@ -27,11 +33,6 @@ QLCDNumber {
     background-color: #e0e0e0;
 }
 
-/* Note button */
-QPushButton {
-    font-size:15pt;
-    background-color: #e0e0e0;
-}
 
 /* Student Table Header */
 QHeaderView {
@@ -42,9 +43,18 @@ QHeaderView {
 /* Student Table */
 QTableWidget {
     font-size: 18pt;
+    border: 2px solid #434343;
     background-color: #e0e0e0;
+}
+
+QPlainTextEdit {
+    border: 2px solid #434343;
 }
 
 QLineEdit, QComboBox, QListWidget {
     background-color: #e0e0e0;
+}
+
+QGroupBox {
+    border: 2px solid #434343;
 }
