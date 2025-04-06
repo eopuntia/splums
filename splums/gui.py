@@ -833,6 +833,7 @@ class MainWindow(QMainWindow):
         button_dim=[100, 80]
         button_icon_dim=[50, 50]
 
+        # MAIN SCREEN
         # digit width, dimensions, digit value
         self.headcount_display = self.initialize_lcd(2, [button_dim[0]-30, button_dim[1]-25], 0)
 
@@ -911,6 +912,7 @@ class MainWindow(QMainWindow):
         self.show()
 
         self.account_table.selectRow(-1)
+        self.account_table.doubleClicked.connect(self.attendant_blurb_swiped)
 
         ### SECOND SEARCH LAYOUT
         self.add_button_search = self.initialize_button("Add Account", "./splums/images/add.jpeg", self.   add_account, button_dim, button_icon_dim)
@@ -1089,10 +1091,68 @@ class MainWindow(QMainWindow):
         self.search_text.textChanged.connect(self.search)
         self.search_text_private.textChanged.connect(self.search)
 
-        self.account_table.doubleClicked.connect(self.attendant_blurb_swiped)
         self.account_table_search.doubleClicked.connect(self.attendant_blurb_search)
+        
+        # STUFF FOR LOGIN SCREEN
+        win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
+        pin_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{4}"))
 
-        self.main_widget.setCurrentIndex(0)
+        self.login_username = QLineEdit()
+        self.login_err = QLabel()
+
+        self.login_username.setValidator(win_validator)
+        self.login_pin = QLineEdit()
+        self.login_pin.setValidator(pin_validator)
+        self.login_pin.setEchoMode(QLineEdit.EchoMode.Password)
+        login_button = QPushButton("Login")
+        login_button.clicked.connect(self.login)
+
+        login_widget = QWidget()
+        login_layout = QVBoxLayout()
+        login_layout_form = QFormLayout()
+        login_widget.setLayout(login_layout)
+
+        login_layout_form.addRow("Login", self.login_username)
+        login_layout_form.addRow("Pin", self.login_pin)
+
+        login_layout.addStretch(1)
+        login_layout.addLayout(login_layout_form)
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        login_layout.addWidget(login_button)
+        login_layout.addWidget(self.login_err)
+        login_layout.addStretch(1)
+
+        login_widget.setMaximumWidth(500)
+
+        self.main_widget.addWidget(login_widget)
+
+        # STATE CUSTOMIZATION OUTSIDE OF SPECIFIC SCREENS
+        self.main_widget.setCurrentIndex(2)
+
+    def login(self):
+
+        event_data = {}
+        event_data['win'] = self.login_username.text()
+        event_data['pin'] = self.login_pin.text()
+        res = attempt_attendant_login(self.client_connection, event_data)
+        print(res)
+
+        # want to clear these regardless
+        self.login_username.setText('')
+        self.login_pin.setText('')
+
+        if res['status'] == "fail":
+            self.login_err.setText("invalid pin or win")
+            return
+
+        if res['status'] == 'success':
+            self.login_err.setText("")
+            self.main_widget.setCurrentIndex(0)
+
+
+
+    def sign_out(self):
+        self.main_widget.setCurrentIndex(2)
 
     def make_icon(self, path):
         new_label = QLabel()
@@ -1271,8 +1331,6 @@ class MainWindow(QMainWindow):
 
         self.w.save_update.connect(self.update_save)
 
-    def sign_out(self):
-        print("Signing out")
 
     def initialize_button(self, title, icon_path, function, button_dim, button_icon_dim):
         new_button = QToolButton(self)
@@ -1642,6 +1700,12 @@ def check_if_swiped_in(client, account_win):
         return True
     else:
         return False
+
+def attempt_attendant_login(client, event_data):
+    event = Event(event_type=EventTypes.ATTEMPT_ATTENDANT_SIGNIN, data = event_data)
+    res = client.call_server(event)
+
+    return res
 
 def update_photo_path(client, account_win):
     edit_attrs = {}
