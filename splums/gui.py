@@ -35,6 +35,71 @@ class Account():
         # load when gui needs
         self.note = ""
 
+class ResetPin(QWidget):
+    def __init__(self, client, win):
+        super().__init__()
+        self.client = client
+        self.win = win
+        self.setObjectName("Main")
+
+        self.setWindowTitle("Reset Pin")
+
+        # Main layout
+        main_layout = QVBoxLayout()
+
+        main_widget = QWidget()
+        main_form_layout = QFormLayout()
+        main_form_layout_widget = QFrame()
+        main_widget.setLayout(main_layout)
+        
+        # make the primary layout the stacked one
+        self.setLayout(main_layout)
+
+        # STUFF FOR MAIN LAYOUT
+        self.pin = QLineEdit()
+        self.confirm_pin = QLineEdit()
+
+        save_button = QPushButton("Save")
+        exit_button = QPushButton("Exit")
+
+        exit_button.setStyleSheet("QPushButton {background-color: #888888;}")
+        save_button.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
+
+        save_button.clicked.connect(self.save_edit)
+        exit_button.clicked.connect(self.close)
+
+        main_form_layout.addRow("Pin:", self.pin)
+        main_form_layout.addRow("Confirm Pin:", self.confirm_pin)
+
+        main_layout.addLayout(main_form_layout)
+        main_layout.addWidget(save_button)
+        main_layout.addWidget(exit_button)
+
+        win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{4}"))
+
+        self.pin.setValidator(win_validator)
+        self.confirm_pin.setValidator(win_validator)
+
+    def save_edit(self):
+        if len(self.pin.text()) != 4:
+            err_msg = QMessageBox(self)
+            err_msg.setText('pin must be 4 digits')
+            err_msg.exec()
+            return 
+
+        if self.pin.text() != self.confirm_pin.text():
+            err_msg = QMessageBox(self)
+            err_msg.setText('pins do not match!')
+            err_msg.exec()
+            return 
+
+        data = {}
+        data['win'] = self.win
+        data['edit_attrs'] = {}
+        data['edit_attrs']['pin'] = self.pin.text()
+
+        edit_account(self.client, data)
+
 class EditAccount(QWidget):
     photo_update = pyqtSignal()
     save_update = pyqtSignal()
@@ -113,9 +178,12 @@ class EditAccount(QWidget):
         public_notes_button = QPushButton("Public Notes")
         private_notes_button = QPushButton("Private Notes")
         photo_button = QPushButton("Take Photo")
+        reset_pin_button = QPushButton("Reset Pin")
         save_button = QPushButton("Save")
         exit_button = QPushButton("Exit")
+
         exit_button.setStyleSheet("QPushButton {background-color: #888888;}")
+        reset_pin_button.setStyleSheet("QPushButton {background-color: #FF4500;border: 2px solid #550000}")
 
         # These need to be marked self because other methods hide/show them
         self.delete_button = QPushButton("Delete")
@@ -128,6 +196,7 @@ class EditAccount(QWidget):
         private_notes_button.clicked.connect(self.edit_notes_private)
         photo_button.clicked.connect(self.show_photo)
         save_button.clicked.connect(self.save_edit)
+        reset_pin_button.clicked.connect(self.reset_pin)
         exit_button.clicked.connect(self.close)
 
         self.delete_button.clicked.connect(self.delete_account)
@@ -158,6 +227,7 @@ class EditAccount(QWidget):
         main_form_layout.addWidget(public_notes_button)
         main_form_layout.addWidget(private_notes_button)
         main_form_layout.addItem(spacer)
+        main_form_layout.addWidget(reset_pin_button)
         main_form_layout.addWidget(self.swipe_button)
         main_form_layout.addWidget(self.delete_button)
         main_form_layout.addWidget(save_button)
@@ -288,6 +358,10 @@ class EditAccount(QWidget):
         self.remove_unnecessary_buttons()
 
         self.initial_load()
+
+    def reset_pin(self):
+        self.w = ResetPin(self.client, self.win)
+        self.w.show()
 
     def update_raw_role(self):
         self.role_raw = 'updated'

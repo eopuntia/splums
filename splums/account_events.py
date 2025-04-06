@@ -133,6 +133,8 @@ def edit(event, session):
                 account.photo_url = event.data["edit_attrs"][update]
             if update == "rso":
                 account.rso = event.data["edit_attrs"][update]
+            if update == 'pin':
+                account.pin = event.data['edit_attrs'][update]
 
         s.commit()
         return 1
