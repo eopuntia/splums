@@ -1169,10 +1169,9 @@ class MainWindow(QMainWindow):
         event_data['win'] = self.attendant_win
         res = attempt_attendant_logout(self.client_connection, event_data)
 
+        self.attendant_win = 0000
+        self.main_widget.setCurrentIndex(2)
 
-        if res['status'] == 'success':
-            self.attendant_win = 0000
-            self.main_widget.setCurrentIndex(2)
 
     def make_icon(self, path):
         new_label = QLabel()
@@ -1716,6 +1715,12 @@ def check_if_swiped_in(client, account_win):
 
 def attempt_attendant_login(client, event_data):
     event = Event(event_type=EventTypes.ATTEMPT_ATTENDANT_SIGNIN, data = event_data)
+    res = client.call_server(event)
+
+    return res
+    
+def attempt_attendant_logout(client, event_data):
+    event = Event(event_type=EventTypes.ATTEMPT_ATTENDANT_SIGNOUT, data = event_data)
     res = client.call_server(event)
 
     return res
