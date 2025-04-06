@@ -1096,6 +1096,12 @@ class MainWindow(QMainWindow):
 
         self.main_widget.setCurrentIndex(0)
 
+    def make_icon(self, path):
+        new_label = QLabel()
+        pixmap = QPixmap(path)
+        new_label.setPixmap(pixmap)
+        return new_label
+        
     def update_permbox_style(self):
         current_text = self.status_search.currentText()
         gray_outs = ["Pending", "Archived", "Blacklisted"]
@@ -1300,14 +1306,119 @@ class MainWindow(QMainWindow):
         new_account_table.setColumnCount(5)
 
         new_account_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        new_account_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        new_account_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         new_account_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        new_account_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
 
-        column_labels = ["Photo", "Account", "Permissions", "Notes", "Head Count"]
+        column_labels = ["Photo", "Status", "Account", "Permissions", "Notes"]
         new_account_table.setHorizontalHeaderLabels(column_labels)
+        new_account_table.setColumnWidth(1, 55)
+        new_account_table.setColumnWidth(2, 350)
 
         return new_account_table
+
+    def render_accounts_to_screen_search(self):
+        self.account_table_search.setRowCount(len(self.search_accounts))
+
+        row = 0
+        # for each acc loaded into the gui
+        for acc in self.search_accounts:
+            # Account Image
+            account_photo = QLabel()
+            account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
+
+            self.account_table_search.setCellWidget(row, 0, None)
+            self.account_table_search.setCellWidget(row, 0, account_photo)
+
+            # Account Name
+            account_name_cell = QTableWidgetItem(acc.display_name)
+            account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.account_table_search.setItem(row, 2, account_name_cell)
+
+            icon_widget = QWidget()
+            icon_list = QVBoxLayout()
+
+            icon_list.addWidget(self.make_icon('./splums/images/icons/' + acc.affiliation + '.jpg'))
+
+            icon_list.addWidget(self.make_icon('./splums/images/icons/' + acc.role + '.jpg'))
+
+
+            # add the swiped status
+            if acc.swiped_in:
+                icon_list.addWidget(self.make_icon('./splums/images/icons/swiped_in.jpg'))
+            else:
+                icon_list.addWidget(self.make_icon('./splums/images/icons/swiped_out.jpg'))
+
+            icon_list.setContentsMargins(12, 2, 12, 2)
+            icon_list.setSpacing(0)
+            icon_widget.setLayout(icon_list)
+
+            self.account_table_search.setCellWidget(row, 1, icon_widget)
+
+            
+            
+            note_text_cell = QTextEdit(acc.note)
+            note_text_cell.setReadOnly(True)
+            note_text_cell.setStyleSheet("font-size: 12pt;")
+            note_text_cell.setFixedHeight(100)
+            note_text_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            self.account_table_search.setCellWidget(row, 4, note_text_cell)
+
+
+            row += 1
+
+        # Resize rows and first column to fit images
+        self.account_table_search.resizeRowsToContents()
+        self.account_table_search.resizeColumnToContents(0)
+        
+
+    def render_accounts_to_screen(self):
+        self.account_table.setRowCount(len(self.accounts))
+        self.headcount_display.display(len(self.accounts))
+
+        row = 0
+        # for each acc loaded into the gui
+        for acc in self.accounts:
+            # Account Image
+            account_photo = QLabel()
+            account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
+
+            self.account_table.setCellWidget(row, 0, None)
+            self.account_table.setCellWidget(row, 0, account_photo)
+
+            # Account Name
+            account_name_cell = QTableWidgetItem(acc.display_name)
+            account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.account_table.setItem(row, 2, account_name_cell)
+
+            icon_widget = QWidget()
+            icon_list = QVBoxLayout()
+            icon_list.addWidget(self.make_icon('./splums/images/icons/graduate.jpg'))
+            icon_list.addWidget(self.make_icon('./splums/images/icons/user.jpg'))
+            if acc.swiped_in:
+                icon_list.addWidget(self.make_icon('./splums/images/icons/swiped_in.jpg'))
+            else:
+                icon_list.addWidget(self.make_icon('./splums/images/icons/swiped_out.jpg'))
+
+            icon_list.setContentsMargins(12, 2, 12, 2)
+            icon_list.setSpacing(0)
+            icon_widget.setLayout(icon_list)
+            self.account_table.setCellWidget(row, 1, icon_widget)
+
+            # horizontal row of buttons for each note this is the layout for the actual notewidget
+            note_text_cell = QTextEdit(acc.note)
+            note_text_cell.setReadOnly(True)
+            note_text_cell.setStyleSheet("font-size: 12pt;")
+            note_text_cell.setFixedHeight(100)
+            note_text_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            self.account_table.setCellWidget(row, 4, note_text_cell)
+
+            row += 1
+
+        # Resize rows and first column to fit images
+        self.account_table.resizeRowsToContents()
+        self.account_table.resizeColumnToContents(0)
 
     def accounts_load_search(self):
         event_data = {"page_number": self.page_number_search, 
@@ -1388,103 +1499,6 @@ class MainWindow(QMainWindow):
             print(f"res: {res}")
             acc.note = res
 
-    def render_accounts_to_screen_search(self):
-        self.account_table_search.setRowCount(len(self.search_accounts))
-
-        row = 0
-        # for each acc loaded into the gui
-        for acc in self.search_accounts:
-            # Account Image
-            account_photo = QLabel()
-            account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
-
-            self.account_table_search.setCellWidget(row, 0, None)
-            self.account_table_search.setCellWidget(row, 0, account_photo)
-
-            # Account Name
-            account_name_cell = QTableWidgetItem(acc.display_name)
-            account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.account_table_search.setItem(row, 1, account_name_cell)
-
-#            # permission is based on color of permission in acc_permission
-#            account_permissions_cell = QLabel("")
-#            # TODO ADD THIS LATER
-#            perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in acc.permissions)
-#            account_permissions_cell.setText(perm_string)
-#            account_permissions_cell.setStyleSheet("font-size: 18pt;")
-#            account_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-#            self.account_table.setCellWidget(row, 2, account_permissions_cell)
-
-            # horizontal row of buttons for each note this is the layout for the actual notewidget
-            note_text_cell = QTextEdit(acc.note)
-            note_text_cell.setReadOnly(True)
-            note_text_cell.setStyleSheet("font-size: 12pt;")
-            note_text_cell.setFixedHeight(100)
-            note_text_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            self.account_table_search.setCellWidget(row, 3, note_text_cell)
-
-            # Account ID
-            account_id_hidden = QTableWidgetItem(acc.win)
-            account_id_hidden.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.account_table_search.setItem(row, 4, account_id_hidden)
-            self.account_table_search.setColumnHidden(4, True)
-
-            row += 1
-
-        # Resize rows and first column to fit images
-        self.account_table_search.resizeRowsToContents()
-        self.account_table_search.resizeColumnToContents(0)
-        
-
-    def render_accounts_to_screen(self):
-        self.account_table.setRowCount(len(self.accounts))
-        self.headcount_display.display(len(self.accounts))
-
-        row = 0
-        # for each acc loaded into the gui
-        for acc in self.accounts:
-            # Account Image
-            account_photo = QLabel()
-            account_photo.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
-
-            self.account_table.setCellWidget(row, 0, None)
-            self.account_table.setCellWidget(row, 0, account_photo)
-
-            # Account Name
-            account_name_cell = QTableWidgetItem(acc.display_name)
-            account_name_cell.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.account_table.setItem(row, 1, account_name_cell)
-
-#            # permission is based on color of permission in acc_permission
-#            account_permissions_cell = QLabel("")
-#            # TODO ADD THIS LATER
-#            perm_string = " ".join(f'<font color="{permission}">⬤</font>' for permission in acc.permissions)
-#            account_permissions_cell.setText(perm_string)
-#            account_permissions_cell.setStyleSheet("font-size: 18pt;")
-#            account_permissions_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-#            self.account_table.setCellWidget(row, 2, account_permissions_cell)
-
-            # horizontal row of buttons for each note this is the layout for the actual notewidget
-            note_text_cell = QTextEdit(acc.note)
-            note_text_cell.setReadOnly(True)
-            note_text_cell.setStyleSheet("font-size: 12pt;")
-            note_text_cell.setFixedHeight(100)
-            note_text_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            self.account_table.setCellWidget(row, 3, note_text_cell)
-
-            # Account ID
-            account_id_hidden = QTableWidgetItem(acc.win)
-            account_id_hidden.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.account_table.setItem(row, 4, account_id_hidden)
-            self.account_table.setColumnHidden(4, True)
-
-            row += 1
-
-        # Resize rows and first column to fit images
-        self.account_table.resizeRowsToContents()
-        self.account_table.resizeColumnToContents(0)
 
 def edit_account(client, edit_data):
     event = Event(EventTypes.EDIT_ACCOUNT, edit_data)
