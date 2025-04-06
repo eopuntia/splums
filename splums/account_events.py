@@ -424,6 +424,49 @@ def get_perms_for_user(event, session):
         return perm_data.copy()
 
 # TODO add proper error handling
+def attempt_attendant_signin(event, session):
+    with session.begin() as s:
+        required_keys = ["win", "pin"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+
+        # first sign out all attendants that are active rn
+        query = s.query(Account)
+        # first get people are are active
+        query = query.filter(Account.active_attendant == 1)
+        admin = s.scalar(select(Role).where(Role.name == "administrator"))
+        # ignore admins
+        query = query.filter(Account.role != admin)
+
+        # sign all of these people out
+        active_accounts = query.all()
+
+        for acc in active_accounts:
+            acc.active_attendant = 0
+
+        # then attempt to sign in new person
+        account = s.scalar(
+            select(Account).where(
+                (Account.win == event.data["win"]) & 
+                (Account.pin == event.data["pin"])
+            )
+        )
+        if account is None:
+            s.rollback()
+            return { "status" : "fail" }
+
+        account.active_attendant = 1
+        print(account.role.name)
+        ret_data = { "status": "success", "display_name": account.display_name, 'admin': 'false' }
+        if account.role.name == "administrator":
+            ret_data['admin'] = 'true'
+
+        s.commit()
+
+        return ret_data
+
+# TODO add proper error handling
 def check_if_win_exists(event, session):
     with session.begin() as s:
         required_keys = ["win"]

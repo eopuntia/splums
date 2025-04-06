@@ -835,7 +835,6 @@ class MainWindow(QMainWindow):
 
         # MAIN SCREEN
         # digit width, dimensions, digit value
-        self.headcount_display = self.initialize_lcd(2, [button_dim[0]-30, button_dim[1]-25], 0)
 
         self.add_button = self.initialize_button("Add Account", "./splums/images/add.jpeg", self.add_account, button_dim, button_icon_dim)
         self.edit_button = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.edit_account, button_dim, button_icon_dim)
@@ -851,7 +850,6 @@ class MainWindow(QMainWindow):
         button_bar.setAlignment(Qt.AlignmentFlag.AlignLeft)
         button_bar.addWidget(self.add_button)
         button_bar.addWidget(self.edit_button)
-        button_bar.addWidget(self.signout_button)
         button_bar.addWidget(self.search_button)
         layout_topsplit.addLayout(button_bar)
 
@@ -889,13 +887,17 @@ class MainWindow(QMainWindow):
         
         topright_bar = QHBoxLayout()
         topright_bar.setAlignment(Qt.AlignmentFlag.AlignRight)
-        headcount_label_and_lcd = QVBoxLayout()
-        headcount_header = QLabel(" Headcount")
-        headcount_header.setStyleSheet("font-weight: bold;")
-        headcount_header.setObjectName("HeadcountHeader")
-        headcount_label_and_lcd.addWidget(headcount_header)
-        headcount_label_and_lcd.addWidget(self.headcount_display)
-        topright_bar.addLayout(headcount_label_and_lcd)
+
+        attendant_status = QVBoxLayout()
+        self.active_admin_label = QLabel()
+        self.active_attendant_label = QLabel()
+
+        attendant_status.addWidget(self.active_admin_label)
+        attendant_status.addWidget(self.active_attendant_label)
+
+        topright_bar.addLayout(attendant_status)
+        topright_bar.addWidget(self.signout_button)
+
         layout_topsplit.addLayout(topright_bar)
 
         self.account_table = self.initialize_account_table()
@@ -1125,12 +1127,16 @@ class MainWindow(QMainWindow):
         login_widget.setMaximumWidth(500)
 
         self.main_widget.addWidget(login_widget)
+        # will be set on successful login
+        self.attendant_win = 0000
+        self.attendant_display_name = "temp_name"
+        self.attendant_admin_bool = False
+
 
         # STATE CUSTOMIZATION OUTSIDE OF SPECIFIC SCREENS
         self.main_widget.setCurrentIndex(2)
 
     def login(self):
-
         event_data = {}
         event_data['win'] = self.login_username.text()
         event_data['pin'] = self.login_pin.text()
@@ -1147,12 +1153,28 @@ class MainWindow(QMainWindow):
 
         if res['status'] == 'success':
             self.login_err.setText("")
+            self.attendant_win = event_data['win']
+            self.attendant_display_name = res['display_name']
+            self.active_attendant_label.setText(self.attendant_display_name)
+            if res['admin'] == 'true':
+                self.attendant_admin_bool = True
+                self.active_admin_label.setText("ADMIN CONSOLE")
+            else:
+                self.attendant_admin_bool = False
+                self.active_admin_label.setText("ATTENDANT CONSOLE")
+
             self.main_widget.setCurrentIndex(0)
 
 
-
     def sign_out(self):
-        self.main_widget.setCurrentIndex(2)
+        event_data = {}
+        event_data['win'] = self.attendant_win
+        res = attempt_attendant_logout(self.client_connection, event_data)
+
+
+        if res['status'] == 'success':
+            self.attendant_win = 0000
+            self.main_widget.setCurrentIndex(2)
 
     def make_icon(self, path):
         new_label = QLabel()
@@ -1342,13 +1364,6 @@ class MainWindow(QMainWindow):
         new_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
         return new_button
 
-    def initialize_lcd(self, digit_count, button_dim, digit):
-        new_lcd = QLCDNumber(self)
-        new_lcd.setDigitCount(digit_count)
-        new_lcd.setFixedSize(QSize(button_dim[0], button_dim[1]))
-        new_lcd.display(digit)
-        return new_lcd
-
     def initialize_account_table(self):
         new_account_table = QTableWidget()
         new_account_table.verticalHeader().setVisible(False)
@@ -1455,7 +1470,6 @@ class MainWindow(QMainWindow):
 
     def render_accounts_to_screen(self):
         self.account_table.setRowCount(len(self.accounts))
-        self.headcount_display.display(len(self.accounts))
 
         row = 0
         # for each acc loaded into the gui
