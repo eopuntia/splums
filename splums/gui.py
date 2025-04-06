@@ -1354,7 +1354,6 @@ class MainWindow(QMainWindow):
             
             perms = get_account_permissions(self.client_connection, acc.win)
 
-
             if perms is not None:
                 perms = sorted(perms)
                 for i in range(len(perms)):
@@ -1432,9 +1431,8 @@ class MainWindow(QMainWindow):
 
             perms = get_account_permissions(self.client_connection, acc.win)
 
-            perms = sorted(perms)
-
             if perms is not None:
+                perms = sorted(perms)
                 for i in range(len(perms)):
                     perms[i] = perms[i].replace('(', '')
                     perms[i] = perms[i].replace(')', '')
