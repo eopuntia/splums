@@ -1242,6 +1242,10 @@ class MainWindow(QMainWindow):
     def __init__(self, client_connection):
         super().__init__()
         self.client_connection = client_connection
+        # will be set on successful login
+        self.attendant_win = 0000
+        self.attendant_display_name = ""
+        self.attendant_admin_bool = False
 
         self.items_per_page = 5
         self.page_number = 1
@@ -1275,7 +1279,7 @@ class MainWindow(QMainWindow):
 
         self.add_button = self.initialize_button("Add Account", "./splums/images/add.jpeg", self.add_account, button_dim, button_icon_dim)
         self.edit_button = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.edit_account, button_dim, button_icon_dim)
-        self.account_edit_button = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.account_edit_account, button_dim, button_icon_dim)
+        self.attendant_edit_button = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.account_edit_account, button_dim, button_icon_dim)
         self.search_button = self.initialize_button("Search", "./splums/images/search.jpeg", self.search, button_dim, button_icon_dim)
         self.signout_button = self.initialize_button("Sign Out", "./splums/images/signout.jpeg", self.sign_out, button_dim, button_icon_dim)
         self.next_page_button = self.initialize_button("Next Page", "./splums/images/forward.jpeg", self.next_page, button_dim, button_icon_dim)
@@ -1288,7 +1292,7 @@ class MainWindow(QMainWindow):
         button_bar.setAlignment(Qt.AlignmentFlag.AlignLeft)
         button_bar.addWidget(self.add_button)
         button_bar.addWidget(self.edit_button)
-        button_bar.addWidget(self.account_edit_button)
+        button_bar.addWidget(self.attendant_edit_button)
         button_bar.addWidget(self.search_button)
         layout_topsplit.addLayout(button_bar)
 
@@ -1348,8 +1352,6 @@ class MainWindow(QMainWindow):
 
         layout_accounts.addWidget(self.account_table)
 
-        self.accounts_load_swiped()
-        self.render_accounts_to_screen()
         self.show()
 
         self.account_table.selectRow(-1)
@@ -1358,6 +1360,7 @@ class MainWindow(QMainWindow):
         ### SECOND SEARCH LAYOUT
         self.add_button_search = self.initialize_button("Add Account", "./splums/images/add.jpeg", self.   add_account, button_dim, button_icon_dim)
         self.edit_button_search = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.edit_account_search, button_dim, button_icon_dim)
+        self.attendant_edit_button_search = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.attendant_edit_account_search, button_dim, button_icon_dim)
 
 
         self.back_button = self.initialize_button("Back", "./splums/images/back.jpeg", self.back_to_main, button_dim, button_icon_dim)
@@ -1499,6 +1502,7 @@ class MainWindow(QMainWindow):
         button_bar_search.setAlignment(Qt.AlignmentFlag.AlignLeft)
         button_bar_search.addWidget(self.add_button_search)
         button_bar_search.addWidget(self.edit_button_search)
+        button_bar_search.addWidget(self.attendant_edit_button_search)
         button_bar_search.addWidget(self.back_button)
         layout_topsplit_search.addLayout(button_bar_search)
         layout_topsplit_search.addLayout(self.topright_bar_search)
@@ -1564,10 +1568,6 @@ class MainWindow(QMainWindow):
         login_widget.setMaximumWidth(500)
 
         self.main_widget.addWidget(login_widget)
-        # will be set on successful login
-        self.attendant_win = 0000
-        self.attendant_display_name = ""
-        self.attendant_admin_bool = False
 
 
         # STATE CUSTOMIZATION OUTSIDE OF SPECIFIC SCREENS
@@ -1596,16 +1596,23 @@ class MainWindow(QMainWindow):
             if res['admin'] == 'true':
                 self.attendant_admin_bool = True
                 self.active_admin_label.setText("ADMIN CONSOLE")
-                self.account_edit_button.hide()
+                self.attendant_edit_button_search.hide()
+                self.attendant_edit_button.hide()
+
+                self.edit_button_search.show()
                 self.edit_button.show()
             else:
                 self.attendant_admin_bool = False
                 self.edit_button.hide()
-                self.account_edit_button.show()
+                self.attendant_edit_button_search.show()
+                self.edit_button_search.hide()
+                self.attendant_edit_button.show()
                 self.active_admin_label.setText("ATTENDANT CONSOLE")
 
+            self.accounts.clear()
+            self.accounts_load_swiped()
+            self.render_accounts_to_screen()
             self.main_widget.setCurrentIndex(0)
-
 
     def sign_out(self):
         event_data = {}
@@ -1624,6 +1631,9 @@ class MainWindow(QMainWindow):
         return new_label
         
     def update_permbox_style(self):
+        if self.check_if_still_swiped() == False:
+            return
+
         current_text = self.status_search.currentText()
         gray_outs = ["Pending", "Archived", "Blacklisted"]
 
@@ -1641,6 +1651,9 @@ class MainWindow(QMainWindow):
                 i += 1
 
     def reset_filters(self):
+        if self.check_if_still_swiped() == False:
+            return
+
         self.search_name.setText("")
         self.search_text.setText("")
         self.search_text_private.setText("")
@@ -1651,7 +1664,21 @@ class MainWindow(QMainWindow):
         for box in self.privilege_group.findChildren(QCheckBox):
             box.setChecked(True)
 
+    def check_if_still_swiped(self):
+        res = check_if_active_attendant(self.client_connection, self.attendant_win)
+        if res == False:
+            self.main_widget.setCurrentIndex(2)
+            self.attendant_win = 0
+            self.attendant_display_name = ''
+            self.attendant_admin_bool = False
+            return False
+        else:
+            return True
+
     def attendant_blurb_swiped(self):
+        if self.check_if_still_swiped() == False:
+            return
+
         selected_row = self.account_table.currentRow()
 
         if selected_row == -1:
@@ -1666,6 +1693,9 @@ class MainWindow(QMainWindow):
         self.w.save_update.connect(self.update_save)
 
     def attendant_blurb_search(self):
+        if self.check_if_still_swiped() == False:
+            return
+
         selected_row = self.account_table_search.currentRow()
 
         if selected_row == -1:
@@ -1681,6 +1711,9 @@ class MainWindow(QMainWindow):
         self.w.save_update.connect(self.update_save)
 
     def search(self):
+        if self.check_if_still_swiped() == False:
+            return
+
         self.search_accounts.clear()
         # jump back to the first page
         self.page_number_search = 1
@@ -1693,6 +1726,9 @@ class MainWindow(QMainWindow):
         self.main_widget.setCurrentIndex(0)
 
     def prev_page_search(self):
+        if self.check_if_still_swiped() == False:
+            return
+
         if self.page_number_search > 1:
             self.page_number_search -= 1
             self.page_label_search.setText(str(self.page_number_search))
@@ -1702,6 +1738,9 @@ class MainWindow(QMainWindow):
         self.render_accounts_to_screen_search()
 
     def prev_page(self):
+        if self.check_if_still_swiped() == False:
+            return
+
         if self.page_number > 1:
             self.page_number -= 1
             self.page_label.setText(str(self.page_number))
@@ -1711,6 +1750,8 @@ class MainWindow(QMainWindow):
         self.render_accounts_to_screen()
 
     def next_page_search(self):
+        if self.check_if_still_swiped() == False:
+            return
         if self.items_per_page_search * self.page_number_search < self.total_users_in_query_search:
             self.page_number_search += 1
             self.page_label_search.setText(str(self.page_number_search))
@@ -1720,6 +1761,8 @@ class MainWindow(QMainWindow):
         self.render_accounts_to_screen_search()
 
     def next_page(self):
+        if self.check_if_still_swiped() == False:
+            return
         if self.items_per_page * self.page_number < self.total_users_in_query:
             self.page_number += 1
             self.page_label.setText(str(self.page_number))
@@ -1729,6 +1772,8 @@ class MainWindow(QMainWindow):
         self.render_accounts_to_screen()
 
     def account_edit_account(self):
+        if self.check_if_still_swiped() == False:
+            return
         selected_row = self.account_table.currentRow()
 
         if selected_row == -1:
@@ -1745,6 +1790,8 @@ class MainWindow(QMainWindow):
         self.w.save_update.connect(self.update_save)
 
     def edit_account(self):
+        if self.check_if_still_swiped() == False:
+            return
         selected_row = self.account_table.currentRow()
 
         if selected_row == -1:
@@ -1760,7 +1807,27 @@ class MainWindow(QMainWindow):
         self.w.photo_update.connect(self.update_photos)
         self.w.save_update.connect(self.update_save)
 
+    def attendant_edit_account_search(self):
+        if self.check_if_still_swiped() == False:
+            return
+        selected_row = self.account_table_search.currentRow()
+
+        if selected_row == -1:
+            err_msg = QMessageBox(self)
+            err_msg.setText('click to select the account you want to edit')
+            err_msg.exec()
+            return
+
+        self.w = AttendantEditAccount(self.search_accounts[selected_row].win, self.client_connection)
+        self.w.show()
+
+        # connect signal to pressing the save button 
+        self.w.photo_update.connect(self.update_photos)
+        self.w.save_update.connect(self.update_save)
+
     def edit_account_search(self):
+        if self.check_if_still_swiped() == False:
+            return
         selected_row = self.account_table_search.currentRow()
 
         if selected_row == -1:
@@ -1804,6 +1871,8 @@ class MainWindow(QMainWindow):
             row += 1
 
     def add_account(self):
+        if self.check_if_still_swiped() == False:
+            return
         self.w = AddAccount(self.client_connection)
         self.w.show()
 
@@ -1844,6 +1913,8 @@ class MainWindow(QMainWindow):
         return new_account_table
 
     def render_accounts_to_screen_search(self):
+        if self.check_if_still_swiped() == False:
+            return
         self.account_table_search.setRowCount(len(self.search_accounts))
 
         row = 0
@@ -1925,6 +1996,8 @@ class MainWindow(QMainWindow):
         
 
     def render_accounts_to_screen(self):
+        if self.check_if_still_swiped() == False:
+            return
         self.account_table.setRowCount(len(self.accounts))
 
         row = 0
@@ -2001,6 +2074,8 @@ class MainWindow(QMainWindow):
         self.account_table.resizeColumnToContents(0)
 
     def accounts_load_search(self):
+        if self.check_if_still_swiped() == False:
+            return
         event_data = {"page_number": self.page_number_search, 
                       "items_per_page": self.items_per_page_search,
                       "swiped_users": False,
@@ -2056,6 +2131,17 @@ class MainWindow(QMainWindow):
             acc.note = res
 
     def accounts_load_swiped(self):
+        print('in acc load swiped')
+        print('in acc load swiped')
+        print('in acc load swiped')
+        print('in acc load swiped')
+        if self.check_if_still_swiped() == False:
+            return
+        print('in acc load swipedAFTER')
+        print('in acc load swipedAFTER')
+        print('in acc load swipedAFTER')
+        print('in acc load swipedAFTER')
+        print('in acc load swipedAFTER')
         event_data = {"page_number": self.page_number, "items_per_page": self.items_per_page}
                       
         event_data['privilege'] = "ignore"
@@ -2164,10 +2250,18 @@ def get_public_account_note(client, account_win):
 
     return note
 
+def check_if_active_attendant(client, account_win):
+    event = Event(event_type=EventTypes.CHECK_IF_ACTIVE_ATTENDANT, data = {'win': account_win})
+    res = client.call_server(event)
+    if res['win'] == False:
+        return False
+    else:
+        return True
+
 def check_if_swiped_in(client, account_win):
     event = Event(event_type=EventTypes.CHECK_IF_SWIPED_IN, data = {'win': account_win})
     res = client.call_server(event)
-    if res["swiped_in"] == True:
+    if res["swiped_in"] == 'true':
         return True
     else:
         return False

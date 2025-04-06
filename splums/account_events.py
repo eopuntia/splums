@@ -434,27 +434,28 @@ def attempt_attendant_signin(event, session):
             if key not in event.data:
                 raise KeyError(f"Missing required key: {key}")
 
-        # first sign out all attendants that are active rn
-        query = s.query(Account)
-        # first get people are are active
-        query = query.filter(Account.active_attendant == 1)
-        admin = s.scalar(select(Role).where(Role.name == "administrator"))
-        # ignore admins
-        query = query.filter(Account.role != admin)
-
-        # sign all of these people out
-        active_accounts = query.all()
-
-        for acc in active_accounts:
-            acc.active_attendant = 0
-
-        # then attempt to sign in new person
         account = s.scalar(
             select(Account).where(
                 (Account.win == event.data["win"]) & 
                 (Account.pin == event.data["pin"])
             )
         )
+        if account.role.name == 'attendant':
+            query = s.query(Account)
+            # first sign out all attendants that are active rn
+            query = query.filter(Account.active_attendant == 1)
+            admin = s.scalar(select(Role).where(Role.name == "administrator"))
+            # ignore admins
+            query = query.filter(Account.role != admin)
+
+            # sign all of these people out
+            active_accounts = query.all()
+
+            for acc in active_accounts:
+                acc.active_attendant = 0
+
+
+        # then attempt to sign in new person
         if account is None:
             s.rollback()
             return { "status" : "fail" }
@@ -492,7 +493,7 @@ def attempt_attendant_signout(event, session):
         s.commit()
 
 # TODO add proper error handling
-def check_if_win_exists(event, session):
+def check_if_active_attendant(event, session):
     with session.begin() as s:
         required_keys = ["win"]
         for key in required_keys:
@@ -501,8 +502,27 @@ def check_if_win_exists(event, session):
                 
         account = s.scalar(select(Account).where(Account.win == event.data["win"]))
         if account is None:
-            return { "win" : False }
-        else: return { "win" : True } 
+            return { 'win': False }
+
+        if account.active_attendant == 1:
+            return { 'win': True } 
+        else: return { 'win': False }
+
+# TODO add proper error handling
+def check_if_win_exists(event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+                
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+
+        if account is None:
+            return {'win' : False}
+        else:
+            return {'win' :True }
+        
 
 # TODO add proper error handling
 def get_data_for_user(event, session):

@@ -173,5 +173,10 @@ class EventBroker:
                 result = account_events.attempt_attendant_signout(event, self.session)
                 return result
 
+            case EventTypes.CHECK_IF_ACTIVE_ATTENDANT:
+                print(f"\033[93mAttempting attendant signout...\033[0m")
+                result = account_events.check_if_active_attendant(event, self.session)
+                return result
+
             case _:
                 print(f"Error")
