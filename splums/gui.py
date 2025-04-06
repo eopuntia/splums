@@ -389,9 +389,7 @@ class EditAccount(QWidget):
         if permissions is not None:
             for item in self.permissions.findChildren(QCheckBox):
                 for perm in permissions:
-                    print(f'{item.text()} on {perm}')
                     if item.text().replace(" ", "_") == perm:
-                        print(f'need to check the state of {perm}')
                         item.setChecked(True)
 
         self.role_raw = acc_data['role']
@@ -1353,8 +1351,35 @@ class MainWindow(QMainWindow):
             icon_widget.setLayout(icon_list)
 
             self.account_table_search.setCellWidget(row, 1, icon_widget)
-
             
+            perms = get_account_permissions(self.client_connection, acc.win)
+
+            perms = sorted(perms)
+
+            if perms is not None:
+                for i in range(len(perms)):
+                    perms[i] = perms[i].replace('(', '')
+                    perms[i] = perms[i].replace(')', '')
+                    perms[i] = perms[i].replace(',', '')
+
+                icon_grid = QGridLayout()
+                perm_widget = QWidget()
+                i = 0
+                for icon_row in range(3):
+                    for col in range(7):
+                        if i > len(perms) - 1:
+                            break
+                        icon = self.make_icon('./splums/images/icons/perms/' + perms[i] + '.jpg')
+                        icon_grid.addWidget(icon, icon_row, col)
+                        i += 1
+
+                icon_grid.setHorizontalSpacing(20)
+                icon_grid.setContentsMargins(20,2,20,2)
+                icon_grid.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                perm_widget.setLayout(icon_grid)
+
+                self.account_table_search.setCellWidget(row, 3, perm_widget)
+
             
             note_text_cell = QTextEdit(acc.note)
             note_text_cell.setReadOnly(True)
@@ -1363,7 +1388,6 @@ class MainWindow(QMainWindow):
             note_text_cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             self.account_table_search.setCellWidget(row, 4, note_text_cell)
-
 
             row += 1
 
@@ -1404,6 +1428,35 @@ class MainWindow(QMainWindow):
             icon_list.setSpacing(0)
             icon_widget.setLayout(icon_list)
             self.account_table.setCellWidget(row, 1, icon_widget)
+
+
+            perms = get_account_permissions(self.client_connection, acc.win)
+
+            perms = sorted(perms)
+
+            if perms is not None:
+                for i in range(len(perms)):
+                    perms[i] = perms[i].replace('(', '')
+                    perms[i] = perms[i].replace(')', '')
+                    perms[i] = perms[i].replace(',', '')
+
+                icon_grid = QGridLayout()
+                perm_widget = QWidget()
+                i = 0
+                for icon_row in range(3):
+                    for col in range(7):
+                        if i > len(perms) - 1:
+                            break
+                        icon = self.make_icon('./splums/images/icons/perms/' + perms[i] + '.jpg')
+                        icon_grid.addWidget(icon, icon_row, col)
+                        i += 1
+
+                icon_grid.setHorizontalSpacing(20)
+                icon_grid.setContentsMargins(20,2,20,2)
+                icon_grid.setAlignment(Qt.AlignmentFlag.AlignLeft)
+                perm_widget.setLayout(icon_grid)
+
+                self.account_table.setCellWidget(row, 3, perm_widget)
 
             # horizontal row of buttons for each note this is the layout for the actual notewidget
             note_text_cell = QTextEdit(acc.note)
@@ -1466,7 +1519,7 @@ class MainWindow(QMainWindow):
         self.max_page_label_search.setText(str(math.ceil(self.total_users_in_query_search / self.items_per_page_search)))
         print("AFTER GET USERS CALL")
         for c in res["users"]:
-            print(c["display_name"])
+            print(c)
             self.search_accounts.append(Account(c))
 
         # load notes for each account

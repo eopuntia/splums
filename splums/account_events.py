@@ -229,7 +229,7 @@ def format_users(unformatted_user):
             'photo_url': user.photo_url,
             'role': user.role.name,
             'affiliation':user.affiliation.name,
-            'department': user.department,
+            'department': user.department.name,
             'created_at': user.created_at,
             'last_updated_at': user.last_updated_at,
             'swiped_in': user.swiped_in,
