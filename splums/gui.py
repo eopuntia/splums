@@ -100,6 +100,345 @@ class ResetPin(QWidget):
 
         edit_account(self.client, data)
 
+class AttendantEditAccount(QWidget):
+    photo_update = pyqtSignal()
+    save_update = pyqtSignal()
+    def __init__(self, win, client):
+        super().__init__()
+        self.client = client
+        self.win = win
+        self.role_raw = 'populate_later'
+        self.setObjectName("Main")
+
+        self.setWindowTitle("Edit Account")
+
+        # Main layout
+        main_layout = QHBoxLayout()
+
+        main_widget = QWidget()
+        main_form_layout = QFormLayout()
+        main_form_layout_widget = QFrame()
+        perm_vert_layout = QVBoxLayout()
+        main_widget.setLayout(main_layout)
+        
+        # Notes layout
+        notes_widget = QWidget()
+        notes_layout = QVBoxLayout()
+        notes_widget.setLayout(notes_layout)
+
+        photo_widget = QWidget()
+        photo_layout = QVBoxLayout()
+        photo_widget.setLayout(photo_layout)
+        
+        # The stacked layout of them all
+        self.stacked_widget = QStackedWidget()
+        self.stacked_widget.addWidget(main_widget)
+        self.stacked_widget.addWidget(notes_widget)
+        self.stacked_widget.addWidget(photo_widget)
+        self.stacked_widget.setCurrentIndex(0)
+
+        stacked_layout = QVBoxLayout()
+        stacked_layout.addWidget(self.stacked_widget)
+
+        # make the primary layout the stacked one
+        self.setLayout(stacked_layout)
+
+        # STUFF FOR MAIN LAYOUT
+        self.win_box = QLabel()
+        self.role = QLabel()
+
+        self.department = QComboBox()
+        self.display_name = QLineEdit()
+        self.given_name = QLineEdit()
+        self.surname = QLineEdit()
+        self.affiliation = QComboBox()
+        self.rso = QLineEdit()
+
+        self.permissions = QGroupBox()
+
+        perm_layout = QVBoxLayout()
+        perm_label = QLabel()
+        perm_label.setText("Permissions")
+        perm_label.setStyleSheet("QLabel { font-size:12pt}")
+
+        perm_list = get_permissions_from_db(self.client)
+        button_list = []
+        for item in perm_list:
+            button_list.append(QCheckBox(item.replace("_", " ")))
+
+        for item in button_list:
+            perm_layout.addWidget(item)
+
+        self.permissions.setLayout(perm_layout)
+
+        public_notes_button = QPushButton("Notes")
+        photo_button = QPushButton("Take Photo")
+        save_button = QPushButton("Save")
+        exit_button = QPushButton("Exit")
+
+        exit_button.setStyleSheet("QPushButton {background-color: #888888;}")
+
+        # These need to be marked self because other methods hide/show them
+        save_button.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
+        self.swipe_button = QPushButton("Swipe out")
+        self.swipe_button.setStyleSheet("QPushButton {background-color: #35B5AC;}")
+
+        public_notes_button.clicked.connect(self.edit_notes_public)
+        photo_button.clicked.connect(self.show_photo)
+        save_button.clicked.connect(self.save_edit)
+        exit_button.clicked.connect(self.close)
+
+        self.swipe_button.clicked.connect(self.swipe_toggle)
+
+        main_label = QLabel()
+        main_label.setText("Attributes")
+        main_label.setStyleSheet("QLabel {font-size:12pt}")
+        main_form_layout_sub = QFormLayout()
+        main_form_layout_sub.addRow("WIN:", self.win_box)
+        main_form_layout_sub.addRow("Role:", self.role)
+        main_form_layout_sub.addRow("Display Name:", self.display_name)
+        main_form_layout_sub.addRow("Given Name:", self.given_name)
+        main_form_layout_sub.addRow("Surname:", self.surname)
+        main_form_layout_sub.addRow("Affiliation:", self.affiliation)
+        main_form_layout_sub.addRow("Department:", self.department)
+        main_form_layout_sub.addRow("RSO:", self.rso)
+
+        main_form_layout_widget.setLayout(main_form_layout_sub)
+        main_form_layout_widget.setStyleSheet("QFrame {border: 2px solid #434343;} QLabel {border: none}")
+        
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        main_form_layout.addWidget(main_label)
+        main_form_layout.addWidget(main_form_layout_widget)
+        main_form_layout.addWidget(photo_button)
+        main_form_layout.addWidget(public_notes_button)
+        main_form_layout.addItem(spacer)
+        main_form_layout.addWidget(self.swipe_button)
+        main_form_layout.addWidget(save_button)
+        main_form_layout.addWidget(exit_button)
+
+        perm_vert_layout.addWidget(perm_label)
+        perm_vert_layout.addWidget(self.permissions)
+        main_layout.addLayout(main_form_layout)
+        main_layout.addLayout(perm_vert_layout)
+
+        self.department.addItem("cs")
+        self.department.addItem("edmms")
+        self.department.addItem("cpe")
+        self.department.addItem("cce")
+        self.department.addItem("ieeem")
+        self.department.addItem("mae")
+        self.department.addItem("ceas")
+        self.department.addItem("pcpp")
+        self.department.addItem("other")
+
+        self.affiliation.addItem("Undergrad")
+        self.affiliation.addItem("Graduate")
+        self.affiliation.addItem("Researcher")
+        self.affiliation.addItem("Staff")
+        self.affiliation.addItem("Faculty")
+        self.affiliation.addItem("Other")
+ 
+        name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+        display_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_1-9]{20}"))
+
+        self.display_name.setValidator(display_validator)
+        self.given_name.setValidator(name_validator)
+        self.surname.setValidator(name_validator)
+        self.affiliation.setValidator(name_validator)
+        self.rso.setValidator(display_validator)
+
+        self.rso.setPlaceholderText("Registered Student Org...")
+
+
+        # STUFF FOR Notes LAYOUT
+        back_to_main_button = QPushButton("Back")
+        back_to_main_button.setStyleSheet("QPushButton {background-color: #888888;}")
+        back_to_main_button.clicked.connect(self.back_to_main)
+
+        self.public_notes = QPlainTextEdit()
+        self.public_notes.setPlainText(get_public_account_note(self.client, self.win))
+
+        self.save_notes_button_public = QPushButton("Save")
+        self.save_notes_button_public.clicked.connect(self.save_note_public)
+        self.save_notes_button_public.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
+
+        # Stuff for Picture layout
+        bottom_row = QHBoxLayout()
+        buttons_block = QVBoxLayout()
+        self.feed_label = QLabel("Loading (If this takes more than a few seconds, ensure webcam is plugged in)")
+        self.save_message = QLabel(" ")
+
+        self.photo_button = QPushButton("Take Photo")
+        self.save_photo_button = QPushButton("Save Photo")
+        self.retake_button = QPushButton("Retake")
+        self.back_from_photo_button = QPushButton("Back")
+        self.back_from_photo_button.setStyleSheet("QPushButton {background-color: #888888;}")
+
+        self.retake_button.hide()
+        self.save_photo_button.hide()
+
+        bottom_row.addWidget(self.save_message)
+        bottom_row.addLayout(buttons_block)
+
+        photo_layout.addWidget(self.feed_label, alignment= Qt.AlignmentFlag.AlignCenter)
+        photo_layout.addLayout(bottom_row)
+
+        buttons_block.addWidget(self.photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.retake_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.save_photo_button, alignment= Qt.AlignmentFlag.AlignRight)
+        buttons_block.addWidget(self.back_from_photo_button, alignment=Qt.AlignmentFlag.AlignRight)
+
+        self.photo_button.clicked.connect(self.take_picture)
+        self.retake_button.clicked.connect(self.retake_picture)
+        self.save_photo_button.clicked.connect(self.save_photo)
+        self.back_from_photo_button.clicked.connect(self.back_from_photo)
+
+        self.cam_worker = cam.CamWorker(self.win)
+        self.cam_worker.image_update.connect(self.image_update_slot)
+
+        # add widgets to notes_layout
+        notes_layout.addWidget(self.public_notes)
+        notes_layout.addWidget(self.save_notes_button_public)
+        notes_layout.addWidget(back_to_main_button)
+
+        # Final setup actions
+        self.swiped = False
+        self.set_swipe_button_status()
+        self.remove_unnecessary_buttons()
+
+        self.initial_load()
+
+    def show_photo(self):
+        self.stacked_widget.setCurrentIndex(2)
+        self.cam_worker.start()
+
+    def image_update_slot(self, image):
+        #Update the videofeed with the latest provided frame
+        self.feed_label.setPixmap(QPixmap.fromImage(image))
+
+    def take_picture(self):
+        self.cam_worker.take_picture()
+        #Hides photo button and asks if user wants to retake
+        self.photo_button.hide()
+        self.save_photo_button.show()
+        self.retake_button.show()
+
+    def save_photo(self):
+        self.save_message.setText("Photo saved!")
+        self.cam_worker.save_photo()
+        self.save_photo_button.hide()
+        self.retake_button.hide()
+        self.photo_button.show()
+
+        update_photo_path(self.client, self.win)
+
+        self.save_update.emit()
+
+    def retake_picture(self):
+        self.cam_worker.retake_picture()
+        self.retake_button.hide()
+        self.save_photo_button.hide()
+        self.photo_button.show()
+        self.save_message.setText(" ")
+
+    def back_from_photo(self, event):
+        self.cam_worker.stop()
+        self.stacked_widget.setCurrentIndex(0)
+
+    def back_to_main(self):
+        self.stacked_widget.setCurrentIndex(0)
+
+    def remove_unnecessary_buttons(self):
+        data = get_account_data(self.client, self.win)
+        # should only be able to swipe in and out if active role
+        if data["role"] == "blacklisted" or data["role"] == "archived" or data["role"] == "pending":
+            self.swipe_button.hide()
+        else:
+            self.swipe_button.show()
+
+    def set_swipe_button_status(self):
+        if check_if_swiped_in(self.client, self.win):
+            self.swipe_button.setText("Swipe Out")
+            self.swipe_button.setStyleSheet("QPushButton {background-color: #35B5AC;}")
+            self.swiped = True
+        else:
+            self.swipe_button.setText("Swipe In")
+            self.swipe_button.setStyleSheet("QPushButton {background-color: #89D5D2;}")
+            self.swiped = False
+
+    def swipe_toggle(self):
+        if check_if_swiped_in(self.client, self.win):
+            swipe_out_user(self.client, self.win)
+        else:
+            swipe_in_user(self.client, self.win)
+
+        self.save_update.emit()
+        self.set_swipe_button_status()
+
+    def initial_load(self):
+        acc_data = get_account_data(self.client, self.win)
+
+        self.win_box.setText(str(acc_data['win']))
+        self.display_name.setText(acc_data['display_name'])
+        self.given_name.setText(acc_data['given_name'])
+        self.department.setCurrentText(acc_data['department'])
+        self.surname.setText(acc_data['surname'])
+
+        if acc_data['rso'] is not None:
+            self.rso.setText(acc_data['rso'])
+
+        permissions = get_account_permissions(self.client, self.win)
+        if permissions is not None:
+            for item in self.permissions.findChildren(QCheckBox):
+                item.setEnabled(False)
+                for perm in permissions:
+                    if item.text().replace(" ", "_") == perm:
+                        item.setChecked(True)
+
+        self.role.setText(acc_data['role'].capitalize())
+        self.affiliation.setCurrentText(acc_data['affiliation'].capitalize())
+
+    def save_edit(self):
+
+        data = {}
+        data['win'] = self.win
+        data['edit_attrs'] = {}
+        
+        data['edit_attrs']['display_name'] = self.display_name.text()
+        data['edit_attrs']['given_name'] = self.given_name.text()
+        data['edit_attrs']['surname'] = self.surname.text()
+        data['edit_attrs']['affiliation'] = self.affiliation.currentText().lower()
+        data['edit_attrs']['rso'] = self.rso.text()
+        data['edit_attrs']['department'] = self.department.currentText().lower()
+        data['edit_attrs']['permissions'] = []
+        data['edit_attrs']['no_permissions'] = []
+
+        edit_account(self.client, data)
+
+        self.remove_unnecessary_buttons()
+        self.save_update.emit()
+
+    def save_note_public(self):
+        data = {}
+        data['win'] = self.win
+        data['type'] = "public"
+        data['text'] = self.public_notes.toPlainText()
+        edit_note(self.client, data)
+
+        self.save_update.emit()
+
+    def edit_notes_public(self):
+        self.stacked_widget.setCurrentIndex(1)
+        self.public_notes.show()
+        self.save_notes_button_public.show()
+
+    def update_photo(self):
+        self.photo_update.emit()
+
+    def update_note(self):
+        self.save_update.emit()
+
 class EditAccount(QWidget):
     photo_update = pyqtSignal()
     save_update = pyqtSignal()
@@ -936,6 +1275,7 @@ class MainWindow(QMainWindow):
 
         self.add_button = self.initialize_button("Add Account", "./splums/images/add.jpeg", self.add_account, button_dim, button_icon_dim)
         self.edit_button = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.edit_account, button_dim, button_icon_dim)
+        self.account_edit_button = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.account_edit_account, button_dim, button_icon_dim)
         self.search_button = self.initialize_button("Search", "./splums/images/search.jpeg", self.search, button_dim, button_icon_dim)
         self.signout_button = self.initialize_button("Sign Out", "./splums/images/signout.jpeg", self.sign_out, button_dim, button_icon_dim)
         self.next_page_button = self.initialize_button("Next Page", "./splums/images/forward.jpeg", self.next_page, button_dim, button_icon_dim)
@@ -948,6 +1288,7 @@ class MainWindow(QMainWindow):
         button_bar.setAlignment(Qt.AlignmentFlag.AlignLeft)
         button_bar.addWidget(self.add_button)
         button_bar.addWidget(self.edit_button)
+        button_bar.addWidget(self.account_edit_button)
         button_bar.addWidget(self.search_button)
         layout_topsplit.addLayout(button_bar)
 
@@ -1382,8 +1723,23 @@ class MainWindow(QMainWindow):
         self.accounts.clear()
         self.accounts_load_swiped()
         self.render_accounts_to_screen()
-    # sends the win of the account that you want to edit to the widget as well as the client
-    # connection. from there it grabs and edits the data how it wants.
+
+    def account_edit_account(self):
+        selected_row = self.account_table.currentRow()
+
+        if selected_row == -1:
+            err_msg = QMessageBox(self)
+            err_msg.setText('click to select the account you want to edit')
+            err_msg.exec()
+            return
+
+        self.w = AttendantEditAccount(self.accounts[selected_row].win, self.client_connection)
+        self.w.show()
+
+        # connect signal to pressing the save button 
+        self.w.photo_update.connect(self.update_photos)
+        self.w.save_update.connect(self.update_save)
+
     def edit_account(self):
         selected_row = self.account_table.currentRow()
 
