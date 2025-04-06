@@ -6,7 +6,7 @@ from client import *
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox, QStackedWidget, QSpacerItem
+from PyQt6.QtWidgets import QApplication, QPushButton, QComboBox, QFormLayout, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QLineEdit, QDialog, QGridLayout, QListWidget, QSizePolicy, QInputDialog, QLCDNumber, QPlainTextEdit, QTextEdit, QScrollArea, QCheckBox, QGroupBox, QMessageBox, QStackedWidget, QSpacerItem, QFrame
 from PyQt6.QtCore import Qt, QSize, QLibraryInfo, QCoreApplication, QItemSelection, QItemSelectionModel, QRegularExpression, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QRegularExpressionValidator
 from sqlalchemy.exc import SQLAlchemyError
@@ -52,6 +52,7 @@ class EditAccount(QWidget):
 
         main_widget = QWidget()
         main_form_layout = QFormLayout()
+        main_form_layout_widget = QFrame()
         perm_vert_layout = QVBoxLayout()
         main_widget.setLayout(main_layout)
         
@@ -97,6 +98,7 @@ class EditAccount(QWidget):
         perm_layout = QVBoxLayout()
         perm_label = QLabel()
         perm_label.setText("Permissions")
+        perm_label.setStyleSheet("QLabel { font-size:12pt}")
 
         perm_list = get_permissions_from_db(self.client)
         button_list = []
@@ -113,10 +115,14 @@ class EditAccount(QWidget):
         photo_button = QPushButton("Take Photo")
         save_button = QPushButton("Save")
         exit_button = QPushButton("Exit")
+        exit_button.setStyleSheet("QPushButton {background-color: #888888;}")
 
         # These need to be marked self because other methods hide/show them
         self.delete_button = QPushButton("Delete")
+        self.delete_button.setStyleSheet("QPushButton {background-color: #bc0002; border: 2px solid #220000}")
+        save_button.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
         self.swipe_button = QPushButton("Swipe out")
+        self.swipe_button.setStyleSheet("QPushButton {background-color: #35B5AC;}")
 
         public_notes_button.clicked.connect(self.edit_notes_public)
         private_notes_button.clicked.connect(self.edit_notes_private)
@@ -129,18 +135,25 @@ class EditAccount(QWidget):
 
         main_label = QLabel()
         main_label.setText("Attributes")
-        main_form_layout.addWidget(main_label)
-        main_form_layout.addRow("WIN:", self.win_box)
-        main_form_layout.addRow("Role:", self.role)
-        main_form_layout.addRow("Display Name:", self.display_name)
-        main_form_layout.addRow("Given Name:", self.given_name)
-        main_form_layout.addRow("Surname:", self.surname)
-        main_form_layout.addRow("Affiliation:", self.affiliation)
-        main_form_layout.addRow("Department:", self.department)
-        main_form_layout.addRow("RSO:", self.rso)
+        main_label.setStyleSheet("QLabel {font-size:12pt}")
+        main_form_layout_sub = QFormLayout()
+        main_form_layout_sub.addRow("WIN:", self.win_box)
+        main_form_layout_sub.addRow("Role:", self.role)
+        main_form_layout_sub.addRow("Display Name:", self.display_name)
+        main_form_layout_sub.addRow("Given Name:", self.given_name)
+        main_form_layout_sub.addRow("Surname:", self.surname)
+        main_form_layout_sub.addRow("Affiliation:", self.affiliation)
+        main_form_layout_sub.addRow("Department:", self.department)
+        main_form_layout_sub.addRow("RSO:", self.rso)
+
+        main_form_layout_widget.setLayout(main_form_layout_sub)
+        main_form_layout_widget.setStyleSheet("QFrame {border: 2px solid #434343;} QLabel {border: none}")
+        
 
         spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
+        main_form_layout.addWidget(main_label)
+        main_form_layout.addWidget(main_form_layout_widget)
         main_form_layout.addWidget(photo_button)
         main_form_layout.addWidget(public_notes_button)
         main_form_layout.addWidget(private_notes_button)
@@ -198,15 +211,22 @@ class EditAccount(QWidget):
         delete_warning = QLabel()
         delete_warning.setText("WARNING: THIS ACTION CANNOT BE REVERSED")
 
+        exit_from_delete = QPushButton()
+        exit_from_delete.setText("Back")
+        exit_from_delete.setStyleSheet("QPushButton {background-color: #888888;}")
+
         confirm_delete_button = QPushButton("CONFIRM DELETE")
+        confirm_delete_button.setStyleSheet("QPushButton {background-color: #bc0002; border: 2px solid #220000}")
         confirm_delete_button.clicked.connect(self.confirm_delete)
 
         back_to_main_button = QPushButton("Back")
+        back_to_main_button.setStyleSheet("QPushButton {background-color: #888888;}")
         back_to_main_button.clicked.connect(self.back_to_main)
 
         delete_layout.addWidget(delete_warning)
         delete_layout.addWidget(confirm_delete_button)
-        delete_layout.addWidget(back_to_main_button)
+        delete_layout.addWidget(exit_from_delete)
+        exit_from_delete.clicked.connect(self.back_to_main)
 
         # STUFF FOR Notes LAYOUT
         self.private_notes = QPlainTextEdit()
@@ -214,10 +234,12 @@ class EditAccount(QWidget):
         self.private_notes.setPlainText(get_private_account_note(self.client, self.win))
         self.public_notes.setPlainText(get_public_account_note(self.client, self.win))
 
-        self.save_notes_button_public = QPushButton("Save changes to note")
-        self.save_notes_button_private = QPushButton("Save changes to note")
+        self.save_notes_button_public = QPushButton("Save")
+        self.save_notes_button_private = QPushButton("Save")
         self.save_notes_button_public.clicked.connect(self.save_note_public)
         self.save_notes_button_private.clicked.connect(self.save_note_private)
+        self.save_notes_button_private.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
+        self.save_notes_button_public.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
 
         # Stuff for Picture layout
         bottom_row = QHBoxLayout()
@@ -229,7 +251,8 @@ class EditAccount(QWidget):
         self.save_photo_button = QPushButton("Save Photo")
         self.retake_button = QPushButton("Retake")
         self.back_from_photo_button = QPushButton("Back")
-        
+        self.back_from_photo_button.setStyleSheet("QPushButton {background-color: #888888;}")
+
         self.retake_button.hide()
         self.save_photo_button.hide()
 
@@ -255,9 +278,9 @@ class EditAccount(QWidget):
         # add widgets to notes_layout
         notes_layout.addWidget(self.private_notes)
         notes_layout.addWidget(self.public_notes)
-        notes_layout.addWidget(back_to_main_button)
         notes_layout.addWidget(self.save_notes_button_public)
         notes_layout.addWidget(self.save_notes_button_private)
+        notes_layout.addWidget(back_to_main_button)
 
         # Final setup actions
         self.swiped = False
@@ -331,9 +354,11 @@ class EditAccount(QWidget):
     def set_swipe_button_status(self):
         if check_if_swiped_in(self.client, self.win):
             self.swipe_button.setText("Swipe Out")
+            self.swipe_button.setStyleSheet("QPushButton {background-color: #35B5AC;}")
             self.swiped = True
         else:
             self.swipe_button.setText("Swipe In")
+            self.swipe_button.setStyleSheet("QPushButton {background-color: #89D5D2;}")
             self.swiped = False
 
     def swipe_toggle(self):
@@ -480,8 +505,10 @@ class AddAccount(QWidget):
         self.affiliation = QComboBox()
         self.rso = QLineEdit()
         self.exit_button = QPushButton("Exit")
+        self.exit_button.setStyleSheet("QPushButton {background-color: #888888;}")
 
         create_button = QPushButton("Create Account")
+        create_button.setStyleSheet("QPushButton {background-color: #08C408;border: 2px solid #005500}")
 
         create_button.clicked.connect(self.create_acc)
         self.exit_button.clicked.connect(self.close)
@@ -609,6 +636,7 @@ class QuickView(QWidget):
         self.setLayout(combined_layout)
 
         main_form_layout = QFormLayout()
+        main_form_layout_widget = QFrame()
 
         self.win_box = QLabel()
         self.role = QLabel()
@@ -619,16 +647,21 @@ class QuickView(QWidget):
         self.affiliation = QLabel()
         self.rso = QLabel()
 
-        main_form_layout.addRow("WIN:", self.win_box)
-        main_form_layout.addRow("Role:", self.role)
-        main_form_layout.addRow("Display Name:", self.display_name)
-        main_form_layout.addRow("Given Name:", self.given_name)
-        main_form_layout.addRow("Surname:", self.surname)
-        main_form_layout.addRow("Affiliation:", self.affiliation)
-        main_form_layout.addRow("Department:", self.department)
-        main_form_layout.addRow("RSO:", self.rso)
+        main_form_layout_sub = QFormLayout()
+        main_form_layout_sub.addRow("WIN:", self.win_box)
+        main_form_layout_sub.addRow("Role:", self.role)
+        main_form_layout_sub.addRow("Display Name:", self.display_name)
+        main_form_layout_sub.addRow("Given Name:", self.given_name)
+        main_form_layout_sub.addRow("Surname:", self.surname)
+        main_form_layout_sub.addRow("Affiliation:", self.affiliation)
+        main_form_layout_sub.addRow("Department:", self.department)
+        main_form_layout_sub.addRow("RSO:", self.rso)
+
+        main_form_layout_widget.setLayout(main_form_layout_sub)
+        main_form_layout_widget.setStyleSheet("QFrame {border: 2px solid #434343;} QLabel {border: none}")
 
         exit_button = QPushButton("Exit")
+        exit_button.setStyleSheet("QPushButton {background-color: #888888;}")
         self.swipe_toggle_button = QPushButton("Swipe in")
 
         exit_button.clicked.connect(self.close)
@@ -636,10 +669,12 @@ class QuickView(QWidget):
 
         main_label = QLabel()
         main_label.setText("Attributes")
+        main_label.setStyleSheet("QLabel {font-size:12pt}")
 
         # Permissions stuff
         perm_label = QLabel()
         perm_label.setText("Permissions")
+        perm_label.setStyleSheet("QLabel {font-size:12pt}")
 
         perm_vert_layout = QVBoxLayout()
         self.permissions = QGroupBox()
@@ -665,20 +700,22 @@ class QuickView(QWidget):
         self.notes.setPlainText(get_public_account_note(self.client, self.win))
 
         self.unlock_button = QPushButton("Unlock Notes")
+        self.unlock_button.setStyleSheet("QPushButton {background-color: #89D5D2;}")
         self.unlock_button.clicked.connect(self.toggle_note_lock)
 
         self.save_public_notes_button = QPushButton("Save notes")
+        self.save_public_notes_button.setStyleSheet("QPushButton {background-color: #08C408; border: 2px solid #005500}")
         self.save_public_notes_button.clicked.connect(self.save_public_note)
 
         notes_layout = QVBoxLayout()
         notes_layout.addWidget(self.notes)
-        notes_layout.addWidget(self.unlock_button)
         notes_layout.addWidget(self.save_public_notes_button)
+        notes_layout.addWidget(self.unlock_button)
 
         # Gluing it all together
         main_vert_layout = QVBoxLayout()
         main_vert_layout.addWidget(main_label)
-        main_vert_layout.addLayout(main_form_layout)
+        main_vert_layout.addWidget(main_form_layout_widget)
         main_vert_layout.addLayout(notes_layout)
         main_vert_layout.addWidget(self.swipe_toggle_button)
         main_vert_layout.addWidget(exit_button)
@@ -704,8 +741,10 @@ class QuickView(QWidget):
     def set_swipe_button_status(self):
         if check_if_swiped_in(self.client, self.win):
             self.swipe_toggle_button.setText("Swipe Out")
+            self.swipe_toggle_button.setStyleSheet("QPushButton {background-color: #35B5AC;}")
         else:
             self.swipe_toggle_button.setText("Swipe In")
+            self.swipe_toggle_button.setStyleSheet("QPushButton {background-color: #89D5D2;}")
 
     def swipe_toggle(self):
         if check_if_swiped_in(self.client, self.win):
@@ -721,10 +760,12 @@ class QuickView(QWidget):
             self.notes_locked_status = False
             self.notes.setReadOnly(False)
             self.unlock_button.setText("Lock Notes")
+            self.unlock_button.setStyleSheet("QPushButton {background-color: #35B5AC;}")
         else:
             self.notes_locked_status = True
             self.notes.setReadOnly(True)
             self.unlock_button.setText("Unlock Notes")
+            self.unlock_button.setStyleSheet("QPushButton {background-color: #89D5D2;}")
 
     def initial_load(self):
         acc_data = get_account_data(self.client, self.win)
@@ -932,6 +973,9 @@ class MainWindow(QMainWindow):
         search_name_layout.addRow("Names/RSO:", self.search_name)
         search_name_layout.addRow("Public notes:", self.search_text)
         search_name_layout.addRow("Private notes:", self.search_text_private)
+        search_name_container = QFrame()
+        search_name_container.setStyleSheet("QFrame { border: 2px solid #434343; } QLabel{ border: none;}")
+        search_name_container.setMaximumWidth(250)
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-za-z0-9_]+"))
 
         self.search_name.setPlaceholderText("...")
@@ -951,6 +995,8 @@ class MainWindow(QMainWindow):
         
         reset_button = QPushButton("Reset")
         reset_button.clicked.connect(self.reset_filters)
+        reset_button.setStyleSheet("QPushButton {background-color: #FF4500;border: 2px solid #550000}")
+
         vert_reset_and_filter = QVBoxLayout()
         vert_reset_and_filter.addWidget(reset_button)
         vert_reset_and_filter.addWidget(self.status_search)
@@ -968,6 +1014,7 @@ class MainWindow(QMainWindow):
             self.privilege_layout.addWidget(item)
 
         self.privilege_group.setLayout(self.privilege_layout)
+        self.privilege_group.setStyleSheet("QGroupBox { border: 2px solid #434343; }")
 
         self.affiliation_group = QGroupBox()
         self.affiliation_group.setMaximumWidth(200)
@@ -996,9 +1043,11 @@ class MainWindow(QMainWindow):
         self.combined_affiliation_layout.addLayout(self.affiliation_layout_2)
 
         self.affiliation_group.setLayout(self.combined_affiliation_layout)
+        self.affiliation_group.setStyleSheet("QGroupBox { border: 2px solid #434343; }")
 
-        self.topright_bar_search.addLayout(search_name_layout)
+        search_name_container.setLayout(search_name_layout)
         self.topright_bar_search.addLayout(vert_reset_and_filter)
+        self.topright_bar_search.addWidget(search_name_container)
         self.topright_bar_search.addWidget(self.affiliation_group)
         self.topright_bar_search.addWidget(self.privilege_group)
 
@@ -1052,14 +1101,12 @@ class MainWindow(QMainWindow):
         gray_outs = ["Pending", "Archived", "Blacklisted"]
 
         if current_text in gray_outs:
-            self.privilege_group.setStyleSheet("QGroupBox { background-color: #333333; }")
             for box in self.privilege_group.findChildren(QCheckBox):
                 box.setText("N/A")
                 box.setChecked(False)
                 box.setEnabled(False)
         else:
             i = 0
-            self.privilege_group.setStyleSheet("QGroupBox { background-color: darkgray; }")
             for box in self.privilege_group.findChildren(QCheckBox):
                 box.setText(self.privilege_types[i])
                 box.setChecked(True)
