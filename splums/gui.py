@@ -502,6 +502,8 @@ class AddAccount(QWidget):
         self.surname = QLineEdit()
         self.affiliation = QComboBox()
         self.rso = QLineEdit()
+        self.pin = QLineEdit()
+        self.pin_confirm = QLineEdit()
         self.exit_button = QPushButton("Exit")
         self.exit_button.setStyleSheet("QPushButton {background-color: #888888;}")
 
@@ -518,6 +520,8 @@ class AddAccount(QWidget):
         layout.addRow("Affiliation:", self.affiliation)
         layout.addRow("Department", self.department)
         layout.addRow("RSO:", self.rso)
+        layout.addRow("Pin:", self.pin)
+        layout.addRow("Confirm Pin:", self.pin_confirm)
 
         layout.addWidget(create_button)
         layout.addWidget(self.exit_button)
@@ -526,10 +530,16 @@ class AddAccount(QWidget):
         self.setLayout(layout)
 
         win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
+        pin_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{4}"))
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
 
         self.win_box.setPlaceholderText("WIN...")
         self.win_box.setValidator(win_validator)
+
+        self.pin.setValidator(pin_validator)
+        self.pin_confirm.setValidator(pin_validator)
+        self.pin.setEchoMode(QLineEdit.EchoMode.Password)
+        self.pin_confirm.setEchoMode(QLineEdit.EchoMode.Password)
             
         self.department.addItem("cs")
         self.department.addItem("edmms")
@@ -563,7 +573,7 @@ class AddAccount(QWidget):
     # TODO add proper error handling
     # TODO ADD CHECK FOR IF WIN IS ALREADY TAKEN
     def create_acc(self):
-        if self.win_box.text() == "":
+        if len(self.win_box.text()) != 9:
             err_msg = QMessageBox(self)
             err_msg.setText('enter a valid win')
             err_msg.exec()
@@ -590,6 +600,19 @@ class AddAccount(QWidget):
             err_msg.setText('a surname is required')
             err_msg.exec()
             return
+
+        if len(self.pin.text()) != 4:
+            err_msg = QMessageBox(self)
+            err_msg.setText('pin must be 4 digits')
+            err_msg.exec()
+            return 
+
+        if self.pin.text() != self.pin_confirm.text():
+            err_msg = QMessageBox(self)
+            err_msg.setText('pins do not match!')
+            err_msg.exec()
+            return 
+
         data = {}
         data['win'] = self.win_box.text()
         data['edit_attrs'] = {}
@@ -602,6 +625,7 @@ class AddAccount(QWidget):
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = "pending"
         data['edit_attrs']['department'] = self.department.currentText().lower()
+        data['edit_attrs']['pin'] = self.pin.text()
         data['edit_attrs']['permissions'] = []
 
         new_account(self.client, data)
@@ -1127,7 +1151,7 @@ class MainWindow(QMainWindow):
         self.main_widget.addWidget(login_widget)
         # will be set on successful login
         self.attendant_win = 0000
-        self.attendant_display_name = "temp_name"
+        self.attendant_display_name = ""
         self.attendant_admin_bool = False
 
 
@@ -1170,8 +1194,9 @@ class MainWindow(QMainWindow):
         res = attempt_attendant_logout(self.client_connection, event_data)
 
         self.attendant_win = 0000
+        self.attendant_display_name = ""
+        self.attendant_admin_bool = False
         self.main_widget.setCurrentIndex(2)
-
 
     def make_icon(self, path):
         new_label = QLabel()

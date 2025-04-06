@@ -42,6 +42,7 @@ def create(event, session):
                           department = account_department,
                           public_note = '',
                           private_note = '',
+                          pin = event.data['edit_attrs']['pin'],
                           rso = event.data["edit_attrs"]["rso"],
                           photo_url = event.data.get("photo_url", "./images/" + "default_pic" + ".jpg"))
 
