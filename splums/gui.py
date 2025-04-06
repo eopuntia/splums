@@ -919,7 +919,6 @@ class MainWindow(QMainWindow):
         ### SECOND SEARCH LAYOUT
         self.add_button_search = self.initialize_button("Add Account", "./splums/images/add.jpeg", self.   add_account, button_dim, button_icon_dim)
         self.edit_button_search = self.initialize_button("Edit Account", "./splums/images/modify.jpeg", self.edit_account_search, button_dim, button_icon_dim)
-        self.signout_button_search = self.initialize_button("Sign Out", "./splums/images/signout.jpeg",    self.sign_out, button_dim, button_icon_dim)
 
 
         self.back_button = self.initialize_button("Back", "./splums/images/back.jpeg", self.back_to_main, button_dim, button_icon_dim)
@@ -1061,7 +1060,6 @@ class MainWindow(QMainWindow):
         button_bar_search.setAlignment(Qt.AlignmentFlag.AlignLeft)
         button_bar_search.addWidget(self.add_button_search)
         button_bar_search.addWidget(self.edit_button_search)
-        button_bar_search.addWidget(self.signout_button_search)
         button_bar_search.addWidget(self.back_button)
         layout_topsplit_search.addLayout(button_bar_search)
         layout_topsplit_search.addLayout(self.topright_bar_search)
@@ -1488,8 +1486,9 @@ class MainWindow(QMainWindow):
 
             icon_widget = QWidget()
             icon_list = QVBoxLayout()
-            icon_list.addWidget(self.make_icon('./splums/images/icons/graduate.jpg'))
-            icon_list.addWidget(self.make_icon('./splums/images/icons/user.jpg'))
+            icon_list.addWidget(self.make_icon('./splums/images/icons/' + acc.affiliation + '.jpg'))
+
+            icon_list.addWidget(self.make_icon('./splums/images/icons/' + acc.role + '.jpg'))
             if acc.swiped_in:
                 icon_list.addWidget(self.make_icon('./splums/images/icons/swiped_in.jpg'))
             else:
