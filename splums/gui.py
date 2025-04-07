@@ -899,9 +899,10 @@ class EditAccount(QWidget):
 
 class AddAccount(QWidget):
     save_update = pyqtSignal()
-    def __init__(self, client):
+    def __init__(self, client, admin):
         super().__init__()
         self.client = client
+        self.admin = admin
 
         self.setWindowTitle("New Account")
 
@@ -1048,7 +1049,10 @@ class AddAccount(QWidget):
         self.save_update.emit()
 
     def second_creation_screen(self):
-        self.w = EditAccount(self.win_box.text(), self.client)
+        if self.admin:
+            self.w = EditAccount(self.win_box.text(), self.client)
+        else:
+            self.w = AttendantEditAccount(self.win_box.text(), self.client)
         self.w.show()
         self.w.save_update.connect(self.update)
         self.close()
@@ -1885,7 +1889,7 @@ class MainWindow(QMainWindow):
     def add_account(self):
         if self.check_if_still_swiped() == False:
             return
-        self.w = AddAccount(self.client_connection)
+        self.w = AddAccount(self.client_connection, self.attendant_admin_bool)
         self.w.show()
 
         self.w.save_update.connect(self.update_save)
@@ -2273,7 +2277,13 @@ def check_if_active_attendant(client, account_win):
 def check_if_swiped_in(client, account_win):
     event = Event(event_type=EventTypes.CHECK_IF_SWIPED_IN, data = {'win': account_win})
     res = client.call_server(event)
-    if res["swiped_in"] == 'true':
+    print("CHECKING IF SWIPED IN")
+    print("CHECKING IF SWIPED IN")
+    print("CHECKING IF SWIPED IN")
+    print("CHECKING IF SWIPED IN")
+    print("CHECKING IF SWIPED IN")
+    print(res)
+    if res["swiped_in"] == True:
         return True
     else:
         return False
