@@ -236,7 +236,7 @@ def set_user_pin(event: Event, session):
             requested_user = s.scalars(select(Account).where(Account.win == win)).first()
 
             print("Setting pin...")
-            requested_user.pin_hash = generate_password_hash(str(pin))
+            requested_user.pin_hash = generate_password_hash(str(pin)) # Generates a hash for the given pin
 
             s.commit()
             return 1
@@ -259,7 +259,7 @@ def check_user_pin(event: Event, session):
 
             requested_user = s.scalars(select(Account).where(Account.win == win)).first()
 
-            return check_password_hash(requested_user.pin_hash, pin)
+            return check_password_hash(requested_user.pin_hash, pin) # Compares stored and given pin. Returns true if matching
     except Exception as e:
         print(f"Error setting user's pin: {e}")
         return -1

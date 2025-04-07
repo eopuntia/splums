@@ -64,7 +64,10 @@ class Account(Base):
     active_attendant: Mapped[bool] = mapped_column(default=False)
     swiped_in: Mapped[bool] = mapped_column(default=False)
 
-    pin_hash: Mapped[Optional[str]] = mapped_column(String(255))  # Secure pin storage, default to NULL on user creation
+    # Secure pin storage, default to NULL on user creation
+    # Intend to check if NULL when a user logs in for the first time, and prompts them to set a new pin.
+    # Pin can be either numbers, letters, or a combo, and will convert to string later when creating the pin in the db.
+    pin_hash: Mapped[Optional[str]] = mapped_column(String(255))  
 
     rso: Mapped[Optional[str]] = mapped_column(String(255))
 
