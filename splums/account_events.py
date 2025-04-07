@@ -5,6 +5,7 @@ from sqlalchemy import select,  or_
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
+from werkzeug.security import generate_password_hash, check_password_hash
 
 DELETE_USERS_AFTER_YEARS = 10
 ARCHIVE_USERS_AFTER_MONTHS = 10
@@ -195,7 +196,6 @@ def auto_archive_user(session):
 #*******************************************************************************************
 # Takes win and role.name
 def change_user_role(event: Event, session): # Promote or demote a user as an administrator
-
     try:
         with session() as s:
             win = event.data.get('win', None)
@@ -220,6 +220,58 @@ def change_user_role(event: Event, session): # Promote or demote a user as an ad
     except Exception as e:
         print(f"\033[91mUnexpected error:\033[0m {e}")
 
+#*******************************************************************************************
+# SET A USER'S PIN
+#*******************************************************************************************
+# Takes win and pin
+def set_user_pin(event: Event, session):
+    try:
+        with session() as s:
+            win = event.data.get('win', None)
+            pin = event.data.get('pin', None)
+
+            if not win or not pin:
+                raise ValueError("\033[91mMissing data!\033[0m")
+
+            requested_user = s.scalars(select(Account).where(Account.win == win)).first()
+
+            print("Setting pin...")
+            requested_user.pin_hash = generate_password_hash(str(pin))
+
+            s.commit()
+            return 1
+    except Exception as e:
+        print(f"Error setting user's pin: {e}")
+        return -1
+
+#*******************************************************************************************
+# CHECK A USER'S PIN
+#*******************************************************************************************
+# Takes win and pin
+def check_user_pin(event: Event, session):
+    try:
+        with session() as s:
+            win = event.data.get('win', None)
+            pin = event.data.get('pin', None)
+
+            if not win or not pin:
+                raise ValueError("\033[91mMissing data!\033[0m")
+
+            requested_user = s.scalars(select(Account).where(Account.win == win)).first()
+
+            return check_password_hash(requested_user.pin_hash, pin)
+    except Exception as e:
+        print(f"Error setting user's pin: {e}")
+        return -1
+
+"""
+EVENT BROKER USER DATABASE QUERIES
+"""
+
+#*******************************************************************************************
+# FORMAT REQUESTED USER TO SEND TO SERVER
+#*******************************************************************************************
+# Takes queried users
 def format_users(unformatted_user):
     print("Formatting users...")
     user_dicts = []
