@@ -68,8 +68,9 @@ class EventBroker:
 
             case EventTypes.CREATE_ACCOUNT: 
                 print(f"Create New Account")
+                result = account_events.create(event, self.session)
                 event_log.log(event, self.session)
-                return account_events.create(event, self.session)
+                return result
 
             case EventTypes.DELETE_ACCOUNT:
                 print(f"Delete Account")
