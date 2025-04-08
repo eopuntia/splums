@@ -1,5 +1,6 @@
 from events import Event, EventTypes
 from sqlalchemy import select
+from datetime import datetime
 from models.models import Account
 
 def check_if_swiped_in(event, session, event_broker):

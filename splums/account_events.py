@@ -1,8 +1,6 @@
-from events import Event
-from sqlalchemy import select, or_
-from models.models import Account, Role, Account_Equipment, Equipment, Affiliation
-
+from models.models import Account, Role, Account_Equipment, Equipment, Affiliation, Department
 from events import Event, EventTypes
+from sqlalchemy import select,  or_
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -29,6 +27,11 @@ def create(event, session):
         if account_affiliation is None:
             raise KeyError(f"Invalid affiliation: {event.data['affiliation']}")
 
+        account_department = s.scalar(select(Department).where(Department.name == event.data["edit_attrs"]["department"]))
+        
+        if account_department is None:
+            raise KeyError(f"Invalid department: {event.data['department']}")
+
 
         account = Account(win = event.data["win"], 
                           role=account_role, 
@@ -36,8 +39,12 @@ def create(event, session):
                           surname = event.data["edit_attrs"]["surname"], 
                           display_name = event.data["edit_attrs"]["display_name"], 
                           affiliation = account_affiliation,
+                          department = account_department,
+                          public_note = '',
+                          private_note = '',
+                          pin = event.data['edit_attrs']['pin'],
                           rso = event.data["edit_attrs"]["rso"],
-                          photo_url = event.data.get("photo_url", "./images/" + event.data["win"] + ".jpg"))
+                          photo_url = event.data.get("photo_url", "./images/" + "default_pic" + ".jpg"))
 
         s.add(account)
         s.commit()
@@ -50,7 +57,7 @@ def create(event, session):
             if update == "permissions":
                 for equip in event.data["edit_attrs"]["permissions"]:
                     add_e = s.scalar(select(Equipment).where(Equipment.name == equip))
-                    acc_equip = Account_Equipment(account=account, equipment=add_e, completed_training=True)
+                    acc_equip = Account_Equipment(account=account, equipment=add_e)
                     account.equipments.append(acc_equip)
 
         s.commit()
@@ -75,12 +82,22 @@ def edit(event, session):
                 if new_role is None:
                     raise KeyError(f"Invalid role: {event.data['edit_attrs'][update]}")
                 account.role = new_role
+            if update == "department":
+                new_department = s.scalar(select(Department).where(Department.name == event.data["edit_attrs"][update]))
+                if new_department is None:
+                    raise KeyError(f"Invalid department: {event.data['edit_attrs'][update]}")
+
+                account.department = new_department
+
             if update == "affiliation":
                 new_affiliation = s.scalar(select(Affiliation).where(Affiliation.name == event.data["edit_attrs"][update]))
                 if new_affiliation is None:
                     raise KeyError(f"Invalid affiliation: {event.data['edit_attrs'][update]}")
 
                 account.affiliation = new_affiliation
+            if update == "photo_path":
+                account.photo_url = event.data['edit_attrs'][update]
+
 
             if update == "no_permissions":
                 for equip in event.data["edit_attrs"]["no_permissions"]:
@@ -103,7 +120,7 @@ def edit(event, session):
                         Account_Equipment.equipment == add_e
                     ))
                     if not existing_rel:
-                        acc_equip = Account_Equipment(account=account, equipment=add_e, completed_training=True)
+                        acc_equip = Account_Equipment(account=account, equipment=add_e)
                         account.equipments.append(acc_equip)
 
             if update == "surname":
@@ -116,6 +133,8 @@ def edit(event, session):
                 account.photo_url = event.data["edit_attrs"][update]
             if update == "rso":
                 account.rso = event.data["edit_attrs"][update]
+            if update == 'pin':
+                account.pin = event.data['edit_attrs'][update]
 
         s.commit()
         return 1
@@ -171,7 +190,12 @@ def auto_archive_user(session):
         for user in users_to_archive:
             archive_user(Event(event_type=EventTypes.ARCHIVE_USER, data={'win': user.win}))
 
-def change_user_type(event: Event, session): # Promote or demote a user as an administrator
+#*******************************************************************************************
+# PROMOTE/DEMOTE A USER
+#*******************************************************************************************
+# Takes win and role.name
+def change_user_role(event: Event, session): # Promote or demote a user as an administrator
+
     try:
         with session() as s:
             win = event.data.get('win', None)
@@ -197,6 +221,7 @@ def change_user_type(event: Event, session): # Promote or demote a user as an ad
         print(f"\033[91mUnexpected error:\033[0m {e}")
 
 def format_users(unformatted_user):
+    print("Formatting users...")
     user_dicts = []
     for user in unformatted_user:
         user_dict = {
@@ -205,17 +230,23 @@ def format_users(unformatted_user):
             'given_name': user.given_name,
             'surname': user.surname,
             'photo_url': user.photo_url,
-            'role': user.role_id,
-            'affiliation': user.affiliation_id,
-            'rso': user.rso,
+            'role': user.role.name,
+            'affiliation':user.affiliation.name,
+            'department': user.department.name,
             'created_at': user.created_at,
             'last_updated_at': user.last_updated_at,
             'swiped_in': user.swiped_in,
+            'rso': user.rso,
             'last_access': user.last_access
         }
         user_dicts.append(user_dict)
+        print(user_dict)
     return user_dicts
 
+#*******************************************************************************************
+# GET SWIPED IN USERS
+#*******************************************************************************************
+# Called by GET_SWIPED_IN_USERS event
 def get_users_by_role(event: Event, session):
     try:
         with session() as s:
@@ -236,16 +267,63 @@ def get_users_by_role(event: Event, session):
     except Exception as e:
         print(f"Error getting users by role: {e}")
         return -1
+
 def get_swiped_in_users(session):
     try:
         with session() as s:
 
-            requested_users = s.scalars(select(Account).where(Account.swiped_in == True))
+            requested_users = s.scalars(select(Account) .where(Account.swiped_in == True)).order_by(Account.last_access)
 
             return format_users(requested_users)
     except Exception as e:
         print(f"Error getting signed-in users: {e}")
         return -1
+
+    
+#*******************************************************************************************
+# GET USERS BY SEARCH FIELDS
+#*******************************************************************************************
+# Called by GET_USERS_BY_SEARCH event
+def search_users(event, session):
+    with session() as s:
+        query = select(Account).join(Affiliation).join(Role).join(Department)
+
+        filters = []
+        name = event.data.get("name")
+        affiliation = event.data.get("affiliation")
+        role = event.data.get("role")
+        department = event.data.get("department")
+        rso = event.data.get("rso")
+
+        if name:
+            print("Adding name query...")
+            filters.append(or_(
+                Account.display_name.ilike(f"%{name}%"),
+                Account.given_name.ilike(f"%{name}%"),
+                Account.surname.ilike(f"%{name}%")
+            ))
+
+        if affiliation:
+            print("Adding affiliation query...")
+            filters.append(Affiliation.name.ilike(f"%{affiliation}%"))
+
+        if role:
+            print("Adding role query...")
+            filters.append(Role.name.ilike(f"%{role}%"))
+
+        if department:
+            print("Adding department query...")
+            filters.append(Department.name.ilike(f"%{department}%"))
+        if rso:
+            print("Adding rso query...")
+            filters.append(Account.rso.ilike(f"%{rso}%"))
+
+        if filters:
+            query = query.where(*filters)
+
+        results = s.scalars(query).all()
+        return format_users(results)
+
 
 def get_users_paginated_filtered(event, session):
     with session.begin() as s:
@@ -257,7 +335,21 @@ def get_users_paginated_filtered(event, session):
                         or_(
                 Account.display_name.ilike(f"%{event.data['name']}%"),
                 Account.surname.ilike(f"%{event.data['name']}%"),
-                Account.given_name.ilike(f"%{event.data['name']}%")
+                Account.given_name.ilike(f"%{event.data['name']}%"),
+                Account.rso.ilike(f"%{event.data['name']}%"),
+                )
+            )
+
+        if event.data["text"] != "ignore":
+            query = query.filter(
+                or_(
+                    Account.public_note.ilike(f"%{event.data['text']}%"),
+                )
+            )
+        if event.data["text_private"] != "ignore":
+            query = query.filter(
+                or_(
+                    Account.private_note.ilike(f"%{event.data['text_private']}%"),
                 )
             )
 
@@ -283,6 +375,12 @@ def get_users_paginated_filtered(event, session):
                 print(f"IN FILTERED affiliation {filtered_affiliation.name}")
 
         if event.data["status"] != "ignore":
+            if event.data["status"] == "active_accounts":
+                pending = s.scalar(select(Role).where(Role.name == "pending"))
+                query = query.filter(Account.role != pending)
+            if event.data["status"] == "pending":
+                pending = s.scalar(select(Role).where(Role.name == "pending"))
+                query = query.filter(Account.role == pending)
             if event.data["status"] == "swiped_in":
                 query = query.filter(Account.swiped_in == True)
             if event.data["status"] == "blacklisted":
@@ -295,7 +393,7 @@ def get_users_paginated_filtered(event, session):
         account_all = query.all()
 
         print(f'offset calculation at page: {event.data["page_number"]}, and items {event.data["items_per_page"]}')
-        accounts = query.order_by(Account.win).offset(
+        accounts = query.order_by(Account.last_access).offset(
                    (event.data["page_number"] -1) * event.data["items_per_page"]
                 ).limit(event.data["items_per_page"]).all()
         for acc in accounts:
@@ -329,7 +427,73 @@ def get_perms_for_user(event, session):
         return perm_data.copy()
 
 # TODO add proper error handling
-def check_if_win_exists(event, session):
+def attempt_attendant_signin(event, session):
+    with session.begin() as s:
+        required_keys = ["win", "pin"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+
+        account = s.scalar(
+            select(Account).where(
+                (Account.win == event.data["win"]) & 
+                (Account.pin == event.data["pin"])
+            )
+        )
+        if account.role.name == 'attendant':
+            query = s.query(Account)
+            # first sign out all attendants that are active rn
+            query = query.filter(Account.active_attendant == 1)
+            admin = s.scalar(select(Role).where(Role.name == "administrator"))
+            # ignore admins
+            query = query.filter(Account.role != admin)
+
+            # sign all of these people out
+            active_accounts = query.all()
+
+            for acc in active_accounts:
+                acc.active_attendant = 0
+
+
+        # then attempt to sign in new person
+        if account is None:
+            s.rollback()
+            return { "status" : "fail" }
+        if account.role.name != "administrator" and account.role.name != "attendant":
+            print(account.role.name + 'invalid perms')
+            s.rollback()
+            return { "status": "fail" }
+
+        account.active_attendant = 1
+        print(account.role.name)
+        ret_data = { "status": "success", "display_name": account.display_name, 'admin': 'false' }
+        if account.role.name == "administrator":
+            ret_data['admin'] = 'true'
+
+        s.commit()
+
+        return ret_data
+
+# TODO add proper error handling
+def attempt_attendant_signout(event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+
+
+        account = s.scalar(
+            select(Account).where(
+                (Account.win == event.data["win"]) 
+            )
+        )
+        account.active_attendant = 0
+
+        s.commit()
+
+# TODO add proper error handling
+def check_if_active_attendant(event, session):
     with session.begin() as s:
         required_keys = ["win"]
         for key in required_keys:
@@ -338,8 +502,27 @@ def check_if_win_exists(event, session):
                 
         account = s.scalar(select(Account).where(Account.win == event.data["win"]))
         if account is None:
-            return { "win" : False }
-        else: return { "win" : True } 
+            return { 'win': False }
+
+        if account.active_attendant == 1:
+            return { 'win': True } 
+        else: return { 'win': False }
+
+# TODO add proper error handling
+def check_if_win_exists(event, session):
+    with session.begin() as s:
+        required_keys = ["win"]
+        for key in required_keys:
+            if key not in event.data:
+                raise KeyError(f"Missing required key: {key}")
+                
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+
+        if account is None:
+            return {'win' : False}
+        else:
+            return {'win' :True }
+        
 
 # TODO add proper error handling
 def get_data_for_user(event, session):
@@ -356,17 +539,19 @@ def get_data_for_user(event, session):
         # since this is matched on key we need to keep track of it
         role = account.role.name
         affiliation = account.affiliation.name
+        department = account.department.name
 
         acc_data = account.__dict__
         acc_data.pop('_sa_instance_state')
         # remove the id
         acc_data.pop('role_id')
         acc_data.pop('affiliation_id')
+        acc_data.pop('department_id')
         # add the actual role
         acc_data['role'] = role
         acc_data['affiliation'] = affiliation
+        acc_data['department'] = department
 
         print(f"in get_data_for_user {acc_data}")
 
         return acc_data.copy()
-

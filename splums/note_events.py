@@ -1,6 +1,6 @@
 from events import Event
 from sqlalchemy import select 
-from models.models import Account, Note
+from models.models import Account
 
 # TODO add proper error handling
 def create(event, session):
@@ -87,6 +87,17 @@ def format_notes(unformatted_note):
         }
         note_dicts.append(note_dict)
     return note_dicts
+def get_notes_for_user_admin(event: Event, session):
+    try:
+        with session() as s:
+            win = event.data.get('win', None)
+
+            requested_notes = s.scalars(select(Note).where(Note.subject_win == win))
+
+            return format_notes(requested_notes)
+    except Exception as e:
+        print(f"Error getting notes for user: {e}")
+        return -1
 
 def edit_note_for_user(event: Event, session):
     with session.begin() as s:
@@ -95,20 +106,12 @@ def edit_note_for_user(event: Event, session):
             if key not in event.data:
                 raise KeyError(f"Missing required key: {key}")
 
-        note = s.scalar(select(Note).where(Note.subject_win == event.data['win']))
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
 
-        for update in event.data["edit_attrs"]:
-            if update == "text":
-                if note is None:
-                    # TODO ADD ADMINISTRATORS NAME
-                    note = Note(subject_win=event.data['win'], creator_win=event.data['win'], text = event.data["edit_attrs"][update])
-                    s.add(note)
-                else:
-                    note.text = event.data["edit_attrs"][update]
-            if update == "attendent_view_perms":
-                note.attendant_view_perms = event.data["edit_attrs"][update]
-            if update == "attendent_edit_perms":
-                note.attendant_edit_perms = event.data["edit_attrs"][update]
+        if event.data['type'] == "public":
+            account.public_note = event.data['text']
+        if event.data['type'] == "private":
+            account.private_note = event.data['text']
 
         s.commit()
     
@@ -120,11 +123,27 @@ def get_note_for_user(event: Event, session):
             if key not in event.data:
                 raise KeyError(f"Missing required key: {key}")
 
-        notes = s.scalars(select(Note).where(Note.subject_win == event.data['win'])).all()
-        note = ""
+        account = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        if account is None:
+           return "Invalid win"
+        if event.data["type"] == "public":
+            return account.public_note
+        if event.data["type"] == "private":
+            return account.private_note
 
-        for n in notes:
-            note += n.text
 
-        return note
+#*******************************************************************************************
+# GET NOTES FOR USER FOR ATTENDANTS
+#*******************************************************************************************
+# Takes GET_NOTES_FOR_USER event
+def get_notes_for_user_attendant(event: Event, session):
+    try:
+        with session() as s:
+            win = event.data.get('win', None)
 
+            requested_notes = s.scalars(select(Note).where(Note.subject_win == win and Note.attendant_view_perms == True))
+
+            return format_notes(requested_notes)
+    except Exception as e:
+        print(f"Error getting notes for user: {e}")
+        return -1

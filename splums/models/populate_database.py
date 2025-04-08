@@ -1,6 +1,7 @@
 from sqlalchemy import Engine, create_engine, insert, select
 from sqlalchemy.orm import sessionmaker
-from models import Account, Role, Note, Account_Equipment, Equipment, Event, Event_Type, Base, Affiliation
+from models import Account, Role, Account_Equipment, Equipment, Event, Event_Type, Base, Affiliation, Department
+
 
 # connect to the engine.
 engine = create_engine("mariadb+mariadbconnector://splums:example@127.0.0.1:3307/splums")
@@ -17,32 +18,54 @@ with Session() as session:
     administrator = Role(name="administrator")
     attendant = Role(name="attendant")
     user = Role(name="user")
+    pending = Role(name="pending")
+
+    undergrad = Affiliation(name="Undergrad", icon_url="./images/undergrad.png")
+    graduate = Affiliation(name="Graduate", icon_url="./images/graduate.png")
+    faculty = Affiliation(name="Faculty", icon_url="./images/faculty.png")
+    researcher = Affiliation(name="Researcher", icon_url="./images/researcher.png")
+    staff = Affiliation(name="Staff", icon_url="./images/staff.png")
+    other = Affiliation(name="Other", icon_url="./images/other.png")
+
+    computer_science = Department(name="cs")
+    eng_design_manufacturing_mgmt_syst = Department(name="edmms")
+    electrical_computer = Department(name="ece")
+    chemical_paper = Department(name="cpe")
+    civil_construction = Department(name="cce")
+    indust_entreprenural_mgmt = Department(name="ieeem")
+    mechanical_aero = Department(name="mae")
+    ceas = Department(name="ceas")
+    pilot = Department(name="pcpp")
+    other_dep = Department(name="other")
 
     undergrad = Affiliation(name="undergrad", icon_url="./images/undergrad.png")
     graduate = Affiliation(name="graduate", icon_url="./images/graduate.png")
     faculty = Affiliation(name="faculty", icon_url="./images/faculty.png")
     researcher = Affiliation(name="researcher", icon_url="./images/researcher.png")
     staff = Affiliation(name="staff", icon_url="./images/staff.png")
-    other = Affiliation(name="other", icon_url="./images/other.png")
-    
+    other = Affiliation(name="other", icon_url="./images/affiliation_other.png")
 
     # the datetime fields get populated automatically. You can see specifying the role and status relations in account.
     # what this does behind the scenes is it will populate the ID's for you. Makes it very easy. 
-    renee = Account(win=212222, role=user, affiliation=graduate, display_name="rez", 
-                     given_name="Renee", surname="Rickert", photo_url="./images/212222.jpg",
-                     rso="Computer Club")
+    renee = Account(win=212222222, role=user, affiliation=graduate, department=computer_science, display_name="rez", 
+                     given_name="Renee", surname="Rickert", photo_url="./images/212222222.jpg",
+                     rso="Computer Club", public_note='', pin=1111, private_note='')
 
-    kahrl = Account(win=1234, role=administrator, affiliation=staff, display_name="zathras", 
-                     given_name="Allin", surname="Kahrl", photo_url="./images/1234.jpg")
+    kahrl = Account(win=123412341, role=administrator, affiliation=staff, department=eng_design_manufacturing_mgmt_syst, display_name="zathras", pin=1234,
+                     given_name="Allin", surname="Kahrl", photo_url="./images/default_pic.jpg", public_note='', private_note='')
 
-    estlin = Account(win=4321, role=attendant, affiliation=undergrad, display_name="estlin", 
-                     given_name="Estlin", surname="Mendez", photo_url="./images/4321.jpg")
+    estlin = Account(win=432143214, role=attendant, affiliation=undergrad, department=electrical_computer, display_name="estlin", public_note='', private_note='', pin=1111,
+                     given_name="Estlin", surname="Mendez", photo_url="./images/default_pic.jpg")
+
 
     # actually load the objects to be committed (still not in the DB, will happen after commit call.
     # important to note is that since user, active, administrator, and attendant were related in these object definitions, 
     # those objects are also implicitly added.
-    session.add_all([faculty, researcher, other])
+    session.add_all([faculty, researcher, other, pending])
     session.add_all([renee, kahrl, estlin])
+    session.add_all([chemical_paper, civil_construction, indust_entreprenural_mgmt, mechanical_aero, other_dep, pilot, ceas])
+
+
 
     # it is also possible to bulk add elements while declaring them at the same time.
     session.execute(
@@ -54,10 +77,27 @@ with Session() as session:
     session.execute( 
         insert(Equipment),
         [
-            {"name": "drill_press", "icon_url": "./splums/images/drill_press.png"},
-            {"name": "cnc_machine", "icon_url": "./splums/images/cnc_machine.png"},
-            {"name": "laser_cutter", "icon_url": "./splums/images/laser_cutter.png"},
-            {"name": "soldering_station", "icon_url": "./splums/images/soldering_station.png"},
+            {"name": "SMAW_(arc)", "icon_url": "./splums/images/smaw_arc.png"},
+            {"name": "GTAW_(MIG)", "icon_url": "./splums/images/gtaw_mig.png"},
+            {"name": "GTAW_(TIG)", "icon_url": "./splums/images/gtaw_tig.png"},
+            {"name": "Gas_Welding", "icon_url": "./splums/images/gas_welding.png"},
+            {"name": "Offhand_Grinding_(Offset,_Belt,_and_Tool)", "icon_url": "./splums/images/offhand_grinding.png"},
+            {"name": "Finish_Grinding_(Surface_and_Cylindrical)", "icon_url": "./splums/images/finish_grinding.png"},
+            {"name": "Drill_Presses", "icon_url": "./splums/images/drill_presses.png"},
+            {"name": "Manual_Milling", "icon_url": "./splums/images/manual_milling.png"},
+            {"name": "Manual_Turning", "icon_url": "./splums/images/manual_turning.png"},
+            {"name": "CNC_Milling", "icon_url": "./splums/images/cnc_milling.png"},
+            {"name": "CNC_Turning", "icon_url": "./splums/images/cnc_turning.png"},
+            {"name": "Arbor_Press", "icon_url": "./splums/images/arbor_press.png"},
+            {"name": "Paint_Booth", "icon_url": "./splums/images/paint_booth.png"},
+            {"name": "Soldering", "icon_url": "./splums/images/soldering.png"},
+            {"name": "Table_Saw", "icon_url": "./splums/images/table_saw.png"},
+            {"name": "Bandsaws", "icon_url": "./splums/images/bandsaws.png"},
+            {"name": "Blast_Cabinet", "icon_url": "./splums/images/blast_cabinet"},
+            {"name": "Gas_Cylinder_Handling", "icon_url": "./splums/images/gas_cylinder_handling.png"},
+            {"name": "Flammable_Liquid_Handling", "icon_url": "./splums/images/flammable_liquid_handling.png"},
+            {"name": "Lithium_Battery_Handling", "icon_url": "./splums/images/lithium_battery_handling.png"},
+            {"name": "Respirators", "icon_url": "./splums/images/respirators.png"},
         ],
     )
     session.execute( 
@@ -84,12 +124,7 @@ with Session() as session:
     )
     
     # example of adding account_equipment record, can also define objects in line.
-    renee_welding = Account_Equipment(account=renee, equipment=Equipment(name="welding_station", icon_url="./splums/images/welding_station.png"), completed_training=False)
-    session.add(renee_welding)
 
-    # the ids for creator and subject will be populated automatically.
-    note1 = Note(creator_account=kahrl, subject_account=renee, text="renee does not know how to tig weld but she can mig")
-    session.add(note1)
 
     # it is always necessary to commit, no changes are applied until commit is applied.
     session.commit()
@@ -99,6 +134,7 @@ with Session() as session:
     # made these fields in seperate session block after the commit to show pulling data from the db.
     unauthorized = session.scalar(select(Event_Type).where(Event_Type.name=="Authorized User Swipe"))
     renee = session.scalar(select(Account).where(Account.given_name=="Renee"))
+    renee.public_note = "renee can wig but not mig"
 
     # makes it very easy not having to worry about getting the actual ids.
     sample_event = Event(event_type=unauthorized, account=renee)
