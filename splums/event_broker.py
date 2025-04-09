@@ -1,7 +1,7 @@
 from events import Event
 from events import EventTypes
 from sqlalchemy import select
-import note_events, account_events, swipe_events, permission_events
+import note_events, account_events, swipe_events, event_log, permission_events
 from models.models import Account, Role
 
 class EventBroker:
@@ -23,6 +23,7 @@ class EventBroker:
             # TODO IMPLEMENT
             case EventTypes.ACCEPTED_SWIPE_IN:
                 print(f"Accepted Swipe In")
+                event_log.log(event, self.session)
                 # towerLightGreen()
                 # showAttendantScreen(event)
                 # showLabScreen(event)
@@ -31,6 +32,7 @@ class EventBroker:
             # TODO IMPLEMENT
             case EventTypes.DENIED_SWIPE_IN:
                 print(f"Denied Swipe In")
+                event_log.log(event, self.session)
                 # towerLightRed()
 
             case EventTypes.SWIPE_OUT: 
@@ -40,6 +42,7 @@ class EventBroker:
             # TODO IMPLEMENT
             case EventTypes.ACCEPTED_SWIPE_OUT: 
                 print(f"Accepted Swipe Out")
+                event_log.log(event, self.session)
                 # towerLightGreen()
                 # removeAttendantScreen(event)
                 # removeLabScreen(event)
@@ -48,40 +51,50 @@ class EventBroker:
             # TODO IMPLEMENT
             case EventTypes.DENIED_SWIPE_OUT: 
                 print(f"Denied Swipe Out")
+                event_log.log(event, self.session)
                 # towerLightRed()
 
             # TODO IMPLEMENT
             case EventTypes.EXPECTED_GATE_CROSSING: 
                 print(f"Expected Gate Crossing")
+                event_log.log(event, self.session)
 
             # TODO IMPLEMENT
             case EventTypes.UNEXPECTED_GATE_CROSSING: 
                 print(f"Unexpected Gate Crossing")
+                event_log.log(event, self.session)
                 # activateAlarm()
                 # towerLightRed()
 
             case EventTypes.CREATE_ACCOUNT: 
                 print(f"Create New Account")
-                return account_events.create(event, self.session)
+                result = account_events.create(event, self.session)
+                event_log.log(event, self.session)
+                return result
 
             case EventTypes.DELETE_ACCOUNT:
                 print(f"Delete Account")
+                event_log.log(event, self.session)
                 return account_events.delete(event, self.session)
 
             case EventTypes.EDIT_ACCOUNT: 
                 print(f"Edit Account")
+                event_log.log(event, self.session)
                 return account_events.edit(event, self.session)
 
             case EventTypes.CREATE_NOTE: 
                 print(f"Create Note")
+                event_log.log(event, self.session)
                 return note_events.create(event, self.session)
 
             case EventTypes.DELETE_NOTE: 
                 print(f"Delete Note")
+                event_log.log(event, self.session)
                 return note_events.delete(event, self.session)
 
             case EventTypes.EDIT_NOTE: 
                 print(f"Edit Note")
+                event_log.log(event, self.session)
                 return note_events.edit(event, self.session)
 
             # TODO IMPLEMENT
@@ -92,12 +105,14 @@ class EventBroker:
             # TODO IMPLEMENT
             case EventTypes.CLOSE_LAB: 
                 print(f"Close Lab")
+                event_log.log(event, self.session)
                 self.close_lab(event)
                 account_events.auto_archive_user(self.session)
                 account_events.auto_delete_user(self.session)
 
             case EventTypes.ARCHIVE_ACCOUNT: 
                 print(f"Archive User")
+                event_log.log(event, self.session)
                 account_events.archive_user(event, self.session)
 
             case EventTypes.CHANGE_USER_ROLE: 
@@ -166,10 +181,12 @@ class EventBroker:
             case EventTypes.ATTEMPT_ATTENDANT_SIGNIN:
                 print(f"\033[93mAttempting attendant signin...\033[0m")
                 result = account_events.attempt_attendant_signin(event, self.session)
+                event_log.log(event, self.session)
                 return result
 
             case EventTypes.ATTEMPT_ATTENDANT_SIGNOUT:
                 print(f"\033[93mAttempting attendant signout...\033[0m")
+                event_log.log(event, self.session)
                 result = account_events.attempt_attendant_signout(event, self.session)
                 return result
 

@@ -85,7 +85,7 @@ class Account(Base):
     # Relationships where the account is the one in one-many
     # another field of foreign_keys is added for notes_subject and notes_creator since they both reference account ids so you need
     # to let SQL alchemy know which one is which.
-    events: Mapped[List["Event"]] = relationship(back_populates="account", cascade="all, delete-orphan")
+    events: Mapped[List["Event"]] = relationship(back_populates="account", cascade="all, delete-orphan", foreign_keys="[Event.win]")
     equipments: Mapped[List["Account_Equipment"]] = relationship(back_populates="account", cascade="all, delete-orphan")
     
     # Relationships where the account is the many in one-many. 
@@ -129,10 +129,12 @@ class Event(Base):
     event_id: Mapped[int] = mapped_column(primary_key=True)
     event_type_id: Mapped[int] = mapped_column(ForeignKey("event_type.event_type_id"))
     win: Mapped[Optional[int]] = mapped_column(ForeignKey("account.win"))
+    active_attendant: Mapped[Optional[int]] = mapped_column(ForeignKey("account.win"))
     occured_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
     event_type: Mapped["Event_Type"] = relationship(back_populates="events")
     
-    account: Mapped[Optional["Account"]] = relationship(back_populates="events")
+    account: Mapped[Optional["Account"]] = relationship(back_populates="events", foreign_keys=[win])
+ 
