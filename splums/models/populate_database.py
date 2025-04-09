@@ -119,6 +119,8 @@ with Session() as session:
             {"name": "Lab Opened"},
             {"name": "Lab Closed"},
             {"name": "Account Archived"},
+            {"name": "Attendant Log In"},
+            {"name": "Account Log Out"},
         ],
     )
     
