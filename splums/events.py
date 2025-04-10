@@ -43,4 +43,6 @@ class EventTypes(IntEnum):
     GET_USERS_BY_SEARCH = 32
     EDIT_NOTE_FOR_USER = 33
     CHECK_IF_ACTIVE_ATTENDANT = 34
+    SET_USER_PIN = 35
+    CHECK_USER_PIN = 36
     

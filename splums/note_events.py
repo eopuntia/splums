@@ -87,6 +87,7 @@ def format_notes(unformatted_note):
         }
         note_dicts.append(note_dict)
     return note_dicts
+
 def get_notes_for_user_admin(event: Event, session):
     try:
         with session() as s:

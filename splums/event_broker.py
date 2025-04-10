@@ -194,6 +194,16 @@ class EventBroker:
                 print(f"\033[93mAttempting attendant signout...\033[0m")
                 result = account_events.check_if_active_attendant(event, self.session)
                 return result
+            
+            case EventTypes.SET_USER_PIN:
+                print(f"\033[93mAttempting to set user pin...\033[0m")
+                result = account_events.set_user_pin(event, self.session)
+                return result
+            
+            case EventTypes.CHECK_USER_PIN:
+                print(f"\033[93mAttempting to check user pin...\033[0m")
+                result = account_events.check_user_pin(event, self.session)
+                return result
 
             case _:
                 print(f"Error")
