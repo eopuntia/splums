@@ -1742,6 +1742,10 @@ class MainWindow(QMainWindow):
 
     def back_to_main(self):
         self.main_widget.setCurrentIndex(0)
+        self.page_number_search = 1
+        self.accounts.clear()
+        self.accounts_load_swiped()
+        self.render_accounts_to_screen()
 
     def prev_page_search(self):
         if self.check_if_still_swiped() == False:
