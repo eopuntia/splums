@@ -239,13 +239,14 @@ class AttendantEditAccount(QWidget):
         self.affiliation.addItem("Other")
  
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_-,. 1-9]+"))
         display_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_1-9]{20}"))
 
         self.display_name.setValidator(display_validator)
         self.given_name.setValidator(name_validator)
         self.surname.setValidator(name_validator)
         self.affiliation.setValidator(name_validator)
-        self.rso.setValidator(display_validator)
+        self.rso.setValidator(rso_validator)
 
         self.rso.setPlaceholderText("Registered Student Org...")
 
@@ -606,13 +607,14 @@ class EditAccount(QWidget):
         self.affiliation.addItem("Other")
  
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_-,. 1-9]+"))
         display_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_1-9]{20}"))
 
         self.display_name.setValidator(display_validator)
         self.given_name.setValidator(name_validator)
         self.surname.setValidator(name_validator)
         self.affiliation.setValidator(name_validator)
-        self.rso.setValidator(name_validator)
+        self.rso.setValidator(rso_validator)
 
         self.rso.setPlaceholderText("Registered Student Org...")
 
@@ -946,6 +948,7 @@ class AddAccount(QWidget):
         win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
         pin_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{4}"))
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_-,. 1-9]+"))
 
         self.win_box.setPlaceholderText("WIN...")
         self.win_box.setValidator(win_validator)
@@ -982,7 +985,7 @@ class AddAccount(QWidget):
         self.affiliation.addItem("Other")
  
         self.rso.setPlaceholderText("Registered Student Org...")
-        self.rso.setValidator(name_validator)
+        self.rso.setValidator(rso_validator)
 
     # TODO add proper error handling
     # TODO ADD CHECK FOR IF WIN IS ALREADY TAKEN
