@@ -490,7 +490,7 @@ class EditAccount(QWidget):
         self.setLayout(stacked_layout)
 
         # STUFF FOR MAIN LAYOUT
-        self.win_box = QLineEdit()
+        self.win_box = QLabel()
         self.role = QComboBox()
         self.department = QComboBox()
         self.display_name = QLineEdit()
@@ -615,7 +615,6 @@ class EditAccount(QWidget):
         self.rso.setValidator(name_validator)
 
         self.rso.setPlaceholderText("Registered Student Org...")
-        self.win_box.setReadOnly(True)
 
         # STUFF FOR DELETE LAYOUT
         delete_warning = QLabel()
