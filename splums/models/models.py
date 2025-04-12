@@ -56,7 +56,6 @@ class Account(Base):
     role_id: Mapped[int] = mapped_column(ForeignKey("role.role_id"))
     affiliation_id: Mapped[int] = mapped_column(ForeignKey("affiliation.affiliation_id"))
     department_id: Mapped[int] = mapped_column(ForeignKey("department.department_id"))
-    pin: Mapped[int]
 
     display_name: Mapped[str] = mapped_column(String(255))
     given_name: Mapped[str] = mapped_column(String(255))
@@ -64,6 +63,11 @@ class Account(Base):
     photo_url: Mapped[str] = mapped_column(String(255))
     active_attendant: Mapped[bool] = mapped_column(default=False)
     swiped_in: Mapped[bool] = mapped_column(default=False)
+
+    # Secure pin storage, default to NULL on user creation
+    # Intend to check if NULL when a user logs in for the first time, and prompts them to set a new pin.
+    # Pin can be either numbers, letters, or a combo, and will convert to string later when creating the pin in the db.
+    pin_hash: Mapped[Optional[str]] = mapped_column(String(255))  
 
     rso: Mapped[Optional[str]] = mapped_column(String(255))
 

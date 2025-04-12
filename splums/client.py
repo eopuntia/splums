@@ -33,6 +33,6 @@ class client_connection():
         except:
             print("\033[91m[ERROR] Failed to receive response from server\033[0m")
 
-    def close_connection(client):
+    def close_connection(self):
         print(f"\033[93mClosing client...\033[0m")
         self.client.close()
