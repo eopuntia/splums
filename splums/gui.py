@@ -95,10 +95,9 @@ class ResetPin(QWidget):
 
         data = {}
         data['win'] = self.win
-        data['edit_attrs'] = {}
-        data['edit_attrs']['pin'] = self.pin.text()
+        data['pin'] = self.pin.text()
 
-        edit_account(self.client, data)
+        set_user_pin(self.client, data)
 
 class AttendantEditAccount(QWidget):
     photo_update = pyqtSignal()
@@ -1585,23 +1584,23 @@ class MainWindow(QMainWindow):
         event_data = {}
         event_data['win'] = self.login_username.text()
         event_data['pin'] = self.login_pin.text()
-        res = attempt_attendant_login(self.client_connection, event_data)
+        res = attempt_attendant_signin(self.client_connection, event_data)
         print(res)
 
         # want to clear these regardless
         self.login_username.setText('')
         self.login_pin.setText('')
 
-        if res['status'] == "fail":
+        if res['status'] == False:
             self.login_err.setText("invalid pin or win")
             return
 
-        if res['status'] == 'success':
+        if res['status'] == True:
             self.login_err.setText("")
             self.attendant_win = event_data['win']
             self.attendant_display_name = res['display_name']
             self.active_attendant_label.setText(self.attendant_display_name)
-            if res['admin'] == 'true':
+            if res['admin'] == True:
                 self.attendant_admin_bool = True
                 self.active_admin_label.setText("ADMIN CONSOLE")
                 self.attendant_edit_button_search.hide()
@@ -2277,18 +2276,16 @@ def check_if_active_attendant(client, account_win):
 def check_if_swiped_in(client, account_win):
     event = Event(event_type=EventTypes.CHECK_IF_SWIPED_IN, data = {'win': account_win})
     res = client.call_server(event)
-    print("CHECKING IF SWIPED IN")
-    print("CHECKING IF SWIPED IN")
-    print("CHECKING IF SWIPED IN")
-    print("CHECKING IF SWIPED IN")
-    print("CHECKING IF SWIPED IN")
-    print(res)
     if res["swiped_in"] == True:
         return True
     else:
         return False
 
-def attempt_attendant_login(client, event_data):
+def set_user_pin(client, data):
+    event = Event(event_type=EventTypes.SET_USER_PIN, data=data)
+    res = client.call_server(event)
+
+def attempt_attendant_signin(client, event_data):
     event = Event(event_type=EventTypes.ATTEMPT_ATTENDANT_SIGNIN, data = event_data)
     res = client.call_server(event)
 

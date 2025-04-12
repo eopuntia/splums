@@ -486,12 +486,16 @@ def attempt_attendant_signin(event, session):
             if key not in event.data:
                 raise KeyError(f"Missing required key: {key}")
 
+        check_pin_result = check_user_pin(event, session)
+        if check_pin_result == False:
+            return { "status" : False }
+
         account = s.scalar(
             select(Account).where(
-                (Account.win == event.data["win"]) & 
-                (Account.pin == event.data["pin"])
+                (Account.win == event.data["win"]) 
             )
         )
+
         if account.role.name == 'attendant':
             query = s.query(Account)
             # first sign out all attendants that are active rn
@@ -510,17 +514,18 @@ def attempt_attendant_signin(event, session):
         # then attempt to sign in new person
         if account is None:
             s.rollback()
-            return { "status" : "fail" }
+            return { "status" : False }
         if account.role.name != "administrator" and account.role.name != "attendant":
             print(account.role.name + 'invalid perms')
             s.rollback()
-            return { "status": "fail" }
+            return { "status": False }
 
         account.active_attendant = 1
         print(account.role.name)
-        ret_data = { "status": "success", "display_name": account.display_name, 'admin': 'false' }
+        ret_data = { "status": True, "display_name": account.display_name, 'admin': False }
+
         if account.role.name == "administrator":
-            ret_data['admin'] = 'true'
+            ret_data['admin'] = True
 
         s.commit()
 
