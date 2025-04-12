@@ -10,6 +10,8 @@ def log(event, session):
 
     with session.begin() as s:
         attendant = s.scalar(select(Account).where(Account.active_attendant == 1))
+        if attendant is None:
+            return
         new_event = Event(event_type_id = event.event_type + 1,
                           win = win,
                           active_attendant = attendant.win,

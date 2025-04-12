@@ -95,10 +95,9 @@ class ResetPin(QWidget):
 
         data = {}
         data['win'] = self.win
-        data['edit_attrs'] = {}
-        data['edit_attrs']['pin'] = self.pin.text()
+        data['pin'] = self.pin.text()
 
-        edit_account(self.client, data)
+        set_user_pin(self.client, data)
 
 class AttendantEditAccount(QWidget):
     photo_update = pyqtSignal()
@@ -240,13 +239,14 @@ class AttendantEditAccount(QWidget):
         self.affiliation.addItem("Other")
  
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_-,. 1-9]+"))
         display_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_1-9]{20}"))
 
         self.display_name.setValidator(display_validator)
         self.given_name.setValidator(name_validator)
         self.surname.setValidator(name_validator)
         self.affiliation.setValidator(name_validator)
-        self.rso.setValidator(display_validator)
+        self.rso.setValidator(rso_validator)
 
         self.rso.setPlaceholderText("Registered Student Org...")
 
@@ -388,10 +388,12 @@ class AttendantEditAccount(QWidget):
         if acc_data['rso'] is not None:
             self.rso.setText(acc_data['rso'])
 
+        for item in self.permissions.findChildren(QCheckBox):
+            item.setEnabled(False)
+
         permissions = get_account_permissions(self.client, self.win)
         if permissions is not None:
             for item in self.permissions.findChildren(QCheckBox):
-                item.setEnabled(False)
                 for perm in permissions:
                     if item.text().replace(" ", "_") == perm:
                         item.setChecked(True)
@@ -489,7 +491,7 @@ class EditAccount(QWidget):
         self.setLayout(stacked_layout)
 
         # STUFF FOR MAIN LAYOUT
-        self.win_box = QLineEdit()
+        self.win_box = QLabel()
         self.role = QComboBox()
         self.department = QComboBox()
         self.display_name = QLineEdit()
@@ -605,16 +607,16 @@ class EditAccount(QWidget):
         self.affiliation.addItem("Other")
  
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_-,. 1-9]+"))
         display_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_1-9]{20}"))
 
         self.display_name.setValidator(display_validator)
         self.given_name.setValidator(name_validator)
         self.surname.setValidator(name_validator)
         self.affiliation.setValidator(name_validator)
-        self.rso.setValidator(name_validator)
+        self.rso.setValidator(rso_validator)
 
         self.rso.setPlaceholderText("Registered Student Org...")
-        self.win_box.setReadOnly(True)
 
         # STUFF FOR DELETE LAYOUT
         delete_warning = QLabel()
@@ -946,6 +948,7 @@ class AddAccount(QWidget):
         win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
         pin_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{4}"))
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
+        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_-,. 1-9]+"))
 
         self.win_box.setPlaceholderText("WIN...")
         self.win_box.setValidator(win_validator)
@@ -982,7 +985,7 @@ class AddAccount(QWidget):
         self.affiliation.addItem("Other")
  
         self.rso.setPlaceholderText("Registered Student Org...")
-        self.rso.setValidator(name_validator)
+        self.rso.setValidator(rso_validator)
 
     # TODO add proper error handling
     # TODO ADD CHECK FOR IF WIN IS ALREADY TAKEN
@@ -1039,10 +1042,13 @@ class AddAccount(QWidget):
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = "pending"
         data['edit_attrs']['department'] = self.department.currentText().lower()
-        data['edit_attrs']['pin'] = self.pin.text()
         data['edit_attrs']['permissions'] = []
 
         new_account(self.client, data)
+        pin_data = {}
+        pin_data["win"] = self.win_box.text()
+        pin_data["pin"] = self.pin.text()
+        set_user_pin(self.client, pin_data)
 
         self.second_creation_screen()
 
@@ -1218,9 +1224,12 @@ class QuickView(QWidget):
             self.rso.setText(acc_data['rso'])
 
         permissions = get_account_permissions(self.client, self.win)
+
+        for item in self.permissions.findChildren(QCheckBox):
+            item.setEnabled(False)
+
         if permissions is not None:
             for item in self.permissions.findChildren(QCheckBox):
-                item.setEnabled(False)
                 for perm in permissions:
                     print(f'{item.text()} on {perm}')
                     if item.text().replace(" ", "_") == perm:
@@ -1585,23 +1594,23 @@ class MainWindow(QMainWindow):
         event_data = {}
         event_data['win'] = self.login_username.text()
         event_data['pin'] = self.login_pin.text()
-        res = attempt_attendant_login(self.client_connection, event_data)
+        res = attempt_attendant_signin(self.client_connection, event_data)
         print(res)
 
         # want to clear these regardless
         self.login_username.setText('')
         self.login_pin.setText('')
 
-        if res['status'] == "fail":
+        if res['status'] == False:
             self.login_err.setText("invalid pin or win")
             return
 
-        if res['status'] == 'success':
+        if res['status'] == True:
             self.login_err.setText("")
             self.attendant_win = event_data['win']
             self.attendant_display_name = res['display_name']
             self.active_attendant_label.setText(self.attendant_display_name)
-            if res['admin'] == 'true':
+            if res['admin'] == True:
                 self.attendant_admin_bool = True
                 self.active_admin_label.setText("ADMIN CONSOLE")
                 self.attendant_edit_button_search.hide()
@@ -1740,6 +1749,10 @@ class MainWindow(QMainWindow):
 
     def back_to_main(self):
         self.main_widget.setCurrentIndex(0)
+        self.page_number_search = 1
+        self.accounts.clear()
+        self.accounts_load_swiped()
+        self.render_accounts_to_screen()
 
     def prev_page_search(self):
         if self.check_if_still_swiped() == False:
@@ -2147,17 +2160,8 @@ class MainWindow(QMainWindow):
             acc.note = res
 
     def accounts_load_swiped(self):
-        print('in acc load swiped')
-        print('in acc load swiped')
-        print('in acc load swiped')
-        print('in acc load swiped')
         if self.check_if_still_swiped() == False:
             return
-        print('in acc load swipedAFTER')
-        print('in acc load swipedAFTER')
-        print('in acc load swipedAFTER')
-        print('in acc load swipedAFTER')
-        print('in acc load swipedAFTER')
         event_data = {"page_number": self.page_number, "items_per_page": self.items_per_page}
                       
         event_data['privilege'] = "ignore"
@@ -2277,18 +2281,16 @@ def check_if_active_attendant(client, account_win):
 def check_if_swiped_in(client, account_win):
     event = Event(event_type=EventTypes.CHECK_IF_SWIPED_IN, data = {'win': account_win})
     res = client.call_server(event)
-    print("CHECKING IF SWIPED IN")
-    print("CHECKING IF SWIPED IN")
-    print("CHECKING IF SWIPED IN")
-    print("CHECKING IF SWIPED IN")
-    print("CHECKING IF SWIPED IN")
-    print(res)
     if res["swiped_in"] == True:
         return True
     else:
         return False
 
-def attempt_attendant_login(client, event_data):
+def set_user_pin(client, data):
+    event = Event(event_type=EventTypes.SET_USER_PIN, data=data)
+    res = client.call_server(event)
+
+def attempt_attendant_signin(client, event_data):
     event = Event(event_type=EventTypes.ATTEMPT_ATTENDANT_SIGNIN, data = event_data)
     res = client.call_server(event)
 

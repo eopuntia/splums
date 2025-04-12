@@ -43,7 +43,6 @@ def create(event, session):
                           department = account_department,
                           public_note = '',
                           private_note = '',
-                          pin = event.data['edit_attrs']['pin'],
                           rso = event.data["edit_attrs"]["rso"],
                           photo_url = event.data.get("photo_url", "./images/" + "default_pic" + ".jpg"))
 
@@ -134,8 +133,6 @@ def edit(event, session):
                 account.photo_url = event.data["edit_attrs"][update]
             if update == "rso":
                 account.rso = event.data["edit_attrs"][update]
-            if update == 'pin':
-                account.pin = event.data['edit_attrs'][update]
 
         s.commit()
         return 1
@@ -486,12 +483,21 @@ def attempt_attendant_signin(event, session):
             if key not in event.data:
                 raise KeyError(f"Missing required key: {key}")
 
+
         account = s.scalar(
             select(Account).where(
-                (Account.win == event.data["win"]) & 
-                (Account.pin == event.data["pin"])
+                (Account.win == event.data["win"]) 
             )
         )
+        # before doing anything see if they entered a valid win
+        if account is None:
+            s.rollback()
+            return { "status" : False }
+
+        check_pin_result = check_user_pin(event, session)
+        if check_pin_result == False:
+            return { "status" : False }
+
         if account.role.name == 'attendant':
             query = s.query(Account)
             # first sign out all attendants that are active rn
@@ -507,20 +513,17 @@ def attempt_attendant_signin(event, session):
                 acc.active_attendant = 0
 
 
-        # then attempt to sign in new person
-        if account is None:
-            s.rollback()
-            return { "status" : "fail" }
         if account.role.name != "administrator" and account.role.name != "attendant":
             print(account.role.name + 'invalid perms')
             s.rollback()
-            return { "status": "fail" }
+            return { "status": False }
 
         account.active_attendant = 1
         print(account.role.name)
-        ret_data = { "status": "success", "display_name": account.display_name, 'admin': 'false' }
+        ret_data = { "status": True, "display_name": account.display_name, 'admin': False }
+
         if account.role.name == "administrator":
-            ret_data['admin'] = 'true'
+            ret_data['admin'] = True
 
         s.commit()
 
