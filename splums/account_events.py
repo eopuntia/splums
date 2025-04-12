@@ -348,7 +348,7 @@ def search_users(event, session):
         rso = event.data.get("rso")
 
         if name:
-            print("Adding name query...")
+            print("Adding name filter...")
             filters.append(or_(
                 Account.display_name.ilike(f"%{name}%"),
                 Account.given_name.ilike(f"%{name}%"),
@@ -356,18 +356,18 @@ def search_users(event, session):
             ))
 
         if affiliation:
-            print("Adding affiliation query...")
+            print("Adding affiliation filter...")
             filters.append(Affiliation.name.ilike(f"%{affiliation}%"))
 
         if role:
-            print("Adding role query...")
+            print("Adding role filter...")
             filters.append(Role.name.ilike(f"%{role}%"))
 
         if department:
-            print("Adding department query...")
+            print("Adding department filter...")
             filters.append(Department.name.ilike(f"%{department}%"))
         if rso:
-            print("Adding rso query...")
+            print("Adding rso filter...")
             filters.append(Account.rso.ilike(f"%{rso}%"))
 
         if filters:
