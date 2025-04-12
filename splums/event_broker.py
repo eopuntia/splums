@@ -204,6 +204,11 @@ class EventBroker:
                 print(f"\033[93mAttempting to check user pin...\033[0m")
                 result = account_events.check_user_pin(event, self.session)
                 return result
+            
+            case EventTypes.GET_LOGS_BY_SEARCH:
+                print(f"\033[93mGetting logs...\033[0m")
+                result = event_log.search_logs(event, self.session)
+                return result
 
             case _:
                 print(f"Error")
