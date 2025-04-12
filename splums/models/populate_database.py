@@ -133,7 +133,7 @@ with Session() as session:
 
 with Session() as session:
     # made these fields in seperate session block after the commit to show pulling data from the db.
-    unauthorized = session.scalar(select(Event_Type).where(Event_Type.name=="Authorized User Swipe"))
+    unauthorized = session.scalar(select(Event_Type).where(Event_Type.name=="Denied Swipe In"))
     renee = session.scalar(select(Account).where(Account.given_name=="Renee"))
     renee.public_note = "renee can wig but not mig"
 
