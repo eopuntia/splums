@@ -387,10 +387,12 @@ class AttendantEditAccount(QWidget):
         if acc_data['rso'] is not None:
             self.rso.setText(acc_data['rso'])
 
+        for item in self.permissions.findChildren(QCheckBox):
+            item.setEnabled(False)
+
         permissions = get_account_permissions(self.client, self.win)
         if permissions is not None:
             for item in self.permissions.findChildren(QCheckBox):
-                item.setEnabled(False)
                 for perm in permissions:
                     if item.text().replace(" ", "_") == perm:
                         item.setChecked(True)
@@ -1220,9 +1222,12 @@ class QuickView(QWidget):
             self.rso.setText(acc_data['rso'])
 
         permissions = get_account_permissions(self.client, self.win)
+
+        for item in self.permissions.findChildren(QCheckBox):
+            item.setEnabled(False)
+
         if permissions is not None:
             for item in self.permissions.findChildren(QCheckBox):
-                item.setEnabled(False)
                 for perm in permissions:
                     print(f'{item.text()} on {perm}')
                     if item.text().replace(" ", "_") == perm:
@@ -2153,17 +2158,8 @@ class MainWindow(QMainWindow):
             acc.note = res
 
     def accounts_load_swiped(self):
-        print('in acc load swiped')
-        print('in acc load swiped')
-        print('in acc load swiped')
-        print('in acc load swiped')
         if self.check_if_still_swiped() == False:
             return
-        print('in acc load swipedAFTER')
-        print('in acc load swipedAFTER')
-        print('in acc load swipedAFTER')
-        print('in acc load swipedAFTER')
-        print('in acc load swipedAFTER')
         event_data = {"page_number": self.page_number, "items_per_page": self.items_per_page}
                       
         event_data['privilege'] = "ignore"
