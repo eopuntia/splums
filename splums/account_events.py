@@ -43,7 +43,6 @@ def create(event, session):
                           department = account_department,
                           public_note = '',
                           private_note = '',
-                          pin = event.data['edit_attrs']['pin'],
                           rso = event.data["edit_attrs"]["rso"],
                           photo_url = event.data.get("photo_url", "./images/" + "default_pic" + ".jpg"))
 
@@ -134,8 +133,6 @@ def edit(event, session):
                 account.photo_url = event.data["edit_attrs"][update]
             if update == "rso":
                 account.rso = event.data["edit_attrs"][update]
-            if update == 'pin':
-                account.pin = event.data['edit_attrs'][update]
 
         s.commit()
         return 1

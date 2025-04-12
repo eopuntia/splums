@@ -1038,10 +1038,13 @@ class AddAccount(QWidget):
         data['edit_attrs']['rso'] = self.rso.text()
         data['edit_attrs']['role'] = "pending"
         data['edit_attrs']['department'] = self.department.currentText().lower()
-        data['edit_attrs']['pin'] = self.pin.text()
         data['edit_attrs']['permissions'] = []
 
         new_account(self.client, data)
+        pin_data = {}
+        pin_data["win"] = self.win_box.text()
+        pin_data["pin"] = self.pin.text()
+        set_user_pin(self.client, pin_data)
 
         self.second_creation_screen()
 
