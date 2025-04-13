@@ -292,6 +292,24 @@ def format_users(unformatted_user):
         print(user_dict)
     return user_dicts
 
+def format_user(user):
+    print("Formatting user...")
+    user_dict = {
+        'win': user.win,
+        'display_name': user.display_name,
+        'given_name': user.given_name,
+        'surname': user.surname,
+        'photo_url': user.photo_url,
+        'role': user.role.name,
+        'affiliation':user.affiliation.name,
+        'department': user.department.name,
+        'created_at': user.created_at,
+        'last_updated_at': user.last_updated_at,
+        'swiped_in': user.swiped_in,
+        'rso': user.rso,
+        'last_access': user.last_access
+    }
+    return user_dict
 #*******************************************************************************************
 # GET SWIPED IN USERS
 #*******************************************************************************************
@@ -373,6 +391,20 @@ def search_users(event, session):
         results = s.scalars(query).all()
         return format_users(results)
 
+def get_user(event: Event, session):
+    with session() as s:
+        print(event.data)
+        print(event.data)
+        print(event.data)
+        user = s.scalar(select(Account).where(Account.win == event.data["win"]))
+        print(user.win)
+        print(user.win)
+        print(user.win)
+        print(user.win)
+        if user is None:
+            return
+
+        return format_user(user)
 
 def get_users_paginated_filtered(event, session):
     with session.begin() as s:
@@ -475,6 +507,23 @@ def get_perms_for_user(event, session):
         print(f"PERM DATA{perm_data}")
         return perm_data.copy()
 
+# TODO add proper error handling
+def get_active_attendant(event, session):
+    with session.begin() as s:
+
+        query = s.query(Account)
+        # first sign out all attendants that are active rn
+        query = query.filter(Account.active_attendant == 1)
+        admin = s.scalar(select(Role).where(Role.name == "administrator"))
+        # ignore admins
+        query = query.filter(Account.role != admin)
+
+        account = query.first()
+        print(account.win)
+
+        ret_data = { "win": account.win}
+
+        return ret_data
 # TODO add proper error handling
 def attempt_attendant_signin(event, session):
     with session.begin() as s:

@@ -46,3 +46,5 @@ class EventTypes(IntEnum):
     SET_USER_PIN = 35
     CHECK_USER_PIN = 36
     GET_LOGS_BY_SEARCH = 37
+    GET_ACTIVE_ATTENDANT = 38
+    GET_USER = 39
