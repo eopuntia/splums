@@ -510,16 +510,15 @@ def get_perms_for_user(event, session):
 # TODO add proper error handling
 def get_active_attendant(event, session):
     with session.begin() as s:
-
         query = s.query(Account)
-        # first sign out all attendants that are active rn
         query = query.filter(Account.active_attendant == 1)
         admin = s.scalar(select(Role).where(Role.name == "administrator"))
         # ignore admins
         query = query.filter(Account.role != admin)
 
         account = query.first()
-        print(account.win)
+        if account is None:
+            return 
 
         ret_data = { "win": account.win}
 
