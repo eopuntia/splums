@@ -8,6 +8,7 @@ import math
 from client import *
 import os.path
 
+
 # added this class, something to hold the state after you query the database.
 class Account():
     def __init__(self, build_info):
@@ -17,6 +18,8 @@ class Account():
         self.surname = build_info['surname']
         self.photo_url = build_info['photo_url']
         self.role = build_info['role']
+        self.affiliation = build_info['affiliation']
+        self.rso = build_info['rso']
         self.created_at = build_info['created_at']
         self.last_updated_at = build_info['last_updated_at']
         self.swiped_in = build_info['swiped_in']
@@ -24,10 +27,14 @@ class Account():
 
         # lazy loading
         # load when gui needs
+        self.note = ""
+
+        # lazy loading
+        # load when gui needs
         self.notes = []
 
-        #Sloppy but WORKS
-        self.img_label = None
+        #Sloppy but WORKS NEVERMIND
+        # self.img_label = QLabel().setPixmap
 
 #ADD TIME, affiliation ,RSOs
 #     PIC           Time
@@ -40,6 +47,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.client_connection = client_connection
         self.setWindowTitle("Student Projects Lab accounts")
+        # will be set on successful login
+        self.attendant_win = 0000
+        self.attendant_display_name = ""
+        self.attendant_admin_bool = False
 
         # Style Sheet for default styling options on widgets
         self.setStyleSheet("QTableWidget{font-size: 18pt;} QHeaderView{font-size: 12pt;}")
@@ -102,10 +113,12 @@ class MainWindow(QMainWindow):
         self.lab_table.resizeColumnsToContents()
 
 
-        self.update_photos()
-        timer = QTimer(self)
-        timer.timeout.connect(self.update_photos)
-        timer.start(5000)
+        # self.update_photos()
+
+
+        # timer = QTimer(self)
+        # timer.timeout.connect(self.update_table)
+        # timer.start(5000)
 
 
         widget = QWidget()
@@ -125,11 +138,11 @@ class MainWindow(QMainWindow):
 
 
         #account Image
-        account.img_label = QLabel()
-        account.img_label.setPixmap(QPixmap("./splums/images/default.png").scaledToHeight(85))
-        account.img_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        img_label = QLabel()
+        img_label.setPixmap(QPixmap("./images/default_pic.jpg").scaledToHeight(85))
+        img_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
-        card_layout.addWidget(account.img_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        card_layout.addWidget(img_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         #account Name
         account_name = QLabel(account.display_name)
@@ -177,11 +190,11 @@ class MainWindow(QMainWindow):
 
 
         # Attendant Image
-        account.img_label = QLabel()
-        account.img_label.setPixmap(QPixmap("./splums/images/default.png").scaledToHeight(85))
-        account.img_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        img_label = QLabel()
+        img_label.setPixmap(QPixmap("./images/default_pic.jpg").scaledToHeight(85))
+        img_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
-        card_layout.addWidget(account.img_label, alignment=Qt.AlignmentFlag.AlignHCenter)
+        card_layout.addWidget(img_label, alignment=Qt.AlignmentFlag.AlignHCenter)
         # Attendant Name
         account_name = QLabel(account.display_name)
         account_name.setAlignment(Qt.AlignmentFlag.AlignHCenter)
@@ -198,46 +211,114 @@ class MainWindow(QMainWindow):
         card.setLayout(card_layout)
         return card
 
-    def update_table(self):
-        get_account_event = Event(event_type=EventTypes.GET_USERS_BY_ROLE, data = {'role': ''})
-        # for each account ordered by role, add to self.accounts based on each dict of data returned.
-        for c in self.client_connection.call_server(get_account_event):
+    def check_if_still_swiped(self):
+        res = check_if_active_attendant(self.client_connection, self.attendant_win)
+        if res == False:
+            # self.widget.setCurrentIndex(2) old from gui.py
+            self.attendant_win = 0
+            self.attendant_display_name = ''
+            self.attendant_admin_bool = False
+            return False
+        else:
+            return True
+
+
+
+
+
+
+
+    def accounts_load_swiped(self):
+        print('in acc load swiped')
+        print('in acc load swiped')
+        print('in acc load swiped')
+        print('in acc load swiped')
+        # if self.check_if_still_swiped() == False:
+        #     return
+        print('in acc load swipedAFTER')
+        print('in acc load swipedAFTER')
+        print('in acc load swipedAFTER')
+        print('in acc load swipedAFTER')
+        print('in acc load swipedAFTER')
+        event_data = {}
+                        
+        event_data['privilege'] = "ignore"
+        event_data['status'] = "swiped_in"
+        event_data['affiliation'] = "ignore"
+        event_data['name'] = "ignore"
+        event_data['text'] = "ignore"
+        event_data['text_private'] = "ignore"
+
+        res = get_swiped_in_users(self.client_connection, event_data)
+        # self.total_users_in_query = res["total_users"]
+        # self.total_users.setText(str(self.total_users_in_query))
+        # self.max_page_label.setText(str(math.ceil(self.total_users_in_query / self.items_per_page)))
+        for c in res:
             print(c)
             self.accounts.append(Account(c))
-        non_attendant = self.accounts[:-1]
-        self.lab_table.setRowCount(math.ceil(len(non_attendant)/6))
-        self.lab_table.setHorizontalHeaderLabels(["accounts Present", "", "", "Head Count", str(len(self.accounts) - 1)])
+
+    # def update_photos(self):
+    #     # account_name_cell = QTableWidgetItem("renee")
+    #     # self.lab_table.setItem(0, 1, account_name_cell)
+        
+    #     # row = 0
+    #     # for each acc loaded into the gui
+    #     self.accounts_load_swiped()
+    #     for acc in self.accounts:
+    #         if os.path.isfile(acc.photo_url):
+    #             acc.img_label.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
+    #         else:
+    #             acc.img_label.setPixmap(QPixmap("./images/default_pic.jpg").scaledToHeight(85))
+
+    def update_table(self):
+        # for each account ordered by role, add to self.accounts based on each dict of data returned.
+        self.accounts_load_swiped()
+        usercount = len(self.accounts)-1
+        self.lab_table.setRowCount(math.ceil(usercount/6))
+        self.lab_table.setHorizontalHeaderLabels(["accounts Present", "", "", "Head Count", str(usercount)])
         column = 0
         row = 0
         #Add Account Card to the table on the screen
-        for account in non_attendant:
-            card = self.account_card(account)
-            self.lab_table.setCellWidget(row, column, card)
-            self.lab_table.resizeColumnToContents(column)
-            column += 1
-            #After 5th account move to next row
-            if column > 4:
-                column = 0
-                row += 1
-                # Resize columns and rows to fit the content
+        attendant = None
+
+        for account in self.accounts:
+            if not check_if_active_attendant(client_connection, account.win):
+                card = self.account_card(account)
+                self.lab_table.setCellWidget(row, column, card)
+                self.lab_table.resizeColumnToContents(column)
+                column += 1
+                #After 5th account move to next row
+                if column > 4:
+                    column = 0
+                    row += 1
+                    # Resize columns and rows to fit the content
+            else:
+                self.attendant_win = account.win
+                attendant = account
 
 
-        attendant_card_widget = self.attendant_card(self.accounts[-1])
+        attendant_card_widget = self.attendant_card(attendant)
         self.lab_table.setCellWidget(row, 4, attendant_card_widget)
         self.lab_table.resizeColumnsToContents()
         self.lab_table.resizeRowsToContents()
 
-    def update_photos(self):
-        # account_name_cell = QTableWidgetItem("renee")
-        # self.lab_table.setItem(0, 1, account_name_cell)
-        
-        # row = 0
-        # for each acc loaded into the gui
-        for acc in self.accounts:
-            if os.path.isfile(acc.photo_url):
-                acc.img_label.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
-            else:
-                acc.img_label.setPixmap(QPixmap("./splums/images/default.png").scaledToHeight(85))
+
+    
+
+def get_swiped_in_users(client, event_data):
+    event = Event(EventTypes.GET_SWIPED_IN_USERS, event_data)
+
+    res = client.call_server(event)
+
+    return res
+
+def check_if_active_attendant(client, account_win):
+    event = Event(event_type=EventTypes.CHECK_IF_ACTIVE_ATTENDANT, data = {'win': account_win})
+    res = client.call_server(event)
+    if res['win'] == False:
+        return False
+    else:
+        return True
 
 
 if __name__ == '__main__':

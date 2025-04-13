@@ -321,7 +321,7 @@ def get_swiped_in_users(session):
     try:
         with session() as s:
 
-            requested_users = s.scalars(select(Account) .where(Account.swiped_in == True)).order_by(Account.last_access)
+            requested_users = s.scalars(select(Account) .where(Account.swiped_in == True).order_by(Account.last_access))
 
             return format_users(requested_users)
     except Exception as e:
