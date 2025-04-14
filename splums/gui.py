@@ -1601,6 +1601,10 @@ class MainWindow(QMainWindow):
         self.login_username.setText('')
         self.login_pin.setText('')
 
+        if res is None:
+            self.login_err.setText("invalid pin or win")
+            return
+
         if res['status'] == False:
             self.login_err.setText("invalid pin or win")
             return

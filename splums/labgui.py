@@ -1,7 +1,6 @@
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, \
-    QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QSizePolicy
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QSizePolicy, QGridLayout, QHeaderView
 from PyQt6.QtCore import Qt, QSize, QTimer
 from PyQt6.QtGui import QPixmap, QIcon, QFont
 import math
@@ -76,8 +75,13 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         widget.setLayout(layout_main)
         self.setCentralWidget(widget)
-
         self.update_table()
+
+    def make_icon(self, path):
+        new_label = QLabel()
+        pixmap = QPixmap(path)
+        new_label.setPixmap(pixmap)
+        return new_label
 
     def account_card(self,account):
         card = QWidget()
@@ -92,44 +96,63 @@ class MainWindow(QMainWindow):
         hours = int(total_seconds // 3600)
         minutes = int((total_seconds % 3600) // 60)
         time = QLabel("Time in lab: " + f"{hours:02d}:{minutes:02d}")
-        time.setAlignment(Qt.AlignmentFlag.AlignRight)
         card_layout.addWidget(time)
 
         #account Image
         img_label = QLabel()
         img_label.setPixmap(QPixmap(account.photo_url).scaledToHeight(85))
-        img_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-
-        card_layout.addWidget(img_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        card_layout.addWidget(img_label)
 
         #account Name
         account_name = QLabel(account.display_name)
-        account_name.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        account_name.setStyleSheet("font-size: 9pt")
         card_layout.addWidget(account_name)
+        icon_horiz_list = QHBoxLayout()
+        icon_horiz_widget = QWidget()
+        icon_horiz_widget.setLayout(icon_horiz_list)
+
+        # Swiped icon
+        icon_horiz_list.addWidget(self.make_icon('./splums/images/icons/swiped_in.jpg'))
 
         #Affiliation
-        account_affiliation = QLabel("REPLACE ME WITH account.affiliation")
-        account_affiliation.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        account_affiliation.setStyleSheet("font-size: 9pt")
-        card_layout.addWidget(account_affiliation)
+        icon_horiz_list.addWidget(self.make_icon('./splums/images/icons/' + account.affiliation + '.jpg'))
+        # Role
+        icon_horiz_list.addWidget(self.make_icon('./splums/images/icons/' + account.role + '.jpg'))
+
+        card_layout.addWidget(icon_horiz_widget)
 
         #RSOs
-        account_rso = QLabel("REPLACE ME WITH account.RSOS")
-        account_rso.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        account_rso.setStyleSheet("font-size: 9pt")
+        account_rso = QLabel(account.rso)
         card_layout.addWidget(account_rso)
 
         #Permissions
-        account_permissions = QLabel(f"REPLACE ME WITH account.permissions LIST")
-        # TODO: UPDATE BELOW TWO LINES to use account.permissions list
-        # permission_stylesheet = f"color: {account['Permissions'].lower()}; font-size: 14pt;"
-        permission_stylesheet = f"font-size: 9pt;"
-        account_permissions.setStyleSheet(permission_stylesheet)
+        perms = get_account_permissions(self.client_connection, account.win)
+        if perms is not None:
+            perms = sorted(perms)
+            for i in range(len(perms)):
+                perms[i] = perms[i].replace('(', '')
+                perms[i] = perms[i].replace(')', '')
+                perms[i] = perms[i].replace(',', '')
 
-        account_permissions.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        card_layout.addWidget(account_permissions)
+            icon_grid = QGridLayout()
+            perm_widget = QWidget()
+            i = 0
+            for icon_row in range(3):
+                for col in range(7):
+                    if i > len(perms) - 1:
+                        break
+                    icon = self.make_icon('./splums/images/icons/perms/' + perms[i] + '.jpg')
+                    icon_grid.addWidget(icon, icon_row, col)
+                    i += 1
+
+            icon_grid.setHorizontalSpacing(20)
+            icon_grid.setContentsMargins(20,2,20,2)
+            icon_grid.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            perm_widget.setLayout(icon_grid)
+
+            card_layout.addWidget(perm_widget)
+
         card.setLayout(card_layout)
+
         return card
 
     def attendant_card(self, account):
@@ -177,25 +200,9 @@ class MainWindow(QMainWindow):
         event_data['text_private'] = "ignore"
 
         res = get_swiped_in_users(self.client_connection, event_data)
-        # self.total_users_in_query = res["total_users"]
-        # self.total_users.setText(str(self.total_users_in_query))
-        # self.max_page_label.setText(str(math.ceil(self.total_users_in_query / self.items_per_page)))
         for c in res:
             print(c)
             self.accounts.append(Account(c))
-
-    # def update_photos(self):
-    #     # account_name_cell = QTableWidgetItem("renee")
-    #     # self.lab_table.setItem(0, 1, account_name_cell)
-        
-    #     # row = 0
-    #     # for each acc loaded into the gui
-    #     self.accounts_load_swiped()
-    #     for acc in self.accounts:
-    #         if os.path.isfile(acc.photo_url):
-    #             acc.img_label.setPixmap(QPixmap(acc.photo_url).scaledToHeight(85))
-    #         else:
-    #             acc.img_label.setPixmap(QPixmap("./images/default_pic.jpg").scaledToHeight(85))
 
     def update_table(self):
         # for each account ordered by role, add to self.accounts based on each dict of data returned.
@@ -241,6 +248,8 @@ class MainWindow(QMainWindow):
             attendant = Account(no_attendant)
 
         attendant_card_widget = self.attendant_card(attendant)
+        attendant_card_widget.setMinimumHeight(500)  # Adjust this number as needed
+
         self.lab_table.setCellWidget(row, 4, attendant_card_widget)
 
         self.lab_table.resizeColumnsToContents()
@@ -270,6 +279,15 @@ def get_active_attendant(client):
     event = Event(event_type=EventTypes.GET_ACTIVE_ATTENDANT, data = {})
     res = client.call_server(event)
     return res
+
+def get_account_permissions(client, account_win):
+    event = Event(event_type=EventTypes.GET_PERMS_FOR_USER, data = {'win': account_win})
+
+    res = client.call_server(event)
+    if res is None:
+        return None 
+
+    return res   
 
 if __name__ == '__main__':
     client_connection = client_connection('127.0.0.1', 7373)
