@@ -86,26 +86,84 @@ class MainWindow(QMainWindow):
     def account_card(self,account):
         card = QWidget()
         card_layout = QVBoxLayout()
-        card_layout.setContentsMargins(1, 1,1,1)
-        card_layout.setSpacing(1)
 
-        print(account.last_access)
+        top_icon_row_layout = QHBoxLayout()
+        top_icon_row_widget = QWidget()
+
+        bottom_icon_row_layout = QHBoxLayout()
+        bottom_icon_row_widget = QWidget()
+
+        center_and_columns_layout = QHBoxLayout()
+        center_and_columns_widget = QWidget()
+        
+        left_icon_column_layout = QVBoxLayout()
+        left_icon_column_widget = QWidget()
+
+        right_icon_column_layout = QVBoxLayout()
+        right_icon_column_widget = QWidget()
+
+        center_layout = QVBoxLayout()
+        center_widget = QWidget()
+        
+        top_icon_row_widget.setLayout(top_icon_row_layout)
+        bottom_icon_row_widget.setLayout(bottom_icon_row_layout)
+        center_and_columns_widget.setLayout(center_and_columns_layout)
+        left_icon_column_widget.setLayout(left_icon_column_layout)
+        right_icon_column_widget.setLayout(right_icon_column_layout)
+        center_widget.setLayout(center_layout)
+        
+        center_and_columns_layout.addWidget(left_icon_column_widget)
+        center_and_columns_layout.addStretch(1)  
+        center_and_columns_layout.addWidget(center_widget, 1) 
+        center_and_columns_layout.addStretch(1)
+        center_and_columns_layout.addWidget(right_icon_column_widget)
+
+        card_layout.addWidget(top_icon_row_widget)
+        card_layout.addWidget(center_and_columns_widget)
+        card_layout.addWidget(bottom_icon_row_widget)
+
+        card_layout.setContentsMargins(0, 0, 0, 0)
+        card_layout.setSpacing(0)
+
+        top_icon_row_layout.setContentsMargins(0, 0, 0, 0)
+        top_icon_row_layout.setSpacing(0)
+
+        bottom_icon_row_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_icon_row_layout.setSpacing(0)
+
+        center_and_columns_layout.setContentsMargins(0, 0, 0, 0)
+        center_and_columns_layout.setSpacing(0)
+
+        left_icon_column_layout.setContentsMargins(0, 0, 0, 0)
+        left_icon_column_layout.setSpacing(0)
+
+        right_icon_column_layout.setContentsMargins(0, 0, 0, 0)
+        right_icon_column_layout.setSpacing(0)
+
+        center_layout.setContentsMargins(0, 0, 0, 0)
+        center_layout.setSpacing(0)
+
+        # Modify the center_and_columns_layout to push the right column to the right
+# Add stretch to push right column to the right
+
+
         time_diff = datetime.now() - account.last_access
 
         total_seconds = time_diff.total_seconds()
         hours = int(total_seconds // 3600)
         minutes = int((total_seconds % 3600) // 60)
         time = QLabel("Time in lab: " + f"{hours:02d}:{minutes:02d}")
-        card_layout.addWidget(time)
+        center_layout.addWidget(time)
 
         #account Image
         img_label = QLabel()
         img_label.setPixmap(QPixmap(account.photo_url).scaledToHeight(85))
-        card_layout.addWidget(img_label)
+        center_layout.addWidget(img_label)
 
         #account Name
         account_name = QLabel(account.display_name)
-        card_layout.addWidget(account_name)
+        center_layout.addWidget(account_name)
+
         icon_horiz_list = QHBoxLayout()
         icon_horiz_widget = QWidget()
         icon_horiz_widget.setLayout(icon_horiz_list)
@@ -118,13 +176,19 @@ class MainWindow(QMainWindow):
         # Role
         icon_horiz_list.addWidget(self.make_icon('./splums/images/icons/' + account.role + '.jpg'))
 
-        card_layout.addWidget(icon_horiz_widget)
+        center_layout.addWidget(icon_horiz_widget)
 
         #RSOs
         account_rso = QLabel(account.rso)
-        card_layout.addWidget(account_rso)
+        center_layout.addWidget(account_rso)
 
-        #Permissions
+        perm_list = get_permissions_from_db(self.client_connection)
+        perm_list = sorted(perm_list)
+        for i in range(len(perm_list)):
+            perm_list[i] = perm_list[i].replace('(', '')
+            perm_list[i] = perm_list[i].replace(')', '')
+            perm_list[i] = perm_list[i].replace(',', '')
+
         perms = get_account_permissions(self.client_connection, account.win)
         if perms is not None:
             perms = sorted(perms)
@@ -133,23 +197,27 @@ class MainWindow(QMainWindow):
                 perms[i] = perms[i].replace(')', '')
                 perms[i] = perms[i].replace(',', '')
 
-            icon_grid = QGridLayout()
-            perm_widget = QWidget()
-            i = 0
-            for icon_row in range(3):
-                for col in range(7):
-                    if i > len(perms) - 1:
-                        break
-                    icon = self.make_icon('./splums/images/icons/perms/' + perms[i] + '.jpg')
-                    icon_grid.addWidget(icon, icon_row, col)
-                    i += 1
+        i = 0
 
-            icon_grid.setHorizontalSpacing(20)
-            icon_grid.setContentsMargins(20,2,20,2)
-            icon_grid.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            perm_widget.setLayout(icon_grid)
+        for perm in perm_list:
+            if perms is not None:
+                if perm in perms:
+                    icon = self.make_icon('./splums/images/icons/perms/' + perm_list[i] + '.jpg')
+                else: 
+                    icon = self.make_icon('./splums/images/icons/perms/' + "missing_perm" + '.jpg')
+            else:
+                icon = self.make_icon('./splums/images/icons/perms/' + "missing_perm" + '.jpg')
 
-            card_layout.addWidget(perm_widget)
+            if i < 6:
+                top_icon_row_layout.addWidget(icon)
+            elif i < 11:
+                left_icon_column_layout.addWidget(icon)
+            elif i < 16:
+                right_icon_column_layout.addWidget(icon)
+            else:
+                bottom_icon_row_layout.addWidget(icon)
+
+            i += 1
 
         card.setLayout(card_layout)
 
@@ -248,12 +316,21 @@ class MainWindow(QMainWindow):
             attendant = Account(no_attendant)
 
         attendant_card_widget = self.attendant_card(attendant)
-        attendant_card_widget.setMinimumHeight(500)  # Adjust this number as needed
+        attendant_card_widget.setMinimumHeight(275)
 
         self.lab_table.setCellWidget(row, 4, attendant_card_widget)
 
         self.lab_table.resizeColumnsToContents()
         self.lab_table.resizeRowsToContents()
+
+def get_permissions_from_db(client):
+    event = Event(event_type=EventTypes.GET_ALL_PERMS, data = {'win': ''}) 
+
+    res = client.call_server(event)
+    if res is None:
+        return None 
+
+    return res
 
 def get_account(client, account_win):
     event = Event(EventTypes.GET_USER, data = {'win': account_win})
