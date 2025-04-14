@@ -12,7 +12,6 @@ class client_connection():
         self.client.connect((host, ip))
 
     def call_server(self, event: Event):
-        print(f"sending the event {event.data} to the server in client.py")
         self.client.sendall(pickle.dumps(event))  # Send event to server
 
         # Receive server response
@@ -20,15 +19,8 @@ class client_connection():
             response = self.client.recv(4096)
             if response:
                 response_data = pickle.loads(response)
-                if response_data == 1:
-                    print(f"\033[92m[SERVER RESPONSE]\033[0m SUCCESS!")  
-                elif response_data == -1:
-                    print(f"\033[92m[SERVER RESPONSE]\033[0m ERROR!")
-                elif response_data:
-                    print(f"in client, response_data is {response_data}")
+                if response_data:
                     return response_data
-                else:
-                    print(f"\033[92m[SERVER RESPONSE]\033[0m NO DATA")
                 
         except:
             print("\033[91m[ERROR] Failed to receive response from server\033[0m")

@@ -38,12 +38,17 @@ class MainWindow(QMainWindow):
     def __init__(self, client_connection):
         super().__init__()
         self.client_connection = client_connection
+        self.refresh_timer = QTimer()
+        self.refresh_timer.setInterval(1000)
+        self.refresh_timer.start()
+        # TODO make this more efficient
+        self.refresh_timer.timeout.connect(self.update_table)
         self.setWindowTitle("Student Projects Lab Gui")
         self.attendant_display_name = ""
 
         layout_main = QHBoxLayout()
 
-        self.setMinimumSize(QSize(850, 1000))
+        self.setMinimumSize(QSize(900, 1000))
         self.accounts = []
 
         layout_lab = QHBoxLayout()
@@ -142,10 +147,6 @@ class MainWindow(QMainWindow):
 
         center_layout.setContentsMargins(0, 0, 0, 0)
         center_layout.setSpacing(0)
-
-        # Modify the center_and_columns_layout to push the right column to the right
-# Add stretch to push right column to the right
-
 
         time_diff = datetime.now() - account.last_access
 
@@ -248,16 +249,14 @@ class MainWindow(QMainWindow):
         card_layout.addWidget(account_name)
 
         # Affiliation
-        account_affiliation = QLabel("REPLACE ME WITH account.affiliation")
-        account_affiliation.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        account_affiliation.setStyleSheet("font-size: 10pt")
-        card_layout.addWidget(account_affiliation)
+        card_layout.addWidget(self.make_icon('./splums/images/icons/' + account.affiliation + '.jpg'))
 
         card.setMaximumHeight(180)
         card.setLayout(card_layout)
         return card
 
     def accounts_load_swiped(self):
+        self.accounts.clear()
         event_data = {}
                         
         event_data['privilege'] = "ignore"
@@ -268,28 +267,30 @@ class MainWindow(QMainWindow):
         event_data['text_private'] = "ignore"
 
         res = get_swiped_in_users(self.client_connection, event_data)
-        for c in res:
-            print(c)
-            self.accounts.append(Account(c))
+        if res is not None:
+            for c in res:
+                self.accounts.append(Account(c))
 
     def update_table(self):
-        # for each account ordered by role, add to self.accounts based on each dict of data returned.
         self.accounts_load_swiped()
-        usercount = len(self.accounts)-1
-        self.lab_table.setRowCount(math.ceil(usercount/6))
+        usercount = len(self.accounts)
+        self.lab_table.clearContents()
+        self.lab_table.setRowCount(math.ceil( ((usercount-4)/5)) + 1)
         self.lab_table.setHorizontalHeaderLabels(["Accounts Present", "", "", "Head Count", str(usercount)])
         column = 0
         row = 0
-        #Add Account Card to the table on the screen
         attendant = None
 
         for account in self.accounts:
             card = self.account_card(account)
+            # add this before drawing because this is reserved spot for attendant
+            if column == 4 and row == 0:
+                column = 0
+                row += 1
+
             self.lab_table.setCellWidget(row, column, card)
-            self.lab_table.resizeColumnToContents(column)
             column += 1
-            #After 5th account move to next row
-            if column > 4:
+            if column == 5:
                 column = 0
                 row += 1
 
@@ -318,9 +319,9 @@ class MainWindow(QMainWindow):
         attendant_card_widget = self.attendant_card(attendant)
         attendant_card_widget.setMinimumHeight(275)
 
-        self.lab_table.setCellWidget(row, 4, attendant_card_widget)
+        # always in top right
+        self.lab_table.setCellWidget(0, 4, attendant_card_widget)
 
-        self.lab_table.resizeColumnsToContents()
         self.lab_table.resizeRowsToContents()
 
 def get_permissions_from_db(client):

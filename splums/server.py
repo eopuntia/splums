@@ -49,12 +49,8 @@ def call_event_broker():
             client_addr, event = message_queue[client_socket].get()
 
             if isinstance(event, Event):  # Validate event object
-                print(f"[EVENT BROKER] Processing Event from {client_addr}: {event.event_type} - {event.data}")
-                
                 # Process event and generate a response
                 response_data = event_broker.process_event(event)
-                print(f"{event.data}, {response_data}")
-
                 # Try to send response to client
                 try:
                     if client_socket.fileno() != -1:  # Double-check if socket is still open
@@ -87,7 +83,6 @@ while True:
                 data = s.recv(4096)
                 if data:
                     event = pickle.loads(data)  # Deserialize the event
-                    print(f"[{s.getpeername()}] Queued Event: {event.event_type}")
                     message_queue[s].put((s.getpeername(), event))
                 else:
                     raise ConnectionResetError
