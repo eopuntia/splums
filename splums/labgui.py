@@ -1,6 +1,6 @@
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QSizePolicy, QGridLayout, QHeaderView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QToolButton, QTableWidget, QTableWidgetItem, QTableView, QAbstractItemView, QLabel, QHeaderView, QSizePolicy, QGridLayout, QHeaderView, QFrame
 from PyQt6.QtCore import Qt, QSize, QTimer
 from PyQt6.QtGui import QPixmap, QIcon, QFont
 import math
@@ -249,9 +249,10 @@ class MainWindow(QMainWindow):
         card_layout.addWidget(account_name)
 
         # Affiliation
-        card_layout.addWidget(self.make_icon('./splums/images/icons/' + account.affiliation + '.jpg'))
+        if account.display_name != 'ATTENDANT MISSING':
+            card_layout.addWidget(self.make_icon('./splums/images/icons/' + account.affiliation + '.jpg'))
 
-        card.setMaximumHeight(180)
+        card.setMaximumHeight(275)
         card.setLayout(card_layout)
         return card
 
@@ -318,10 +319,13 @@ class MainWindow(QMainWindow):
 
         attendant_card_widget = self.attendant_card(attendant)
         attendant_card_widget.setMinimumHeight(275)
+        frame = QFrame()
+        frame_layout = QVBoxLayout(frame)
+        frame_layout.addWidget(attendant_card_widget)
+        frame.setObjectName("cellFrame")
+        frame.setStyleSheet("QFrame#cellFrame { border: 3px solid black; background: #885555}")
 
-        # always in top right
-        self.lab_table.setCellWidget(0, 4, attendant_card_widget)
-
+        self.lab_table.setCellWidget(0, 4, frame)
         self.lab_table.resizeRowsToContents()
 
 def get_permissions_from_db(client):
