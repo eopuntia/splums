@@ -239,7 +239,7 @@ class AttendantEditAccount(QWidget):
         self.affiliation.addItem("Other")
  
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
-        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_-,. 1-9]+"))
+        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z0-9_,.\\- ]+"))
         display_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_1-9]{20}"))
 
         self.display_name.setValidator(display_validator)
@@ -607,7 +607,7 @@ class EditAccount(QWidget):
         self.affiliation.addItem("Other")
  
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
-        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_-,. 1-9]+"))
+        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z0-9_,.\\- ]+"))
         display_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_1-9]{20}"))
 
         self.display_name.setValidator(display_validator)
@@ -948,7 +948,7 @@ class AddAccount(QWidget):
         win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
         pin_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{4}"))
         name_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z]+"))
-        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z_-,. 1-9]+"))
+        rso_validator = QRegularExpressionValidator(QRegularExpression("[A-Za-z0-9_,.\\- ]+"))
 
         self.win_box.setPlaceholderText("WIN...")
         self.win_box.setValidator(win_validator)

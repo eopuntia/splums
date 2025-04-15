@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
 
         layout_main = QHBoxLayout()
 
-        self.setMinimumSize(QSize(900, 1000))
+        self.setMinimumSize(QSize(900, 1080))
         self.accounts = []
 
         layout_lab = QHBoxLayout()
@@ -153,7 +153,10 @@ class MainWindow(QMainWindow):
         total_seconds = time_diff.total_seconds()
         hours = int(total_seconds // 3600)
         minutes = int((total_seconds % 3600) // 60)
-        time = QLabel("Time in lab: " + f"{hours:02d}:{minutes:02d}")
+        time = QLabel("🕒 "+ f"{hours:02d}:{minutes:02d}")
+        font = time.font()
+        font.setPointSize(12)
+        time.setFont(font)
         center_layout.addWidget(time)
 
         #account Image
@@ -164,6 +167,7 @@ class MainWindow(QMainWindow):
         #account Name
         account_name = QLabel(account.display_name)
         center_layout.addWidget(account_name)
+        account_name.setFont(font)
 
         icon_horiz_list = QHBoxLayout()
         icon_horiz_widget = QWidget()
@@ -182,6 +186,9 @@ class MainWindow(QMainWindow):
         #RSOs
         account_rso = QLabel(account.rso)
         center_layout.addWidget(account_rso)
+        font_rso = account_rso.font()
+        font_rso.setPointSize(9)
+        account_rso.setFont(font_rso)
 
         perm_list = get_permissions_from_db(self.client_connection)
         perm_list = sorted(perm_list)
