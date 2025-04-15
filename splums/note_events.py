@@ -12,12 +12,10 @@ def create(event, session):
                 
         creator = s.scalar(select(Account).where(Account.win == event.data["creator_win"]))
         if creator is None:
-            print("err invalid creator id")
             return -1
 
         subject = s.scalar(select(Account).where(Account.win == event.data["subject_win"]))
         if subject is None:
-            print(f"err invalid subject id: {event.data['subject_win']}")
             return -1
 
         new_note = Note(creator_account=creator, subject_account=subject, text=event.data["text"])
@@ -97,7 +95,6 @@ def get_notes_for_user_admin(event: Event, session):
 
             return format_notes(requested_notes)
     except Exception as e:
-        print(f"Error getting notes for user: {e}")
         return -1
 
 def edit_note_for_user(event: Event, session):
@@ -146,5 +143,4 @@ def get_notes_for_user_attendant(event: Event, session):
 
             return format_notes(requested_notes)
     except Exception as e:
-        print(f"Error getting notes for user: {e}")
         return -1

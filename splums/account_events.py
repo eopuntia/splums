@@ -14,7 +14,6 @@ ARCHIVE_USERS_AFTER_MONTHS = 10
 def create(event, session):
     with session.begin() as s:
         required_keys = ["win", "edit_attrs"]
-        print(f'EVENTDATA: {event.data}')
         for key in required_keys:
             if key not in event.data:
                 raise KeyError(f"Missing required key: {key}")
@@ -101,7 +100,6 @@ def edit(event, session):
 
             if update == "no_permissions":
                 for equip in event.data["edit_attrs"]["no_permissions"]:
-                    print(f"GOING TO DELETE {equip}")
                     e_del = s.scalar(select(Equipment.equipment_id).where(Equipment.name == equip))
                     if e_del:
                         del_equip = s.scalars(
@@ -164,26 +162,21 @@ def archive_user(event: Event, session):
             archived_user = s.scalars(select(Account).join(Role).where(Account.win == win))
             archived_type = s.scalars(select(Role).where(Role.name == "archived"))
             archived_user.role_id = archived_type.role_id
-            print(f"\033[92mUser with ID {win} Archived.\033[0m")
             s.commit()
     except ValueError as e:
-        print(f"\033[91mValue error:\033[0m {e}")
         s.rollback()
     except Exception as e:
-        print(f"\033[91mDatabase error:\033[0m {e}")
         s.rollback()
         return -1
 
 def auto_delete_user(session):
     with session() as s:
-        print("Deleting users...")
         archived_users = s.scalars(select(Account).join(Role).where(Role.name == "archived" and Account.last_updated_at <= datetime.now() - relativedelta(years=DELETE_USERS_AFTER_YEARS)))
         for user in archived_users:
             delete(Event(event_type=EventTypes.DELETE_USER, data={'win': user.win}), session)
 
 def auto_archive_user(session):
     with session() as s:
-        print("Archiving users...")
         users_to_archive = s.scalars(select(Account).join(Role).where((Role.name != "archived" and Account.last_access <= datetime.now() - relativedelta(months=ARCHIVE_USERS_AFTER_MONTHS))))
         for user in users_to_archive:
             archive_user(Event(event_type=EventTypes.ARCHIVE_USER, data={'win': user.win}))
@@ -206,16 +199,14 @@ def change_user_role(event: Event, session): # Promote or demote a user as an ad
                 user_type = s.scalars(select(Role).where(Role.name == event.data['name']))
                 promoted_user.user_type_id = user_type.user_type_id
                 session.commit()
-                print(f"\033[92mChanged user_type of user with ID {win} to {event.data['name']}.\033[0m")
             else:
                 session.rollback()
-                print(f"\033[91mUnable to change user_type of user with ID {win}.\033[0m")
     except KeyError as e:
-        print(f"\033[91mMissing key:\033[0m {e}")
+        return -1
     except ValueError as e:
-        print(f"\033[91mValue error:\033[0m {e}")
+        return -1
     except Exception as e:
-        print(f"\033[91mUnexpected error:\033[0m {e}")
+        return -1
 
 #*******************************************************************************************
 # SET A USER'S PIN
@@ -232,13 +223,11 @@ def set_user_pin(event: Event, session):
 
             requested_user = s.scalars(select(Account).where(Account.win == win)).first()
 
-            print("Setting pin...")
             requested_user.pin_hash = generate_password_hash(str(pin)) # Generates a hash for the given pin
 
             s.commit()
             return 1
     except Exception as e:
-        print(f"Error setting user's pin: {e}")
         return -1
 
 #*******************************************************************************************
@@ -258,7 +247,6 @@ def check_user_pin(event: Event, session):
 
             return check_password_hash(requested_user.pin_hash, pin) # Compares stored and given pin. Returns true if matching
     except Exception as e:
-        print(f"Error setting user's pin: {e}")
         return -1
 
 """
@@ -270,7 +258,6 @@ EVENT BROKER USER DATABASE QUERIES
 #*******************************************************************************************
 # Takes queried users
 def format_users(unformatted_user):
-    print("Formatting users...")
     user_dicts = []
     for user in unformatted_user:
         user_dict = {
@@ -289,11 +276,9 @@ def format_users(unformatted_user):
             'last_access': user.last_access
         }
         user_dicts.append(user_dict)
-        print(user_dict)
     return user_dicts
 
 def format_user(user):
-    print("Formatting user...")
     user_dict = {
         'win': user.win,
         'display_name': user.display_name,
@@ -332,7 +317,6 @@ def get_users_by_role(event: Event, session):
 
           return format_users(requested_users)
     except Exception as e:
-        print(f"Error getting users by role: {e}")
         return -1
 
 def get_swiped_in_users(session):
@@ -343,7 +327,6 @@ def get_swiped_in_users(session):
 
             return format_users(requested_users)
     except Exception as e:
-        print(f"Error getting signed-in users: {e}")
         return -1
 
     
@@ -363,7 +346,6 @@ def search_users(event, session):
         rso = event.data.get("rso")
 
         if name:
-            print("Adding name filter...")
             filters.append(or_(
                 Account.display_name.ilike(f"%{name}%"),
                 Account.given_name.ilike(f"%{name}%"),
@@ -371,18 +353,14 @@ def search_users(event, session):
             ))
 
         if affiliation:
-            print("Adding affiliation filter...")
             filters.append(Affiliation.name.ilike(f"%{affiliation}%"))
 
         if role:
-            print("Adding role filter...")
             filters.append(Role.name.ilike(f"%{role}%"))
 
         if department:
-            print("Adding department filter...")
             filters.append(Department.name.ilike(f"%{department}%"))
         if rso:
-            print("Adding rso filter...")
             filters.append(Account.rso.ilike(f"%{rso}%"))
 
         if filters:
@@ -393,14 +371,7 @@ def search_users(event, session):
 
 def get_user(event: Event, session):
     with session() as s:
-        print(event.data)
-        print(event.data)
-        print(event.data)
         user = s.scalar(select(Account).where(Account.win == event.data["win"]))
-        print(user.win)
-        print(user.win)
-        print(user.win)
-        print(user.win)
         if user is None:
             return
 
@@ -438,22 +409,17 @@ def get_users_paginated_filtered(event, session):
             for item in event.data["privilege"]:
                 filtered_role = s.scalar(select(Role).where(Role.name == item))
                 if filtered_role is None:
-                    print("invalid roleAAAA")
                     return -1
 
                 query = query.filter(Account.role != filtered_role)
-                print(f"IN FILTERED ROLE {filtered_role.name}")
 
         if event.data["affiliation"] != "ignore":
             for item in event.data["affiliation"]:
-                print("selecting affiliation to keep {item}")
                 filtered_affiliation = s.scalar(select(Affiliation).where(Affiliation.name == item))
                 if filtered_affiliation is None:
-                    print("invalid affiliation")
                     return -1
 
                 query = query.filter(Account.affiliation != filtered_affiliation)
-                print(f"IN FILTERED affiliation {filtered_affiliation.name}")
 
         if event.data["status"] != "ignore":
             if event.data["status"] == "active_accounts":
@@ -473,14 +439,9 @@ def get_users_paginated_filtered(event, session):
 
         account_all = query.all()
 
-        print(f'offset calculation at page: {event.data["page_number"]}, and items {event.data["items_per_page"]}')
         accounts = query.order_by(Account.last_access).offset(
                    (event.data["page_number"] -1) * event.data["items_per_page"]
                 ).limit(event.data["items_per_page"]).all()
-        for acc in accounts:
-            print(f"IN GETPAGE {acc.display_name}")
-            print(f"{len(accounts)}")
-
         ret_data = {}
         ret_data["users"] = format_users(accounts)
         ret_data["total_users"] = len(account_all)
@@ -504,7 +465,6 @@ def get_perms_for_user(event, session):
         for perm in perms:
             perm_data.append(perm.equipment.name)
 
-        print(f"PERM DATA{perm_data}")
         return perm_data.copy()
 
 # TODO add proper error handling
@@ -562,12 +522,10 @@ def attempt_attendant_signin(event, session):
 
 
         if account.role.name != "administrator" and account.role.name != "attendant":
-            print(account.role.name + 'invalid perms')
             s.rollback()
             return { "status": False }
 
         account.active_attendant = 1
-        print(account.role.name)
         ret_data = { "status": True, "display_name": account.display_name, 'admin': False }
 
         if account.role.name == "administrator":
@@ -655,6 +613,5 @@ def get_data_for_user(event, session):
         acc_data['affiliation'] = affiliation
         acc_data['department'] = department
 
-        print(f"in get_data_for_user {acc_data}")
 
         return acc_data.copy()
