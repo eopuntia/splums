@@ -1557,14 +1557,22 @@ class MainWindow(QMainWindow):
         win_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{9}"))
         pin_validator = QRegularExpressionValidator(QRegularExpression("[0-9]{4}"))
 
+        logo = QLabel()
+        logo.setText("SPLUMS")
+        font = logo.font()
+        font.setPointSize(100)
+        logo.setFont(font)
         self.login_username = QLineEdit()
+        self.login_username.setMaximumWidth(200)
         self.login_err = QLabel()
 
         self.login_username.setValidator(win_validator)
         self.login_pin = QLineEdit()
+        self.login_pin.setMaximumWidth(200)
         self.login_pin.setValidator(pin_validator)
         self.login_pin.setEchoMode(QLineEdit.EchoMode.Password)
         login_button = QPushButton("Login")
+        login_button.setMaximumWidth(235)
         login_button.clicked.connect(self.login)
 
         login_widget = QWidget()
@@ -1576,13 +1584,15 @@ class MainWindow(QMainWindow):
         login_layout_form.addRow("Pin", self.login_pin)
 
         login_layout.addStretch(1)
+        login_layout.addWidget(logo)
+        login_layout.addStretch(1)
         login_layout.addLayout(login_layout_form)
         spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         login_layout.addWidget(login_button)
         login_layout.addWidget(self.login_err)
         login_layout.addStretch(1)
 
-        login_widget.setMaximumWidth(500)
+        login_widget.setMaximumWidth(700)
 
         self.main_widget.addWidget(login_widget)
 
